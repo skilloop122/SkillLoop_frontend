@@ -1,1 +1,22 @@
 node_modules
+# next.js
+/.next/
+# production
+/build
+
+# local env files
+.env
+.env*.local
+.env.development
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+.DS_Store*
+*.pem
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
