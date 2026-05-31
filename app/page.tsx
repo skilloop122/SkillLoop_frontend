@@ -9,8 +9,7 @@ import {
   Search,
   Check,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
+ FolderOpen,
   Menu,
   X,
   Star,
@@ -20,7 +19,7 @@ import {
   CircleDashed,
   LucideIcon,
   ChartColumnBig,
-  LaptopMinimal,BrainCog,ClipboardList,
+  LaptopMinimal, BrainCog, ClipboardList,
   FileText
 } from "lucide-react";
 
@@ -31,6 +30,7 @@ type ExploreSkill = {
   icon: LucideIcon;
   className: string;
   iconClassName: string;
+  labelClassName?: string;
 };
 
 const sessionCards = [
@@ -74,22 +74,24 @@ const exploreSkillSlides: ExploreSkill[][] = [
       meta: "120+ Sessions",
       icon: Palette,
       iconClassName: "text-purple-700",
-
       className: "bg-[#b8a1e3]/50",
+      labelClassName: "text-purple-900",
     },
     {
       label: "Explore Development",
       meta: "Top Rated",
       className: "bg-[#8fb8ed]/50",
       icon: LaptopMinimal,
-      iconClassName: ""
+      iconClassName: "text-blue-700",
+      labelClassName: "text-blue-900",
     },
     {
       label: "Explore Marketing",
       meta: "Trending",
       className: "bg-[#f4a261]/40",
       icon: ChartColumnBig,
-      iconClassName: ""
+      iconClassName: "text-orange-700",
+      labelClassName: "text-orange-900",
     },
   ],
   [
@@ -98,21 +100,24 @@ const exploreSkillSlides: ExploreSkill[][] = [
       meta: "80+ Sessions",
       className: "bg-emerald-300",
       icon: ClipboardList,
-      iconClassName: ""
+      iconClassName: "text-emerald-700",
+      labelClassName: "text-emerald-900",
     },
     {
       label: "Explore Writing",
       meta: "New Skills",
       className: "bg-rose-300",
       icon: BrainCog,
-      iconClassName: ""
+      iconClassName: "text-rose-700",
+      labelClassName: "text-rose-900",
     },
     {
       label: "Explore Business",
       meta: "Popular",
       className: "bg-amber-300",
       icon: FileText,
-      iconClassName: ""
+      iconClassName: "text-amber-700",
+      labelClassName: "text-amber-900",
     },
   ],
 ];
@@ -182,10 +187,8 @@ export default function Home() {
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-linear-to-tr from-sky-400 to-blue-600 flex items-center justify-between p-1.5 shadow-md shadow-sky-500/20">
-              <div className="w-2.5 h-6 bg-white rounded-full animate-pulse" />
-              <div className="w-2.5 h-4 bg-white/70 rounded-full" />
-            </div>
+            <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
+
             <span className="text-xl font-bold tracking-tight bg-linear-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
               Skill<span className="text-sky-400">Loop</span>
             </span>
@@ -342,10 +345,12 @@ export default function Home() {
       </section>
 
       <section id="session-carousel" className="py-20 px-6 bg-white">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-10">Find the Right Match</h2>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Find the Right Match</h2>
+          {/* <p className="text-base text-slate-500 font-medium mb-10">Browse people by their skills and start a session today.</p> */}
 
-          <div className="relative overflow-hidden rounded-[8px]">
+          {/* Mobile: carousel */}
+          <div className="md:hidden relative overflow-hidden rounded-[8px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide}
@@ -359,132 +364,104 @@ export default function Home() {
                   <div className="relative w-[112px] h-[132px] shrink-0 overflow-hidden rounded-[8px] bg-slate-200">
                     <Image src={sessionCards[activeSlide].image} alt={sessionCards[activeSlide].name} fill className="object-cover" />
                   </div>
-
                   <div className="flex-1 min-w-0 py-1">
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <h3 className="text-base font-semibold text-slate-950 truncate">{sessionCards[activeSlide].name}</h3>
                       <span className="flex items-center gap-1 text-base font-semibold text-slate-950">
-                        <svg viewBox="0 0 16 16" className="w-5 h-5 fill-amber-400">
-                          <path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" />
-                        </svg>
+                        <svg viewBox="0 0 16 16" className="w-5 h-5 fill-amber-400"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
                         {sessionCards[activeSlide].rating}
                       </span>
                     </div>
-
-                    <span className="inline-flex rounded-[4px] bg-sky-200 px-2 py-1 text-base text-slate-950 mb-3">
-                      {sessionCards[activeSlide].role}
-                    </span>
-
+                    <span className="inline-flex rounded-[4px] bg-sky-200 px-2 py-1 text-base text-slate-950 mb-3">{sessionCards[activeSlide].role}</span>
                     <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3">
-                      {sessionCards[activeSlide].skills.map((skill) => (
-                        <span key={skill} className="text-base text-slate-950">
-                          {skill}
-                        </span>
-                      ))}
+                      {sessionCards[activeSlide].skills.map((skill) => (<span key={skill} className="text-base text-slate-950">{skill}</span>))}
                     </div>
-
-                    <button className="w-full rounded-[4px] bg-sky-500 hover:bg-sky-400 text-white text-base font-medium py-1.5 transition-colors">
-                      Join Session
-                    </button>
+                    <button className="w-full rounded-[4px] bg-sky-500 hover:bg-sky-400 text-white text-base font-medium py-1.5 transition-colors">Join Session</button>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
+          </div>
 
-            <div className="hidden md:flex items-center justify-center gap-3 mt-5">
-              <button
-                type="button"
-                onClick={() => setActiveSlide((current) => (current - 1 + sessionCards.length) % sessionCards.length)}
-                className="w-9 h-9 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center"
-                aria-label="Previous session"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2">
-                {sessionCards.map((card, index) => (
-                  <button
-                    key={card.role}
-                    type="button"
-                    onClick={() => setActiveSlide(index)}
-                    className={`h-2 rounded-full transition-all ${activeSlide === index ? "w-6 bg-sky-500" : "w-2 bg-slate-300"
-                      }`}
-                    aria-label={`Show ${card.role} card`}
-                  />
-                ))}
+          {/* Desktop: full grid */}
+          <div className="hidden md:grid md:grid-cols-3 gap-6">
+            {sessionCards.map((card) => (
+              <div key={card.name} className="bg-sky-50 border border-slate-200 rounded-[12px] p-4 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
+                <div className="relative w-full h-48 overflow-hidden rounded-[8px] bg-slate-200">
+                  <Image src={card.image} alt={card.name} fill className="object-cover" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-slate-900">{card.name}</h3>
+                    <span className="flex items-center gap-1 text-sm font-semibold text-slate-700">
+                      <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-400"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
+                      {card.rating}
+                    </span>
+                  </div>
+                  <span className="inline-flex rounded-[4px] bg-sky-200 px-2 py-1 text-sm text-slate-800 mb-3">{card.role}</span>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {card.skills.map((skill) => (<span key={skill} className="text-sm text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-full">{skill}</span>))}
+                  </div>
+                  <button className="w-full rounded-[8px] bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold py-2.5 transition-colors">Join Session</button>
+                </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSlide((current) => (current + 1) % sessionCards.length)}
-                className="w-9 h-9 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center"
-                aria-label="Next session"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── SHARED EXPERIENCE SECTION ── */}
-      <section className="px-6 pb-20 bg-white">
-        <div className="max-w-lg mx-auto">
-          <div className="relative min-h-[232px] overflow-hidden rounded-[8px] bg-slate-900">
+      {/* <section className="px-6 pb-20 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative min-h-[280px] md:min-h-[360px] overflow-hidden rounded-2xl bg-slate-900">
             <Image src="/hero_collaboration.png" alt="SkilLoop Collaboration Background" fill priority quality={95} className="object-cover object-center select-none" />
-
-
-            <div className="absolute inset-0 bg-slate-950/45" />
-
-            <div className="relative z-10 flex min-h-[232px] items-end p-4">
-              <p className="text-[17px] leading-[1.4] text-white">
-                <span className="text-sky-400">SkilLoop</span> redefines how
-                people learn by turning knowledge into a shared experience.
-                Teach your skills, learn from others, and grow through real
-                collaboration not just content.
+            <div className="absolute inset-0 bg-slate-950/55" />
+            <div className="relative z-10 flex min-h-[280px] md:min-h-[360px] items-end p-8 md:p-16">
+              <p className="text-xl md:text-3xl font-medium leading-relaxed text-white max-w-3xl">
+                <span className="text-sky-400">SkilLoop</span> redefines how people learn by turning knowledge into a shared experience. Teach your skills, learn from others, and grow through real collaboration — not just content.
               </p>
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
 
-      <section id="how-it-works" className=" px-6 bg-white">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-10">How it Works</h2>
+      <section id="how-it-works" className="py-20 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">How it Works</h2>
+          <p className="text-base text-slate-500 font-medium mb-12">Three simple steps to start your skill journey.</p>
 
-          <div className="flex flex-col gap-0">
-            <div className="flex items-start gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+            <div className="flex md:flex-col items-start gap-5">
               <div className="shrink-0 w-20 h-20 rounded-2xl bg-linear-to-b from-sky-300 to-sky-500 flex items-center justify-center shadow-lg shadow-sky-300/30">
                 <Search className="w-9 h-9 text-slate-800 stroke-[1.8]" />
               </div>
               <div className="pt-2">
-                <h3 className="text-lg font-bold text-sky-500 mb-1">Find a Match</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Browse people by their skills.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-1">Step 01</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Find a Match</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Browse people by their skills and find the perfect learning partner.</p>
               </div>
             </div>
 
-            <div className="ml-10 w-px h-10 bg-sky-400 my-1" />
-
-            <div className="flex items-start gap-5">
+            <div className="flex md:flex-col items-start gap-5">
               <div className="shrink-0 w-20 h-20 rounded-2xl bg-linear-to-b from-sky-300 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-400/30">
                 <Handshake className="w-9 h-9 text-slate-800" />
               </div>
               <div className="pt-2">
-                <h3 className="text-lg font-bold text-sky-500 mb-1">Request a Session</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Send a request and connect with your match.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-1">Step 02</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Request a Session</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Send a request and connect with your match to set up a session.</p>
               </div>
             </div>
 
-            <div className="ml-10 w-px h-10 bg-sky-400 my-1" />
-
-            <div className="flex items-start gap-5">
+            <div className="flex md:flex-col items-start gap-5">
               <div className="shrink-0 w-20 h-20 rounded-2xl bg-linear-to-b from-sky-400 to-sky-700 flex items-center justify-center shadow-lg shadow-sky-500/30">
                 <GraduationCap className="w-9 h-9 text-slate-800 stroke-[1.8]" />
               </div>
               <div className="pt-2">
-                <h3 className="text-lg font-bold text-sky-500 mb-1">Teach &amp; Learn</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Exchange Knowledge and grow together.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-1">Step 03</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Teach &amp; Learn</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Exchange knowledge and grow together in real collaborative sessions.</p>
               </div>
             </div>
           </div>
@@ -492,15 +469,16 @@ export default function Home() {
       </section>
 
       <section id="in-action" className="py-20 px-6 bg-white">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">
             SkilLoop in Action
           </h2>
-          <p className="text-sm text-slate-500 font-medium mb-10">
+          <p className="text-base text-slate-500 font-medium mb-10">
             See how our users are learning and teaching in real-time.
           </p>
 
-          <div className="relative overflow-hidden">
+          {/* Mobile: carousel */}
+          <div className="md:hidden relative overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={actionSlide}
@@ -512,132 +490,109 @@ export default function Home() {
               >
                 <div className="w-full bg-sky-100 rounded-3xl p-4 flex items-center gap-4 shadow-sm">
                   <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-slate-200">
-                    <Image
-                      src={actionCards[actionSlide].image}
-                      alt={actionCards[actionSlide].name}
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={actionCards[actionSlide].image} alt={actionCards[actionSlide].name} fill className="object-cover" />
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-base font-extrabold text-slate-900">
-                        {actionCards[actionSlide].name}
-                      </span>
+                      <span className="text-base font-extrabold text-slate-900">{actionCards[actionSlide].name}</span>
                       <span className="flex items-center gap-1 text-sm font-bold text-amber-500">
-                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-400">
-                          <path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" />
-                        </svg>
+                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-400"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
                         {actionCards[actionSlide].rating}
                       </span>
                     </div>
-
-                    <div className="text-xs font-semibold text-slate-500 mb-2">
-                      Teaches
-                    </div>
-
+                    <div className="text-xs font-semibold text-slate-500 mb-2">Teaches</div>
                     <div className="flex gap-2 flex-wrap">
                       {actionCards[actionSlide].teaches.map((skill) => (
-                        <span
-                          key={skill}
-                          className="text-xs font-bold px-3 py-1 rounded-full bg-white text-slate-700 shadow-sm"
-                        >
-                          {skill}
-                        </span>
+                        <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-white text-slate-700 shadow-sm">{skill}</span>
                       ))}
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-center w-10 h-10 my-1 z-10">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-sky-400/40">
-                    <span className="font-black text-sm italic leading-none">
-                      <Image src='/images/Group.png' alt="S" width={20} height={20} />
-                    </span>
+                    <Image src='/images/Group.png' alt="S" width={20} height={20} />
                   </div>
                 </div>
-
                 <div className="w-full bg-sky-500 rounded-3xl p-4 flex items-center gap-4 shadow-lg shadow-sky-400/25">
                   <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-sky-400">
-                    <Image
-                      src={actionCards[actionSlide].image}
-                      alt={actionCards[actionSlide].name}
-                      fill
-                      className="object-cover opacity-90"
-                    />
+                    <Image src={actionCards[actionSlide].image} alt={actionCards[actionSlide].name} fill className="object-cover opacity-90" />
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-base font-extrabold text-white">
-                        {actionCards[actionSlide].name}
-                      </span>
+                      <span className="text-base font-extrabold text-white">{actionCards[actionSlide].name}</span>
                       <span className="flex items-center gap-1 text-sm font-bold text-amber-300">
-                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300">
-                          <path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" />
-                        </svg>
+                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
                         {actionCards[actionSlide].rating}
                       </span>
                     </div>
-
-                    <div className="text-xs font-semibold text-sky-100 mb-2">
-                      Learning
-                    </div>
-
+                    <div className="text-xs font-semibold text-sky-100 mb-2">Learning</div>
                     <div className="flex gap-2 flex-wrap">
                       {actionCards[actionSlide].learning.map((skill) => (
-                        <span
-                          key={skill}
-                          className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white"
-                        >
-                          {skill}
-                        </span>
+                        <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white">{skill}</span>
                       ))}
                     </div>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
+          </div>
 
-            <div className="hidden md:flex items-center justify-center gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() =>
-                  setActionSlide(
-                    (current) => (current - 1 + actionCards.length) % actionCards.length
-                  )
-                }
-                className="w-9 h-9 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center"
-                aria-label="Previous action"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+          {/* Desktop: all cards in a grid */}
+          <div className="hidden md:grid md:grid-cols-2 gap-8">
+            {actionCards.map((card) => (
+              <div key={card.name} className="flex flex-col gap-3 bg-slate-50 rounded-3xl p-6 border border-slate-100 hover:shadow-md transition-shadow">
+                {/* Teaching card */}
+                <div className="bg-sky-100 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-slate-200">
+                    <Image src={card.image} alt={card.name} fill className="object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-extrabold text-slate-900">{card.name}</span>
+                      <span className="flex items-center gap-1 text-sm font-bold text-amber-500">
+                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-400"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
+                        {card.rating}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 mb-2">Teaches</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {card.teaches.map((skill) => (
+                        <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-white text-slate-700 shadow-sm">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-2">
-                {actionCards.map((card, index) => (
-                  <button
-                    key={card.name}
-                    type="button"
-                    onClick={() => setActionSlide(index)}
-                    className={`h-2 rounded-full transition-all ${actionSlide === index ? "w-6 bg-sky-500" : "w-2 bg-slate-300"
-                      }`}
-                    aria-label={`Show ${card.name}`}
-                  />
-                ))}
+                {/* Swap icon */}
+                <div className="flex justify-center">
+                  <div className="w-8 h-8 rounded-full bg-white border border-sky-100 flex items-center justify-center shadow-sm">
+                    <Image src='/images/Group.png' alt="swap" width={18} height={18} />
+                  </div>
+                </div>
+
+                {/* Learning card */}
+                <div className="bg-sky-500 rounded-2xl p-4 flex items-center gap-4 shadow-md shadow-sky-400/20">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-sky-400">
+                    <Image src={card.image} alt={card.name} fill className="object-cover opacity-90" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-extrabold text-white">{card.name}</span>
+                      <span className="flex items-center gap-1 text-sm font-bold text-amber-300">
+                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
+                        {card.rating}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-sky-100 mb-2">Learning</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {card.learning.map((skill) => (
+                        <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setActionSlide((current) => (current + 1) % actionCards.length)
-                }
-                className="w-9 h-9 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center"
-                aria-label="Next action"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -645,41 +600,41 @@ export default function Home() {
 
 
       <section id="why" className="py-20 px-6 bg-slate-50">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-10">Why SkilLoop?</h2>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Why SkilLoop?</h2>
+          <p className="text-base text-slate-500 font-medium mb-12">Built for people who want to grow fast and give back.</p>
 
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center gap-5">
-              <div className="shrink-0 w-16 h-16 rounded-2xl bg-[#00CCFC]/50 flex items-center justify-center">
-                <Image src='/images/Group.png' alt="S" width={20} height={20} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-[#00CCFC]/20 flex items-center justify-center">
+                <Image src='/images/Group.png' alt="S" width={24} height={24} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-sky-500 mb-0.5">Skill Exchange</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Teach what you know and learn what you need.</p>
+                <h3 className="text-xl font-bold text-sky-500 mb-2">Skill Exchange</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Teach what you know and learn what you need — no money, just value for value.</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-5">
-              <div className="shrink-0 w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center">
                 <Image src='/images/mdi_puzzle-star.png' alt="S" width={30} height={30} />
-
               </div>
               <div>
-                <h3 className="text-base font-bold text-purple-500 mb-0.5">Build your Portfolio</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Work on real-world projects to build experience.</p>
+                <h3 className="text-xl font-bold text-purple-500 mb-2">Build your Portfolio</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Work on real-world projects alongside peers to build a portfolio that stands out.</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-5">
-              <div className="shrink-0 w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center">
                 <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
                   <circle cx="16" cy="16" r="11" stroke="#f97316" strokeWidth="2.5" />
                   <path d="M16 10v6l4 2" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-base font-bold text-orange-500 mb-0.5">15 minutes Mastery</h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Learn faster with short, focused sessions designed to deliver real skills.</p>
+                <h3 className="text-xl font-bold text-orange-500 mb-2">15-Minute Mastery</h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Learn faster with short, focused sessions designed to deliver real, actionable skills.</p>
               </div>
             </div>
           </div>
@@ -688,54 +643,52 @@ export default function Home() {
 
       {/* ── GROWTH BENEFITS ── */}
       <section className="py-20 px-6 bg-white">
-        <div className="max-w-lg mx-auto flex flex-col gap-6">
-          <h2 className="text-3xl font-extrabold text-slate-900">Earn as You Learn</h2>
-          <p className="text-base font-semibold leading-relaxed text-slate-500">Get Rewarded for every skill you teah and learn</p>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Earn as You Learn</h2>
+          <p className="text-base font-semibold leading-relaxed text-slate-500 mb-12">Get rewarded for every skill you teach and learn.</p>
 
-          <div className="rounded-[8px] bg-[#ff6f47]/10 p-8 min-h-[205px] shadow-[0_14px_28px_rgba(0,0,0,0.45)]">
-            <div className="flex justify-center mb-6">
-              <Star className="w-14 h-14 fill-amber-300 text-amber-300" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-2xl bg-[#ff6f47]/10 p-8 flex flex-row gap-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mt-5">
+                <Star className="w-8 h-8 fill-amber-400 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-sky-500 mb-2">Earn Points</h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-600">Gain points when you teach or complete sessions. Redeem them for exclusive perks.</p>
+              </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-sky-400 mb-2">
-              Earn Points
-            </h2>
-            <p className="text-base font-semibold leading-relaxed text-black">
-              Gain points when you teach or complete sessions.
-            </p>
-          </div>
 
-          <div className="rounded-[8px] bg-[#36a4cf]/10 p-8 min-h-[205px] shadow-[0_14px_28px_rgba(0,0,0,0.45)] flex flex-col justify-end">
-            <div className="flex justify-center mb-6">
-              <CircleDashed className="w-12 h-12 text-sky-300" />
+            <div className="rounded-2xl bg-[#36a4cf]/10 p-8 flex flex-row gap-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center mt-5">
+                <CircleDashed className="w-8 h-8 text-sky-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-sky-500 mb-2">Track Progress</h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-600">Watch your skills grow over time with detailed session history and milestones.</p>
+              </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-sky-400 mb-2">
-              Track Progress
-            </h2>
-            <p className="text-base font-semibold leading-relaxed text-black">
-              Watch your skills grow over time.
-            </p>
-          </div>
 
-          <div className="rounded-[8px] bg-[#e07f14]/10 p-8 min-h-[205px] shadow-[0_14px_28px_rgba(0,0,0,0.45)]">
-            <div className="flex justify-center mb-6">
-              <Image src='/images/wrapped-gift.png' alt="S" width={50} height={50} />
+            <div className="rounded-2xl bg-[#e07f14]/10 p-8 flex flex-row gap-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mt-5">
+                <FolderOpen className="w-8 h-8 text-[#E07F14]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-sky-500 mb-2">Build your Portfolio</h3>
+                <p className="text-sm font-medium leading-relaxed text-slate-600">Work on real-world projects to build experience and showcase your growth.</p>
+              </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-sky-400 mb-2">
-              Build your Portfolio
-            </h2>
-            <p className="text-base font-semibold leading-relaxed text-black">
-              Work on real-world projects to build experience.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* ── EXPLORE SKILLS CAROUSEL ── */}
+      {/* ── EXPLORE SKILLS ── */}
       <section id="explore-skills" className="py-20 px-6 bg-white">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Explore Skills</h2>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Explore Skills</h2>
           <p className="text-base font-semibold leading-relaxed text-slate-500 mb-10">Discover what you can learn or teach with <span className="text-sky-500">SkilLoop</span></p>
-          <div className="relative overflow-hidden">
+
+          {/* Mobile: carousel */}
+          <div className="md:hidden relative overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={exploreSlide}
@@ -743,94 +696,58 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.28 }}
-                className="flex flex-col gap-6"
+                className="flex flex-col gap-4"
               >
                 {exploreSkillSlides[exploreSlide].map((skill) => {
                   const Icon = skill.icon;
-
                   return (
-                    <div
-                      key={skill.label}
-                      className={`${skill.className} rounded-[8px] min-h-[72px] px-8 py-5 flex items-center justify-between`}
-                    >
-                      <div className="flex items-center gap-16 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-white/25 flex items-center justify-center shrink-0">
-                          <Icon className={`w-5 h-5 ${skill.iconClassName}`}/>
-                        </div>
-                        <div className="flex flex-col items-start gap-3">
-                          <p className="text-lg font-extrabold text-white/85 truncate">
-                            {skill.label}
-                          </p>
-                          <p className="text-base font-medium text-slate-900/50">
-                            {skill.meta}
-                          </p>
-                        </div>
-
+                    <div key={skill.label} className={`${skill.className} rounded-[8px] min-h-[72px] px-6 py-4 flex items-center gap-6`}>
+                      <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                        <Icon className={`w-5 h-5 ${skill.iconClassName}`} />
                       </div>
-
+                      <div>
+                        <p className={`text-base font-extrabold ${skill.labelClassName ?? "text-white/90"}`}>{skill.label}</p>
+                        <p className="text-sm font-medium text-slate-900/50">{skill.meta}</p>
+                      </div>
                     </div>
-                  )
+                  );
                 })}
               </motion.div>
             </AnimatePresence>
+          </div>
 
-            <div className="hidden md:flex items-center justify-center gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() =>
-                  setExploreSlide(
-                    (current) =>
-                      (current - 1 + exploreSkillSlides.length) %
-                      exploreSkillSlides.length
-                  )
-                }
-                className="w-9 h-9 rounded-full border border-white/20 text-white hover:bg-white/10 flex items-center justify-center"
-                aria-label="Previous skill group"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2">
-                {exploreSkillSlides.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setExploreSlide(index)}
-                    className={`h-2 rounded-full transition-all ${exploreSlide === index ? "w-6 bg-sky-400" : "w-2 bg-white/30"
-                      }`}
-                    aria-label={`Show skill group ${index + 1}`}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setExploreSlide(
-                    (current) => (current + 1) % exploreSkillSlides.length
-                  )
-                }
-                className="w-9 h-9 rounded-full border border-white/20 text-white hover:bg-white/10 flex items-center justify-center"
-                aria-label="Next skill group"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Desktop: full grid of all skills */}
+          <div className="hidden md:grid md:grid-cols-3 gap-5">
+            {exploreSkillSlides.flat().map((skill) => {
+              const Icon = skill.icon;
+              return (
+                <div key={skill.label} className={`${skill.className} rounded-2xl px-8 py-6 flex items-center gap-6 hover:scale-[1.02] transition-transform cursor-pointer`}>
+                  <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                    <Icon className={`w-6 h-6 ${skill.iconClassName}`} />
+                  </div>
+                  <div>
+                    <p className={`text-lg font-extrabold ${skill.labelClassName ?? "text-white/90"}`}>{skill.label}</p>
+                    <p className="text-sm font-medium text-slate-700/60">{skill.meta}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
 
 
-      <section id="cta" className="py-16 px-6 bg-white border-t border-slate-100">
-        <div className="max-w-lg mx-auto text-center">
-          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
-            No Payment. Just <span className="text-sky-500">Skill</span> for <span className="text-sky-500">Skill.</span>
+      <section id="cta" className="py-24 px-6 bg-slate-950 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.15),transparent_70%)]" />
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4">
+            No Payment. Just <span className="text-sky-400">Skill</span> for <span className="text-sky-400">Skill.</span>
           </h2>
-          <p className="text-sm text-slate-500 font-medium mb-8">Start learning by teaching what you already know.</p>
-          <Link href="/signup" className="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-bold px-8 py-3.5 rounded-full shadow-lg shadow-sky-400/30 active:scale-95 transition-all text-sm">
-            Get Started
-            <ArrowUpRight className="w-4 h-4" />
+          <p className="text-base md:text-lg text-slate-400 font-medium mb-10 max-w-xl mx-auto">Start learning by teaching what you already know. Join thousands of people growing together.</p>
+          <Link href="/signup" className="inline-flex items-center gap-2 bg-linear-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold px-10 py-4 rounded-full shadow-xl shadow-sky-500/25 active:scale-95 transition-all text-base">
+            Get Started Free
+            <ArrowUpRight className="w-5 h-5" />
           </Link>
         </div>
       </section>
@@ -839,10 +756,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-6 mb-12">
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-linear-to-tr from-sky-400 to-blue-600 flex items-center justify-between p-1.5">
-                <div className="w-2 h-5 bg-white rounded-full" />
-                <div className="w-2 h-3.5 bg-white/70 rounded-full" />
-              </div>
+              <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
               <span className="text-lg font-bold tracking-tight text-white">
                 Skill<span className="text-sky-400">Loop</span>
               </span>

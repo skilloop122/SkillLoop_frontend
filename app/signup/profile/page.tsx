@@ -108,7 +108,7 @@ export default function ProfileSetup() {
       return;
     }
 
-    router.push("/signup/profile/learn");
+    router.push("/signup/profile/availability");
   };
 
   return (

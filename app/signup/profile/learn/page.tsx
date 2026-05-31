@@ -84,7 +84,7 @@ export default function LearnSkills() {
     }
     setShowSuccess(true);
     setTimeout(() => {
-      router.push("/");
+      router.push("/explore");
     }, 5000);
   };
 
@@ -278,7 +278,7 @@ export default function LearnSkills() {
               className="relative z-10 w-full max-w-[430px] mx-auto px-6 pb-10"
             >
               <button
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/explore")}
                 className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-full shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base"
               >
                 Go to Discover
