@@ -35,7 +35,7 @@ export default function HomePage() {
           {/* Dashboard Summary Card */}
           <div className="bg-linear-to-br from-[#2dbcf8] to-[#60cbf9] rounded-[16px] p-5 shadow-sm text-white mb-10">
             <div className="flex items-start justify-between mb-6">
-              <h2 className="text-lg font-medium leading-snug max-w-[180px]">
+              <h2 className="text-lg font-medium leading-snug max-w-[190px]">
                 What are you learning or teaching today?
               </h2>
               <div className="flex flex-col items-end">
