@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowLeft,
     CheckSquare,
     Paperclip,
     Clock,
-    Square,
+    // Square,
     Tag,
 } from "lucide-react";
 import Image from "next/image";
@@ -26,7 +26,7 @@ export default function ProjectWorkspacePage() {
     const searchParams = useSearchParams();
     const initialCompleted = searchParams.get("status") === "completed";
 
-    const [completed, setCompleted] = useState(initialCompleted);
+    const [completed] = useState(initialCompleted);
     const [dueDateCompleted, setDueDateCompleted] = useState(completed);
     const [checkedTasks, setCheckedTasks] = useState<string[]>(
         initialCompleted ? tasks : []
@@ -34,10 +34,10 @@ export default function ProjectWorkspacePage() {
 
     const statusLabel = completed ? "Completed" : "In Progress";
 
-    const allTasksDone = useMemo(
-        () => checkedTasks.length === tasks.length,
-        [checkedTasks]
-    );
+    // const allTasksDone = useMemo(
+    //     () => checkedTasks.length === tasks.length,
+    //     [checkedTasks]
+    // );
 
     const toggleTask = (task: string) => {
         if (completed) return;

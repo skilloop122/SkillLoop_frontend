@@ -35,17 +35,19 @@ type ExploreSkill = {
 
 const sessionCards = [
   {
+    id: "james-teaches",
     name: "James Klin",
     rating: "4.8",
-    role: "Teaches",
-    skills: ["Frontend", "Word Press"],
+    role: ["Frontend", "Word Press"],
+    skills: ["UI/UX", "Motion Design"],
     image: "/james_klin.png",
   },
   {
+    id: "james-learns",
     name: "James Klin",
     rating: "4.8",
-    role: "Learning",
-    skills: ["UI/UX", "Motion Design"],
+    role: ["Brand Design", "Figma"],
+    skills: ["React", "Next.js"],
     image: "/james_klin.png",
   },
 ];
@@ -386,7 +388,7 @@ export default function Home() {
           {/* Desktop: full grid */}
           <div className="hidden md:grid md:grid-cols-3 gap-6">
             {sessionCards.map((card) => (
-              <div key={card.name} className="bg-sky-50 border border-slate-200 rounded-[12px] p-4 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div key={card.id} className="bg-sky-50 border border-slate-200 rounded-[12px] p-4 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
                 <div className="relative w-full h-48 overflow-hidden rounded-[8px] bg-slate-200">
                   <Image src={card.image} alt={card.name} fill className="object-cover" />
                 </div>

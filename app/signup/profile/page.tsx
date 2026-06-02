@@ -28,7 +28,7 @@ export default function ProfileSetup() {
   const router = useRouter();
   const [skills, setSkills] = useState<AddedSkill[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showSuccess] = useState(false);
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [skillForm, setSkillForm] = useState({
     skill: "",

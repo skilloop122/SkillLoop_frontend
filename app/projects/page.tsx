@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type Project = {
   id: string;
@@ -21,6 +21,25 @@ type MyProject = Project & {
   role: string;
   status: "Active" | "Completed";
 };
+
+const COMPLETED_PROJECTS_KEY = "completedProjects";
+
+const subscribeToCompletedProjects = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  window.addEventListener("completedProjectsChanged", callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("completedProjectsChanged", callback);
+  };
+};
+
+const getCompletedProjectsSnapshot = () => {
+  if (typeof window === "undefined") return "[]";
+  return localStorage.getItem(COMPLETED_PROJECTS_KEY) || "[]";
+};
+
+const getCompletedProjectsServerSnapshot = () => "[]";
 
 const availableProjects: Project[] = [
   {
@@ -76,15 +95,19 @@ export default function ProjectsPage() {
     "Active"
   );
 
-  const [storedCompletedProjects] = useState<MyProject[]>(() => {
-    if (typeof window === "undefined") return [];
+  const completedProjectsSnapshot = useSyncExternalStore(
+    subscribeToCompletedProjects,
+    getCompletedProjectsSnapshot,
+    getCompletedProjectsServerSnapshot
+  );
 
-    try {
-      return JSON.parse(localStorage.getItem("completedProjects") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const storedCompletedProjects = useMemo<MyProject[]>(() => {
+  try {
+    return JSON.parse(completedProjectsSnapshot) as MyProject[];
+  } catch {
+    return [];
+  }
+}, [completedProjectsSnapshot]);
 
   const activeProjectsCount = myProjects.filter(
     (project) => project.status === "Active"
