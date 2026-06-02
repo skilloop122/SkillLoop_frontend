@@ -1,85 +1,94 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-    ArrowLeft,
-    CheckSquare,
-    Paperclip,
-    Clock,
-    // Square,
-    Tag,
+  ArrowLeft,
+  CheckSquare,
+  Paperclip,
+  Clock,
+  Tag,
 } from "lucide-react";
 import Image from "next/image";
 
 const tasks = [
-    "Set up project structure",
-    "Build homepage layout",
-    "Implement responsive design",
-    "Add project showcase section",
-    "Optimize performance",
-    "Submit for review",
+  "Set up project structure",
+  "Build homepage layout",
+  "Implement responsive design",
+  "Add project showcase section",
+  "Optimize performance",
+  "Submit for review",
 ];
 
 export default function ProjectWorkspacePage() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const initialCompleted = searchParams.get("status") === "completed";
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <ProjectWorkspaceContent />
+    </Suspense>
+  );
+}
 
-    const [completed] = useState(initialCompleted);
-    const [dueDateCompleted, setDueDateCompleted] = useState(completed);
-    const [checkedTasks, setCheckedTasks] = useState<string[]>(
-        initialCompleted ? tasks : []
+function ProjectWorkspaceContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCompleted = searchParams.get("status") === "completed";
+
+  const [completed, setCompleted] = useState(initialCompleted);
+  const [dueDateCompleted, setDueDateCompleted] = useState(initialCompleted);
+  const [checkedTasks, setCheckedTasks] = useState<string[]>(
+    initialCompleted ? tasks : []
+  );
+
+  const statusLabel = completed ? "Completed" : "In Progress";
+
+//   const allTasksDone = useMemo(
+//     () => checkedTasks.length === tasks.length,
+//     [checkedTasks]
+//   );
+
+  const toggleTask = (task: string) => {
+    if (completed) return;
+
+    setCheckedTasks((current) =>
+      current.includes(task)
+        ? current.filter((item) => item !== task)
+        : [...current, task]
+    );
+  };
+
+  const handleSubmit = () => {
+    if (!dueDateCompleted) return;
+
+    const completedProject = {
+      id: "completed-frontend-website",
+      title: "Frontend Project",
+      description: "Code a desktop landing.....",
+      skills: ["Frontend", "Web Dev"],
+      collaborators: "4/5 Collaborators",
+      role: "Frontend Dev",
+      status: "Completed",
+      image: "/james_klin.png",
+    };
+
+    const existing = JSON.parse(
+      localStorage.getItem("completedProjects") || "[]"
     );
 
-    const statusLabel = completed ? "Completed" : "In Progress";
+    const alreadyExists = existing.some(
+      (project: { id: string }) => project.id === completedProject.id
+    );
 
-    // const allTasksDone = useMemo(
-    //     () => checkedTasks.length === tasks.length,
-    //     [checkedTasks]
-    // );
+    if (!alreadyExists) {
+      localStorage.setItem(
+        "completedProjects",
+        JSON.stringify([...existing, completedProject])
+      );
+      window.dispatchEvent(new Event("completedProjectsChanged"));
+    }
 
-    const toggleTask = (task: string) => {
-        if (completed) return;
-
-        setCheckedTasks((current) =>
-            current.includes(task)
-                ? current.filter((item) => item !== task)
-                : [...current, task]
-        );
-    };
-
-    const handleSubmit = () => {
-        if (!dueDateCompleted) return;
-
-        const completedProject = {
-            id: "completed-frontend-website",
-            title: "Frontend Project",
-            description: "Code a desktop landing.....",
-            skills: ["Frontend", "Web Dev"],
-            collaborators: "4/5 Collaborators",
-            role: "Frontend Dev",
-            status: "Completed",
-            image: "/james_klin.png",
-        };
-
-        const existing = JSON.parse(
-            localStorage.getItem("completedProjects") || "[]"
-        );
-
-        const alreadyExists = existing.some(
-            (project: { id: string }) => project.id === completedProject.id
-        );
-
-        if (!alreadyExists) {
-            localStorage.setItem(
-                "completedProjects",
-                JSON.stringify([...existing, completedProject])
-            );
-        }
-
-        router.push("/projects/completed");
-    };
+    setCompleted(true);
+    router.push("/projects/completed");
+  };
 
     return (
         <div className="min-h-screen bg-white font-sans text-black">
