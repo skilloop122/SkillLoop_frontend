@@ -102,12 +102,12 @@ export default function ProjectsPage() {
   );
 
   const storedCompletedProjects = useMemo<MyProject[]>(() => {
-  try {
-    return JSON.parse(completedProjectsSnapshot) as MyProject[];
-  } catch {
-    return [];
-  }
-}, [completedProjectsSnapshot]);
+    try {
+      return JSON.parse(completedProjectsSnapshot) as MyProject[];
+    } catch {
+      return [];
+    }
+  }, [completedProjectsSnapshot]);
 
   const activeProjectsCount = myProjects.filter(
     (project) => project.status === "Active"
@@ -148,7 +148,7 @@ export default function ProjectsPage() {
             </p>
           </header>
 
-          <section className="mb-9 overflow-hidden rounded-[8px] bg-linear-to-b from-[#0ea5e9] to-[#b8e8fb] px-4 py-7 text-white">
+          <section className="mb-9 overflow-hidden rounded-[8px] bg-linear-to-b from-[#0ea5e9] to-[#448ca9] px-4 py-7 text-white">
             <div className="relative min-h-[112px]">
               {progressSlide === 0 && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
@@ -194,12 +194,12 @@ export default function ProjectsPage() {
 
                   <Link
                     href="/sessions"
-                    className="rounded-[4px] bg-[#0ea5e9] px-2 py-1 text-[14px] font-medium text-white"
+                    className="rounded-[4px] bg-[#03afff] px-4 py-2 text-[14px] font-medium text-white"
                   >
                     View Sessions
                   </Link>
 
-                  <p className="mt-3 text-[14px] text-slate-600">
+                  <p className="mt-3 text-[14px] text-slate-900">
                     Take one more session to be eligible for Projects
                   </p>
                 </div>
@@ -277,11 +277,10 @@ export default function ProjectsPage() {
                   key={tab}
                   type="button"
                   onClick={() => setMyProjectTab(tab)}
-                  className={`rounded-[4px] px-2.5 py-2 text-[16px] transition-colors ${
-                    myProjectTab === tab
-                      ? "bg-[#0ea5e9] text-black"
-                      : "bg-[#ccebf8] text-black"
-                  }`}
+                  className={`rounded-[4px] px-2.5 py-2 text-[16px] transition-colors ${myProjectTab === tab
+                    ? "bg-[#0ea5e9] text-black"
+                    : "bg-[#ccebf8] text-black"
+                    }`}
                 >
                   {tab}
                   <span className="ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#bae6fd] px-2 text-[14px]">
@@ -297,46 +296,44 @@ export default function ProjectsPage() {
                   key={project.id}
                   className="overflow-hidden rounded-[8px] border border-[#bae6fd] bg-white flex"
                 >
-                  <div className="relative w-[44%] min-h-[190px] shrink-0 bg-slate-100">
+                  <div className="relative w-[38%] min-h-[150px] shrink-0 bg-slate-100 p-2">
                     <Image
                       src={project.image}
                       alt={project.title}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                     />
                   </div>
 
-                  <div className="min-w-0 flex-1 px-3 py-3">
-                    <h3 className="text-[18px] font-medium text-black mb-3 leading-tight">
+                  <div className="min-w-0 flex-1 px-3 py-2">
+                    <h3 className="text-[17px] font-medium text-black mb-2 leading-tight">
                       {project.title}
                     </h3>
 
-                    <p className="text-[15px] text-black mb-3 truncate">
+                    <p className="text-[14px] text-black mb-2 truncate">
                       {project.description}
                     </p>
 
-                    <div className="mb-3 flex flex-wrap items-center gap-1 text-[15px] text-black">
+                    <div className="mb-2 flex flex-wrap items-center gap-1 text-[14px] text-black">
                       <span>Skill:</span>
                       {project.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[14px] text-slate-800"
+                          className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[13px] text-slate-800"
                         >
                           {skill}
                         </span>
                       ))}
                     </div>
 
-                    <div className="mb-3 flex items-center gap-1 text-black">
-                      <Users className="h-5 w-5 fill-[#0ea5e9] text-[#0ea5e9]" />
-                      <span className="text-[15px]">
-                        {project.collaborators}
-                      </span>
+                    <div className="mb-2 flex items-center gap-1 text-black">
+                      <Users className="h-4 w-4 fill-[#0ea5e9] text-[#0ea5e9]" />
+                      <span className="text-[14px]">{project.collaborators}</span>
                     </div>
 
-                    <div className="mb-3 flex flex-wrap items-center gap-1 text-[15px] text-black">
+                    <div className="mb-2 flex flex-wrap items-center gap-1 text-[14px] text-black">
                       <span>Your Role:</span>
-                      <span className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[14px] text-slate-800">
+                      <span className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[13px] text-slate-800">
                         {project.role}
                       </span>
                     </div>
@@ -345,14 +342,11 @@ export default function ProjectsPage() {
                       type="button"
                       onClick={() =>
                         router.push(
-                          `/projects/workspace?status=${
-                            project.status === "Completed"
-                              ? "completed"
-                              : "in-progress"
+                          `/projects/workspace?status=${project.status === "Completed" ? "completed" : "in-progress"
                           }`
                         )
                       }
-                      className="rounded-[4px] bg-[#0ea5e9] px-2 py-1 text-[15px] font-medium text-white"
+                      className="rounded-[4px] bg-[#0ea5e9] px-2 py-1 text-[14px] font-medium text-white"
                     >
                       View Project
                     </button>

@@ -192,7 +192,7 @@ export default function Home() {
             <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
 
             <span className="text-xl font-bold tracking-tight bg-linear-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-              Skill<span className="text-sky-400">Loop</span>
+              Skil<span className="text-sky-400">Loop</span>
             </span>
           </div>
 

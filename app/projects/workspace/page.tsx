@@ -3,92 +3,92 @@
 import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
-  CheckSquare,
-  Paperclip,
-  Clock,
-  Tag,
+    ArrowLeft,
+    CheckSquare,
+    Paperclip,
+    Clock,
+    Tag,
 } from "lucide-react";
 import Image from "next/image";
 
 const tasks = [
-  "Set up project structure",
-  "Build homepage layout",
-  "Implement responsive design",
-  "Add project showcase section",
-  "Optimize performance",
-  "Submit for review",
+    "Set up project structure",
+    "Build homepage layout",
+    "Implement responsive design",
+    "Add project showcase section",
+    "Optimize performance",
+    "Submit for review",
 ];
 
 export default function ProjectWorkspacePage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-white" />}>
-      <ProjectWorkspaceContent />
-    </Suspense>
-  );
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-white" />}>
+            <ProjectWorkspaceContent />
+        </Suspense>
+    );
 }
 
 function ProjectWorkspaceContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialCompleted = searchParams.get("status") === "completed";
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialCompleted = searchParams.get("status") === "completed";
 
-  const [completed, setCompleted] = useState(initialCompleted);
-  const [dueDateCompleted, setDueDateCompleted] = useState(initialCompleted);
-  const [checkedTasks, setCheckedTasks] = useState<string[]>(
-    initialCompleted ? tasks : []
-  );
-
-  const statusLabel = completed ? "Completed" : "In Progress";
-
-//   const allTasksDone = useMemo(
-//     () => checkedTasks.length === tasks.length,
-//     [checkedTasks]
-//   );
-
-  const toggleTask = (task: string) => {
-    if (completed) return;
-
-    setCheckedTasks((current) =>
-      current.includes(task)
-        ? current.filter((item) => item !== task)
-        : [...current, task]
+    const [completed, setCompleted] = useState(initialCompleted);
+    // const [dueDateCompleted, setDueDateCompleted] = useState(initialCompleted);
+    const [checkedTasks, setCheckedTasks] = useState<string[]>(
+        initialCompleted ? tasks : []
     );
-  };
 
-  const handleSubmit = () => {
-    if (!dueDateCompleted) return;
+    const statusLabel = completed ? "Completed" : "In Progress";
 
-    const completedProject = {
-      id: "completed-frontend-website",
-      title: "Frontend Project",
-      description: "Code a desktop landing.....",
-      skills: ["Frontend", "Web Dev"],
-      collaborators: "4/5 Collaborators",
-      role: "Frontend Dev",
-      status: "Completed",
-      image: "/james_klin.png",
+    //   const allTasksDone = useMemo(
+    //     () => checkedTasks.length === tasks.length,
+    //     [checkedTasks]
+    //   );
+
+    const toggleTask = (task: string) => {
+        if (completed) return;
+
+        setCheckedTasks((current) =>
+            current.includes(task)
+                ? current.filter((item) => item !== task)
+                : [...current, task]
+        );
     };
 
-    const existing = JSON.parse(
-      localStorage.getItem("completedProjects") || "[]"
-    );
+    const handleSubmit = () => {
+        // if (!dueDateCompleted) return;
 
-    const alreadyExists = existing.some(
-      (project: { id: string }) => project.id === completedProject.id
-    );
+        const completedProject = {
+            id: "completed-frontend-website",
+            title: "Frontend Project",
+            description: "Code a desktop landing.....",
+            skills: ["Frontend", "Web Dev"],
+            collaborators: "4/5 Collaborators",
+            role: "Frontend Dev",
+            status: "Completed",
+            image: "/james_klin.png",
+        };
 
-    if (!alreadyExists) {
-      localStorage.setItem(
-        "completedProjects",
-        JSON.stringify([...existing, completedProject])
-      );
-      window.dispatchEvent(new Event("completedProjectsChanged"));
-    }
+        const existing = JSON.parse(
+            localStorage.getItem("completedProjects") || "[]"
+        );
 
-    setCompleted(true);
-    router.push("/projects/completed");
-  };
+        const alreadyExists = existing.some(
+            (project: { id: string }) => project.id === completedProject.id
+        );
+
+        if (!alreadyExists) {
+            localStorage.setItem(
+                "completedProjects",
+                JSON.stringify([...existing, completedProject])
+            );
+            window.dispatchEvent(new Event("completedProjectsChanged"));
+        }
+
+        setCompleted(true);
+        router.push("/projects/completed");
+    };
 
     return (
         <div className="min-h-screen bg-white font-sans text-black">
@@ -162,33 +162,27 @@ function ProjectWorkspaceContent() {
 
                     <button
                         type="button"
-                        onClick={() => !completed && setDueDateCompleted((current) => !current)}
                         className="flex w-full items-center gap-3 rounded-[8px] bg-white px-5 py-5 text-left shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
                     >
                         <span
-                            className={`h-7 w-7 rounded-[4px] border-2 ${dueDateCompleted
-                                ? "border-[#0ea5e9] bg-[#0ea5e9]"
-                                : "border-sky-300 bg-white"
-                                }`}
+                            className={`h-7 w-7 rounded-[4px] border-2 `}
                         />
                         <span className="text-[16px]">Due on 16th May, at 04:00 PM</span>
                     </button>
                 </div>
+                <div className="relative mb-28 flex justify-center ">
+
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="absolute  top-0 w-[205px] rounded-[18px] bg-[#0ea5e9] py-3 text-[16px] font-medium text-white disabled:opacity-40"
+                    >
+                        Submit
+                    </button>
+                </div>
 
                 <div className="mb-8">
-                    <div className="relative mb-4">
-                        <h2 className="text-[25px] font-normal">Your Role</h2>
-                        {!completed && (
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={!dueDateCompleted}
-                                className="absolute right-0 top-0 w-[205px] rounded-[18px] bg-[#0ea5e9] py-3 text-[16px] font-medium text-white disabled:opacity-40"
-                            >
-                                Submit
-                            </button>
-                        )}
-                    </div>
+                    <h2 className="text-[25px] font-normal mt-2 mb-5">Your Role</h2>
 
                     <span className="rounded-[4px] bg-[#ccebf8] px-2 py-1 text-[16px]">
                         Frontend Developer

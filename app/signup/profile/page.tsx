@@ -24,6 +24,12 @@ type AddedSkill = {
   experience: string;
 };
 
+const proofOptions = [
+  { value: "portfolio", label: "Portfolio Link" },
+  { value: "linkedin", label: "LinkedIn link" },
+  { value: "certification", label: "Certifications, others" },
+];
+
 export default function ProfileSetup() {
   const router = useRouter();
   const [skills, setSkills] = useState<AddedSkill[]>([]);
@@ -33,7 +39,7 @@ export default function ProfileSetup() {
   const [skillForm, setSkillForm] = useState({
     skill: "",
     experience: "",
-    proof: "",
+    proofs: [] as string[],
     portfolio: "",
     linkedin: "",
     certification: "",
@@ -82,12 +88,21 @@ export default function ProfileSetup() {
     setShowSkillDropdown(false);
   };
 
+  const toggleProof = (proof: string) => {
+    setSkillForm((current) => ({
+      ...current,
+      proofs: current.proofs.includes(proof)
+        ? current.proofs.filter((item) => item !== proof)
+        : [...current.proofs, proof],
+    }));
+  };
+
   const handleDropdownAdd = () => {
     handleAddSkill(skillForm.skill, skillForm.experience);
     setSkillForm({
       skill: "",
       experience: "",
-      proof: "",
+      proofs: [],
       portfolio: "",
       linkedin: "",
       certification: "",
@@ -101,6 +116,21 @@ export default function ProfileSetup() {
       openSkillDropdown();
     }
   };
+
+  const hasSelectedProof = skillForm.proofs.length > 0;
+
+  const hasFilledSelectedProofs = skillForm.proofs.every((proof) => {
+    if (proof === "portfolio") return skillForm.portfolio.trim().length > 0;
+    if (proof === "linkedin") return skillForm.linkedin.trim().length > 0;
+    if (proof === "certification") return skillForm.certification.trim().length > 0;
+    return false;
+  });
+
+  const isSkillFormComplete =
+    skillForm.skill.trim().length > 0 &&
+    skillForm.experience.trim().length > 0 &&
+    hasSelectedProof &&
+    hasFilledSelectedProofs;
 
   const handleContinue = () => {
     if (skills.length === 0) {
@@ -207,15 +237,14 @@ export default function ProfileSetup() {
             </div>
 
             <div className="flex gap-1.5 w-full">
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: 1 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`h-0.75 flex-1 rounded-full transition-all duration-300 ${
-                    inputValue.trim().length > 0 &&
-                    i < Math.ceil((inputValue.trim().length / 15) * 8)
+                  className={`h-0.75 flex-1 rounded-full transition-all duration-300 ${inputValue.trim().length > 0 &&
+                      i < Math.ceil((inputValue.trim().length / 15) * 8)
                       ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.4)]"
                       : "bg-sky-500"
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -230,7 +259,9 @@ export default function ProfileSetup() {
                   className="relative z-30 mt-3 rounded-[8px] border border-slate-300 bg-white p-3 shadow-2xl"
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-xl font-medium text-black">Add skill</h3>
+                    <h3 className="text-xl font-medium text-black">
+                      Add skill
+                    </h3>
                     <button
                       type="button"
                       onClick={closeSkillDropdown}
@@ -255,7 +286,7 @@ export default function ProfileSetup() {
                             skill: e.target.value,
                           }))
                         }
-                        className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-black outline-none"
+                        className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none"
                         placeholder="UI/UX Design"
                       />
                     </label>
@@ -273,95 +304,108 @@ export default function ProfileSetup() {
                             experience: e.target.value,
                           }))
                         }
-                        className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-black outline-none"
-                        placeholder="2 years"
+                        className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none"
+                        placeholder="2"
                       />
                     </label>
 
                     <div className="rounded-[8px] border border-slate-500 p-2">
-                      <label className="block">
-                        <span className="mb-1 block text-base text-slate-500">
-                          Proof of Skill
-                        </span>
-                        <select
-                          value={skillForm.proof}
-                          onChange={(e) =>
-                            setSkillForm((current) => ({
-                              ...current,
-                              proof: e.target.value,
-                            }))
-                          }
-                          className="w-full bg-transparent text-base text-black outline-none"
-                        >
-                          <option value="">Select</option>
-                          <option value="portfolio">Portfolio</option>
-                          <option value="linkedin">LinkedIn</option>
-                          <option value="certification">Certification</option>
-                        </select>
-                      </label>
+                      <span className="mb-1 block text-base text-slate-500">
+                        Proof of Skill
+                      </span>
+
+                      <div className="flex flex-wrap gap-2">
+                        {proofOptions.map((option) => {
+                          const isSelected = skillForm.proofs.includes(
+                            option.value
+                          );
+
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => toggleProof(option.value)}
+                              className={`rounded-[6px] border px-3 py-1.5 text-sm font-medium transition-colors ${isSelected
+                                  ? "border-sky-500 bg-sky-50 text-sky-600"
+                                  : "border-slate-300 bg-white text-slate-600"
+                                }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
 
                       <p className="mt-3 text-sm text-slate-400">
                         Add at least one proof of your skills
                       </p>
 
-                      <label className="mt-4 block">
-                        <span className="mb-1 block text-base text-slate-500">
-                          Portfolio Link
-                        </span>
-                        <input
-                          type="url"
-                          value={skillForm.portfolio}
-                          onChange={(e) =>
-                            setSkillForm((current) => ({
-                              ...current,
-                              portfolio: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-[8px] border border-black px-3 py-2 text-sm text-black outline-none"
-                          placeholder="Paste link here"
-                        />
-                      </label>
-
-                      <label className="mt-4 block">
-                        <span className="mb-1 block text-base text-slate-500">
-                          LinkedIn link
-                        </span>
-                        <input
-                          type="url"
-                          value={skillForm.linkedin}
-                          onChange={(e) =>
-                            setSkillForm((current) => ({
-                              ...current,
-                              linkedin: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-[8px] border border-black px-3 py-2 text-sm text-black outline-none"
-                          placeholder="Paste link here"
-                        />
-                      </label>
-
-                      <div className="mt-4">
-                        <span className="mb-1 block text-base text-slate-500">
-                          Certifications, others
-                        </span>
-                        <label className="flex w-full cursor-pointer items-center gap-3 rounded-[8px] border border-black px-3 py-2 text-sm text-slate-500">
-                          <Paperclip size={20} className="text-black" />
-                          <span>{skillForm.certification || "Upload file"}</span>
+                      {skillForm.proofs.includes("portfolio") && (
+                        <label className="mt-4 block">
+                          <span className="mb-1 block text-base text-slate-500">
+                            Portfolio Link
+                          </span>
                           <input
-                            type="file"
-                            className="hidden"
+                            type="url"
+                            value={skillForm.portfolio}
                             onChange={(e) =>
                               setSkillForm((current) => ({
                                 ...current,
-                                certification:
-                                  e.target.files?.[0]?.name || "",
+                                portfolio: e.target.value,
                               }))
                             }
+                            className="w-full rounded-[8px] border border-black px-3 py-2 text-sm text-black outline-none"
+                            placeholder="Paste link here"
                           />
                         </label>
-                      </div>
+                      )}
 
-                      <div className="mt-4 flex items-center justify-between">
+                      {skillForm.proofs.includes("linkedin") && (
+                        <label className="mt-4 block">
+                          <span className="mb-1 block text-base text-slate-500">
+                            LinkedIn link
+                          </span>
+                          <input
+                            type="url"
+                            value={skillForm.linkedin}
+                            onChange={(e) =>
+                              setSkillForm((current) => ({
+                                ...current,
+                                linkedin: e.target.value,
+                              }))
+                            }
+                            className="w-full rounded-[8px] border border-black px-3 py-2 text-sm text-black outline-none"
+                            placeholder="Paste link here"
+                          />
+                        </label>
+                      )}
+
+                      {skillForm.proofs.includes("certification") && (
+                        <div className="mt-4">
+                          <span className="mb-1 block text-base text-slate-500">
+                            Certifications, others
+                          </span>
+                          <label className="flex w-full cursor-pointer items-center gap-3 rounded-[8px] border border-black px-3 py-2 text-sm text-slate-500">
+                            <Paperclip size={20} className="text-black" />
+                            <span>
+                              {skillForm.certification || "Upload file"}
+                            </span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) =>
+                                setSkillForm((current) => ({
+                                  ...current,
+                                  certification:
+                                    e.target.files?.[0]?.name || "",
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      {/* <div className="mt-4 flex items-center justify-between">
                         <button
                           type="button"
                           onClick={closeSkillDropdown}
@@ -378,7 +422,7 @@ export default function ProfileSetup() {
                         >
                           Add
                         </button>
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-1">
@@ -393,8 +437,11 @@ export default function ProfileSetup() {
                       <button
                         type="button"
                         onClick={handleDropdownAdd}
-                        disabled={!skillForm.skill.trim()}
-                        className="rounded-[6px] bg-sky-300 px-4 py-1.5 text-base text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={!isSkillFormComplete}
+                        className={`rounded-[6px] px-4 py-1.5 text-base text-white transition-colors ${isSkillFormComplete
+                            ? "bg-sky-500 hover:bg-sky-400"
+                            : "bg-sky-300 cursor-not-allowed opacity-60"
+                          }`}
                       >
                         Add
                       </button>
