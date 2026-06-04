@@ -6,6 +6,7 @@ import { Search, Star, ChevronDown } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type ProfileMatch = {
   id: string;
@@ -46,6 +47,8 @@ const mockMatches: ProfileMatch[] = [
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
+      const router = useRouter();
+  
 
   return (
     <div className="min-h-screen bg-white font-sans flex">
@@ -159,7 +162,8 @@ export default function ExplorePage() {
                   <Link href="/explore/request" className="w-full bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 rounded-[6px] text-sm transition-colors text-center inline-block">
                     Request Session
                   </Link>
-                  <button className="w-full bg-white border border-[#0ea5e9] text-black font-medium py-1.5 rounded-[6px] text-sm hover:bg-slate-50 transition-colors">
+                  <button type="button"
+                        onClick={() => router.push("/profile/view")} className="w-full bg-white border border-[#0ea5e9] text-black font-medium py-1.5 rounded-[6px] text-sm hover:bg-slate-50 transition-colors">
                     View Profile
                   </button>
                 </div>

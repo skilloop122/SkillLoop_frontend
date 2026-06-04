@@ -9,7 +9,7 @@ import {
   Search,
   Check,
   Sparkles,
- FolderOpen,
+  FolderOpen,
   Menu,
   X,
   Star,
@@ -502,7 +502,7 @@ export default function Home() {
                         {actionCards[actionSlide].rating}
                       </span>
                     </div>
-                    <div className="text-xs font-semibold text-slate-500 mb-2">Teaches</div>
+                    <div className="text-xs font-semibold text-slate-500 mb-2">Teaching</div>
                     <div className="flex gap-2 flex-wrap">
                       {actionCards[actionSlide].teaches.map((skill) => (
                         <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-white text-slate-700 shadow-sm">{skill}</span>
@@ -764,8 +764,7 @@ export default function Home() {
               </span>
             </div>
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-              SkilLoop is a collaborative marketplace enabling knowledge workers, designers, builders, and professionals to swap real-world skills instantly using structured 15-minute interactions.
-            </p>
+              SkilLoop is a peer-to-peer exchange community where African talent trades what they know for what they need. No long tutorials, no expensive fees—just 15-minute live loops and collaborative projects to build the portfolio that gets you hired.            </p>
             <p className="text-xs text-slate-500">© {new Date().getFullYear()} SkilLoop, Inc. All rights reserved.</p>
           </div>
         </div>
