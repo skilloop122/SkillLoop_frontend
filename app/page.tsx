@@ -298,7 +298,7 @@ export default function WaitlistPage() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 rounded-md border border-slate-300 px-4 outline-none focus:border-[#0ea5e9]"
+                className="h-12 rounded-md border border-slate-300 text-black bg-white px-4 outline-none focus:border-[#0ea5e9]"
               />
 
               <button
