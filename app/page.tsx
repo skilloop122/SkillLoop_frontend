@@ -1,14 +1,55 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { FolderOpen, Users } from "lucide-react";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 import { FaX } from "react-icons/fa6";
+import { supabase } from "@/lib/supabase";
+import { AnimatePresence, motion } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
 
-const TALLY_FORM_ID = "Ek6L5L";
 
 export default function WaitlistPage() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    if (!email) return;
+
+    setLoading(true);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("waitlist")
+      .insert([{ email }]);
+
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
+    if (error) {
+      if (error.message.includes("duplicate")) {
+        setMessage("You're already on the waitlist.");
+      } else {
+        setMessage("Something went wrong.");
+      }
+    } else {
+      setEmail("");
+      setMessage("");
+      setShowSuccess(true);
+
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 4000);
+    }
+
+    setLoading(false);
+  };
   return (
     <main className="min-h-screen bg-black font-sans">
       <section className="bg-white px-5 pt-20 pb-16 text-center">
@@ -69,7 +110,35 @@ export default function WaitlistPage() {
               Signup to be one of the first to use SkilLoop
             </p>
 
-            <TallyWaitlistForm />
+            <div className="rounded-[8px] border border-[#0ea5e9] bg-white p-4">
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col gap-3"
+              >
+                <input
+                  type="email"
+                  required
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 rounded-md border border-slate-300 text-black bg-white px-4 outline-none focus:border-[#0ea5e9]"
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="h-12 rounded-md bg-[#0ea5e9] text-white font-semibold disabled:opacity-50"
+                >
+                  {loading ? "Joining..." : "Join Waitlist"}
+                </button>
+
+                {message && (
+                  <p className="text-sm text-center text-slate-600">
+                    {message}
+                  </p>
+                )}
+              </form>
+            </div>
           </div>
         </div>
       </section>
@@ -218,7 +287,35 @@ export default function WaitlistPage() {
             Join now and get priority when we launch.
           </p>
 
-          <TallyWaitlistForm />
+          <div className="rounded-[8px] border border-[#0ea5e9] bg-white p-4">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-3"
+            >
+              <input
+                type="email"
+                required
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 rounded-md border border-slate-300 px-4 outline-none focus:border-[#0ea5e9]"
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-12 rounded-md bg-[#0ea5e9] text-white font-semibold disabled:opacity-50"
+              >
+                {loading ? "Joining..." : "Join Waitlist"}
+              </button>
+
+              {message && (
+                <p className="text-sm text-center text-slate-600">
+                  {message}
+                </p>
+              )}
+            </form>
+          </div>
         </div>
       </section>
 
@@ -254,23 +351,60 @@ export default function WaitlistPage() {
           </div>
         </div>
       </footer>
+
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.7, y: 30, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 25,
+              }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                <CheckCircle2
+                  size={40}
+                  strokeWidth={2}
+                  className="animate-bounce"
+                />
+              </div>
+
+              <h3 className="text-2xl font-extrabold text-slate-800">
+                You&apos;re on the Waitlist! 🎉
+              </h3>
+
+              <p className="text-sm font-semibold text-slate-500">
+                Thank you for joining SkilLoop. You&apos;ll be among the first to know
+                when we launch and gain early access to skill exchanges, projects,
+                and portfolio-building opportunities.
+              </p>
+
+              <div className="w-10 h-1 bg-sky-500 rounded-full animate-pulse mt-2" />
+
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="mt-4 px-5 py-2 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition"
+              >
+                Awesome!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
 
-function TallyWaitlistForm() {
-  return (
-    <div className="overflow-hidden rounded-[8px] border border-[#0ea5e9] bg-white">
-      <iframe
-        src={`https://tally.so/embed/${TALLY_FORM_ID}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
-        width="100%"
-        height="170"
-        title="SkilLoop Waitlist"
-        className="block w-full border-0"
-      />
-    </div>
-  );
-}
 
 function FeatureMini({
   icon,
