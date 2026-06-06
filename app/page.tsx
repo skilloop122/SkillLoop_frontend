@@ -233,7 +233,7 @@ export default function WaitlistPage() {
                 height={30}
               />
               <span className="text-lg font-bold tracking-tight text-white">
-                Skill<span className="text-sky-400">Loop</span>
+                Skil<span className="text-sky-400">Loop</span>
               </span>
             </div>
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
