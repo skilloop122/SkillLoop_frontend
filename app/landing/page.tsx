@@ -760,7 +760,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                             <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
                             <span className="text-lg font-bold tracking-tight text-white">
-                                Skill<span className="text-sky-400">Loop</span>
+                                Skil<span className="text-sky-400">Loop</span>
                             </span>
                         </div>
                         <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
