@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
@@ -16,12 +17,29 @@ import {
   Terminal,
   Cpu
 } from "lucide-react";
+import { useAuthStore } from "@/lib/authStore";
+import { validatePassword } from "@/lib/utils";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const login = useAuthStore((s) => s.login);
+  const loading = useAuthStore((s) => s.loading);
+  const remoteError = useAuthStore((s) => s.error);
+  const router = useRouter();
+  const [toasts, setToasts] = useState<{
+    id: number;
+    type: "success" | "error";
+    message: string;
+  }[]>([]);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((t) => [...t, { id, type, message }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
+  };
 
   // Background scattered icon layout positions
   const bgIcons = [
@@ -36,13 +54,49 @@ export default function SignIn() {
     { icon: Atom, bottom: "8%", left: "20%", size: 28, delay: 2 }
   ];
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Signing in as ${email}`);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showToast("Please enter a valid email.", "error");
+      return;
+    }
+
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.ok) {
+      showToast(pwCheck.message || "Please enter a valid password.", "error");
+      return;
+    }
+
+    const result = await login({ email, password });
+    if (!result.success) {
+      showToast(result.message || "Login failed.", "error");
+      return;
+    }
+
+    showToast("Logged in successfully!", "success");
+    setTimeout(() => router.push("/home"), 600);
   };
 
   return (
     <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 overflow-hidden select-none">
+
+      {/* Toast container */}
+      <div className="absolute top-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`max-w-xs px-4 py-2 rounded-lg shadow-md text-sm font-medium ${
+              t.type === "success"
+                ? "bg-green-50 border border-green-200 text-green-800"
+                : "bg-red-50 border border-red-200 text-red-800"
+            }`}
+          >
+            {t.message}
+          </div>
+        ))}
+      </div>
       
       {/* Scattered Tech Icons Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -79,7 +133,7 @@ export default function SignIn() {
       </div> */}
 
       {/* Sign In Core Layout */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto flex flex-col items-center">
         {/* Title */}
         <h1 className="text-4xl font-extrabold text-sky-500 tracking-tight mb-2 text-center">
           Welcome Back!
@@ -157,11 +211,18 @@ export default function SignIn() {
           </div>
 
           {/* Primary Action Sign In Button */}
+          {remoteError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {remoteError}
+            </div>
+          ) : null}
+
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
+            disabled={loading}
+            className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-300 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
 
         </form>
