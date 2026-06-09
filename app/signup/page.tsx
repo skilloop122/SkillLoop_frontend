@@ -16,14 +16,31 @@ import {
   Terminal,
   Cpu
 } from "lucide-react";
+import { useAuthStore } from "@/lib/authStore";
+import { validatePassword } from "@/lib/utils";
 
 export default function SignUp() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const register = useAuthStore((state) => state.register);
+  const loading = useAuthStore((state) => state.loading);
+  const remoteError = useAuthStore((state) => state.error);
+  const [toasts, setToasts] = useState<{
+    id: number;
+    type: "success" | "error";
+    message: string;
+  }[]>([]);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((t) => [...t, { id, type, message }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+  };
 
   // Background scattered icon layout positions (identical to sign-in for aesthetic symmetry)
   const bgIcons = [
@@ -38,18 +55,65 @@ export default function SignUp() {
     { icon: Atom, bottom: "8%", left: "20%", size: 28, delay: 2 }
   ];
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!agreeTerms) {
-      alert("Please agree to the Terms and Conditions first.");
+      showToast("Please agree to the Terms and Conditions first.", "error");
       return;
     }
-    // Route directly to the Profile Setup page
-    router.push("/signup/profile");
+
+    if (!firstName.trim() || !lastName.trim()) {
+      showToast("Please enter both first and last name.", "error");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showToast("Please enter a valid email address.", "error");
+      return;
+    }
+
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.ok) {
+      showToast(pwCheck.message || "Password does not meet requirements.", "error");
+      return;
+    }
+
+    const result = await register({
+      email,
+      password,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+    });
+
+    if (!result.success) {
+      showToast(result.message || "Registration failed.", "error");
+      return;
+    }
+
+    showToast("Account created successfully!", "success");
+    setTimeout(() => router.push("/signup/profile"), 800);
   };
 
   return (
     <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 overflow-hidden select-none">
+
+      {/* Toast container */}
+      <div className="absolute top-6 right-6 z-50 flex flex-col gap-3">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`max-w-xs px-4 py-2 rounded-lg shadow-md text-sm font-medium ${
+              t.type === "success"
+                ? "bg-green-50 border border-green-200 text-green-800"
+                : "bg-red-50 border border-red-200 text-red-800"
+            }`}
+          >
+            {t.message}
+          </div>
+        ))}
+      </div>
 
       {/* Scattered Tech Icons Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -86,7 +150,7 @@ export default function SignUp() {
       </div> */}
 
       {/* Sign Up Core Layout */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto flex flex-col items-center">
 
         {/* Title */}
         <h1 className="text-4xl font-extrabold text-sky-500 tracking-tight mb-2 text-center">
@@ -99,20 +163,34 @@ export default function SignUp() {
         {/* Credentials Form */}
         <form onSubmit={handleSignUp} className="w-full space-y-6">
 
-          {/* Full Name input */}
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-400">
-              Full Name
-            </label>
-            <div className="relative rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white border border-slate-100/50">
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full bg-transparent px-5 py-4.5 rounded-2xl text-slate-800 font-medium text-base outline-hidden placeholder:text-slate-300"
-              />
+          {/* Name inputs */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-400">First Name</label>
+              <div className="relative rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white border border-slate-100/50">
+                <input
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  className="w-full bg-transparent px-5 py-4.5 rounded-2xl text-slate-800 font-medium text-base outline-hidden placeholder:text-slate-300"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-400">Last Name</label>
+              <div className="relative rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white border border-slate-100/50">
+                <input
+                  type="text"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  className="w-full bg-transparent px-5 py-4.5 rounded-2xl text-slate-800 font-medium text-base outline-hidden placeholder:text-slate-300"
+                />
+              </div>
             </div>
           </div>
 
@@ -178,12 +256,19 @@ export default function SignUp() {
             </label>
           </div>
 
+          {remoteError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {remoteError}
+            </div>
+          ) : null}
+
           {/* Primary Action Sign Up Button */}
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
+            disabled={loading}
+            className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-300 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
           >
-            Sign Up
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
 
         </form>
