@@ -12,6 +12,7 @@ import { CheckCircle2 } from "lucide-react";
 
 export default function WaitlistPage() {
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("")
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -21,14 +22,18 @@ export default function WaitlistPage() {
   ) => {
     e.preventDefault();
 
-    if (!email) return;
-
+    if (!fullName || !email) return;
     setLoading(true);
     setMessage("");
 
     const { data, error } = await supabase
       .from("waitlist")
-      .insert([{ email }]);
+      .insert([
+        {
+          full_name: fullName,
+          email,
+        },
+      ]);
 
     console.log("DATA:", data);
     console.log("ERROR:", error);
@@ -39,6 +44,7 @@ export default function WaitlistPage() {
         setMessage("Something went wrong.");
       }
     } else {
+      setFullName("")
       setEmail("");
       setMessage("");
       setShowSuccess(true);
@@ -64,19 +70,16 @@ export default function WaitlistPage() {
               />
             </span>
             <span>
-              <span className="text-[#0ea5e9]">SkilLoop</span> is launching
-              soon.
+              The End of Lonely Learning.
             </span>
           </div>
 
           <h1 className="mb-2 text-[30px] font-extrabold leading-tight text-black">
-            Grow Together through{" "}
-            <span className="text-[#0ea5e9]">Skill Exchange.</span>
+            Stop Learning in Isolation. Start Trading Your Skills.
           </h1>
 
-          <p className="mx-auto mb-9 max-w-[400px] text-[17px] leading-snug text-slate-500 font-medium">
-            Teach what you know, learn what you don’t and build meaningful
-            experience with real projects.
+          <p className="mx-auto mb-9 max-w-[900px] text-[17px] leading-snug text-slate-500 font-medium">
+            Tired of burning data on endless, lonely tutorials? SkilLoop is a peer-to-peer knowledge bank where you trade what you know for what you need. 100% live, 100% human, and completely free.
           </p>
 
           <div className="rounded-[10px] bg-white px-4 py-6 text-left shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
@@ -104,10 +107,10 @@ export default function WaitlistPage() {
             </div>
 
             <h2 className="mb-1 text-[26px] font-semibold text-black">
-              Join the Waitlist
+              Secure Your Day-1 Beta Access
             </h2>
             <p className="mb-4 text-[16px] text-slate-500">
-              Signup to be one of the first to use SkilLoop
+              Join the first 500 Professionals trading value without spending any money.
             </p>
 
             <div className="rounded-[8px] border border-[#0ea5e9] bg-white p-4">
@@ -115,6 +118,14 @@ export default function WaitlistPage() {
                 onSubmit={handleSubmit}
                 className="flex flex-col gap-3"
               >
+                <input
+                  type="full name"
+                  required
+                  placeholder="Enter your full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="h-12 rounded-md border border-slate-300 text-black bg-white px-4 outline-none focus:border-[#0ea5e9]"
+                />
                 <input
                   type="email"
                   required
@@ -129,7 +140,7 @@ export default function WaitlistPage() {
                   disabled={loading}
                   className="h-12 rounded-md bg-[#0ea5e9] text-white font-semibold disabled:opacity-50"
                 >
-                  {loading ? "Joining..." : "Join Waitlist"}
+                  {loading ? "Getting..." : "Get My Free Slot →"}
                 </button>
 
                 {message && (
@@ -143,68 +154,16 @@ export default function WaitlistPage() {
         </div>
       </section>
 
-      <section className="bg-white px-5 pb-16 text-center">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="mb-2 text-[26px] font-extrabold text-black">
-            What you’ll get
-          </h2>
-          <p className="mx-auto mb-7 max-w-[400px] font-medium text-[17px] leading-snug text-slate-500">
-            SkilLoop gives you the tools and community to grow through skill
-            exchange.
-          </p>
-
-          <div className="grid grid-cols-[1fr_150px] gap-3 text-left">
-            <div className="space-y-5">
-              <FeatureMini
-                icon={
-                  <Image
-                    src="/images/Group.png"
-                    alt="Skill exchange"
-                    width={24}
-                    height={24}
-                  />
-                }
-                title="Skill Exchange"
-                body="Offer your skills, learn from others."
-              />
-              <FeatureMini
-                icon={
-                  <Users className="h-5 w-5 fill-[#0ea5e9] text-[#0ea5e9]" />
-                }
-                title="Real Projects"
-                body="Build experience through real projects."
-              />
-              <FeatureMini
-                icon={<FolderOpen className="h-5 w-5 text-[#0ea5e9]" />}
-                title="Portfolio Builder"
-                body="Showcase your work and gain recognition."
-              />
-            </div>
-
-            <div className="relative min-h-[260px]">
-              <div className="absolute right-0 top-7 h-[230px] w-[145px] overflow-hidden rounded-[22px] bg-white shadow-2xl">
-                <Image
-                  src="/images/Phone.png"
-                  alt="SkilLoop app preview"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section id="why" className="py-20 px-6 bg-slate-50 text-center">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">
             Why SkilLoop?
           </h2>
           <p className="text-base text-slate-500 font-medium mb-12">
-            Built for people who want to grow fast and give back.
+            Built for ambitious professionals who want to scale their careers without financial barriers.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
               <div className="w-14 h-14 rounded-2xl bg-[#00CCFC]/20 flex items-center justify-center">
                 <Image
@@ -219,28 +178,7 @@ export default function WaitlistPage() {
                   Skill Exchange
                 </h3>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                  Teach what you know and learn what you need — no money, just
-                  value for value.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
-              <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center">
-                <Image
-                  src="/images/mdi_puzzle-star.png"
-                  alt="Portfolio builder"
-                  width={30}
-                  height={30}
-                />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-purple-500 mb-2">
-                  Build your Portfolio
-                </h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                  Work on real-world projects alongside peers to build a
-                  portfolio that stands out.
+                  Your mind is a goldmine. Use your current expertise as a currency to barter for the career skills you lack directly with ambitious peers.
                 </p>
               </div>
             </div>
@@ -269,8 +207,35 @@ export default function WaitlistPage() {
                   15-Minute Mastery
                 </h3>
                 <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                  Learn faster with short, focused sessions designed to deliver
-                  real, actionable skills.
+                  Reclaim your time. Skip the fluff and hop into laser-focused, live peer interactions engineered to solve your exact roadblocks in minutes.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center">
+                <Users className="text-fuchsia-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-purple-500 mb-2">
+                  Real Projects
+                </h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                  Stop building in a vacuum. Once you complete 3 exchange loops, join dynamic, cross-functional teams to collaborate on active building sprints.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center">
+                <FolderOpen className="text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-green-500 mb-2">
+                  Portfolio Builder
+                </h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                  Turn your knowledge into proof of work. Finish your team sprints with a live, employer-ready product portfolio that commands respect and gets you hired.
                 </p>
               </div>
             </div>
@@ -281,10 +246,10 @@ export default function WaitlistPage() {
       <section className="bg-gray-100 px-5 py-24">
         <div className="mx-auto max-w-md rounded-[8px] border border-[#05abf8] bg-linear-to-b from-sky-300 to-[#05a5ef] px-3 py-6 text-center shadow-[0_0_20px_rgba(14,165,233,0.35)]">
           <h2 className="mb-3 text-[25px] font-semibold text-white">
-            Limited Early Access
+            Ready to Build Together?
           </h2>
           <p className="mb-5 text-[16px] text-slate-600">
-            Join now and get priority when we launch.
+            Join a community of ambitious creators swapping skills and launching real projects. Secure your spot in our upcoming closed beta.
           </p>
 
           <div className="rounded-[8px] border border-[#0ea5e9] bg-white p-4">
@@ -293,12 +258,21 @@ export default function WaitlistPage() {
               className="flex flex-col gap-3"
             >
               <input
+                type="text"
+                required
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-12 rounded-md border border-slate-300 px-4 outline-none focus:border-[#0ea5e9] text-black"
+              />
+
+              <input
                 type="email"
                 required
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 rounded-md border border-slate-300 px-4 outline-none focus:border-[#0ea5e9]"
+                className="h-12 rounded-md border border-slate-300 px-4 outline-none focus:border-[#0ea5e9] text-black"
               />
 
               <button
@@ -306,7 +280,7 @@ export default function WaitlistPage() {
                 disabled={loading}
                 className="h-12 rounded-md bg-[#0ea5e9] text-white font-semibold disabled:opacity-50"
               >
-                {loading ? "Joining..." : "Join Waitlist"}
+                {loading ? "Claiming..." : "Claim My Early Access"}
               </button>
 
               {message && (
@@ -402,30 +376,5 @@ export default function WaitlistPage() {
         )}
       </AnimatePresence>
     </main>
-  );
-}
-
-
-function FeatureMini({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="flex gap-3 border-b border-slate-100 pb-5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-sky-50">
-        {icon}
-      </div>
-      <div>
-        <h3 className="mb-1 text-[16px] font-semibold text-[#0ea5e9]">
-          {title}
-        </h3>
-        <p className="text-[15px] leading-snug text-slate-500">{body}</p>
-      </div>
-    </div>
   );
 }

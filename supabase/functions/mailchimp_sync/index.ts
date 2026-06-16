@@ -16,18 +16,18 @@ Deno.serve(async (req) => {
 
     // Supabase Database Webhook structure
     const email = payload?.record?.email;
-
-    if (!email) {
+    const fullName = payload?.record?.full_name;
+    if (!email || !fullName) {
       return new Response(
         JSON.stringify({
-          error: "No email found in payload",
+          error: "No email or full name found in payload",
         }),
         {
           status: 400,
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
     }
 
@@ -42,6 +42,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         email_address: email,
         status: "subscribed",
+        merge_fields: {
+          FNAME: fullName,
+        },
       }),
     });
 
@@ -60,7 +63,7 @@ Deno.serve(async (req) => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
     }
 
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
   } catch (error) {
     console.error("Function Error:", error);
@@ -89,7 +92,7 @@ Deno.serve(async (req) => {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
   }
 });
