@@ -102,7 +102,7 @@ export default function WaitlistPage() {
                 </div>
               ))}
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-[13px] font-semibold text-slate-400">
-                +2K
+                +200
               </div>
             </div>
 
@@ -163,7 +163,7 @@ export default function WaitlistPage() {
             Built for ambitious professionals who want to scale their careers without financial barriers.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-4 gap-8">
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
               <div className="w-14 h-14 rounded-2xl bg-[#00CCFC]/20 flex items-center justify-center">
                 <Image
@@ -303,7 +303,7 @@ export default function WaitlistPage() {
                 width={30}
                 height={30}
               />
-              <span className="text-lg font-bold tracking-tight text-white">
+              <span className="text-lg font-bold tracking-tight">
                 Skil<span className="text-sky-400">Loop</span>
               </span>
             </div>
