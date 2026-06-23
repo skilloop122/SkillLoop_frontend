@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface RegisterPayload {
   email: string;
@@ -13,6 +14,7 @@ interface LoginPayload {
 }
 
 interface User {
+  id?: string;
   email: string;
   firstName?: string;
   lastName?: string;
@@ -23,125 +25,264 @@ interface AuthState {
   error: string | null;
   user: User | null;
   token: string | null;
-  register: (payload: RegisterPayload) => Promise<{ success: boolean; message: string }>;
-  login: (payload: LoginPayload) => Promise<{ success: boolean; message: string }>;
-  me: () => Promise<{ success: boolean; message: string; user?: User }>;
+  hydrated: boolean;
+
+  setHydrated: (state: boolean) => void;
+
+  register: (
+    payload: RegisterPayload,
+  ) => Promise<{ success: boolean; message: string }>;
+
+  login: (
+    payload: LoginPayload,
+  ) => Promise<{ success: boolean; message: string }>;
+
+  me: () => Promise<{
+    success: boolean;
+    message: string;
+    user?: User;
+  }>;
+
+  logout: () => void;
 }
 
-const API_BASE = (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ? process.env.NEXT_PUBLIC_API_URL : "";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  loading: false,
-  error: null,
-  user: null,
-  token: null,
-  register: async ({ email, password, firstName, lastName }) => {
-    set({ loading: true, error: null });
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      loading: false,
+      error: null,
+      user: null,
+      token: null,
+      hydrated: false,
 
-    try {
-      const response = await fetch(`${API_BASE}auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, firstName, lastName }),
-      });
+      setHydrated: (state) => set({ hydrated: state }),
 
-      const body = await response.json().catch(() => null);
+      register: async ({ email, password, firstName, lastName }) => {
+        set({ loading: true, error: null });
 
-      if (!response.ok) {
-        const message = body?.message || "Registration failed. Please try again.";
-        set({ error: message });
-        return { success: false, message };
-      }
+        try {
+          const response = await fetch(`${API_BASE}auth/register`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              password,
+              firstName,
+              lastName,
+            }),
+          });
 
-      set({
-        user: body?.user ?? { email },
-        token: body?.token ?? null,
-      });
+          const body = await response.json();
 
-      return { success: true, message: body?.message || "Registration successful." };
-    } catch (err) {
-      const message = "Registration failed. Please try again.";
-      set({ error: message });
-      return { success: false, message };
-    } finally {
-      set({ loading: false });
-    }
-  },
-  login: async ({ email, password }) => {
-    set({ loading: true, error: null });
+          console.log("REGISTER RESPONSE:", body);
+          console.log("REGISTER STATUS:", response.status);
 
-    try {
-      const response = await fetch(`${API_BASE}auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+          if (!response.ok) {
+            return {
+              success: false,
+              message: body?.message || "Registration failed",
+            };
+          }
 
-      const body = await response.json().catch(() => null);
+          const token =
+            body?.access_token ||
+            body?.accessToken ||
+            body?.token ||
+            body?.data?.access_token ||
+            body?.data?.accessToken ||
+            body?.data?.token ||
+            body?.result?.access_token ||
+            null;
 
-      if (!response.ok) {
-        let message = body?.message || "Login failed. Please try again.";
-        if (response.status === 401) {
-          message = "Wrong email or password.";
-        } else if (response.status === 404) {
-          message = "No account found for this email.";
-        } else if (response.status === 400 && body?.message?.toLowerCase()?.includes("email")) {
-          message = "Please check your email address.";
+          console.log(
+            "REGISTER TOKEN EXTRACTED:",
+            token ? token.substring(0, 20) + "..." : null,
+          );
+
+          const registerUser = body?.user ||
+            body?.data?.user || {
+              id: body?.id,
+              email: body?.email,
+              firstName: body?.profile?.firstName || body?.firstName,
+              lastName: body?.profile?.lastName || body?.lastName,
+            };
+
+          console.log("REGISTER USER:", registerUser);
+
+          set({
+            user: registerUser,
+            token,
+          });
+
+          return {
+            success: true,
+            message: body?.message || "Registration successful",
+          };
+        } catch {
+          return {
+            success: false,
+            message: "Registration failed",
+          };
+        } finally {
+          set({ loading: false });
         }
-        set({ error: message });
-        return { success: false, message };
-      }
+      },
 
-      set({
-        user: body?.user ?? { email },
-        token: body?.token ?? null,
-      });
+      login: async ({ email, password }) => {
+        set({ loading: true, error: null });
 
-      return { success: true, message: body?.message || "Login successful." };
-    } catch (err) {
-      const message = "Login failed. Please try again.";
-      set({ error: message });
-      return { success: false, message };
-    } finally {
-      set({ loading: false });
-    }
-  },
-  me: async () => {
-    set({ loading: true, error: null });
+        try {
+          const response = await fetch(`${API_BASE}auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          });
 
-    try {
-      const token = get().token;
-      if (!token) {
-        const message = "No auth token found.";
-        set({ error: message });
-        return { success: false, message };
-      }
+          const body = await response.json();
 
-      const response: Response = await fetch(`${API_BASE}auth/me`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+          console.log("LOGIN RESPONSE:", body);
+          console.log("LOGIN STATUS:", response.status);
 
-      const body= await response.json().catch(() => null);
-      if (!response.ok) {
-        const message: string = body?.message || "Unable to fetch current user.";
-        set({ error: message });
-        return { success: false, message };
-      }
+          if (!response.ok) {
+            return {
+              success: false,
+              message: body?.message || "Login failed",
+            };
+          }
 
-      set({ user: body?.user ?? null });
-      return { success: true, message: body?.message || "Current user loaded.", user: body?.user };
-    } catch (err) {
-      const message = "Unable to fetch current user.";
-      set({ error: message });
-      return { success: false, message };
-    } finally {
-      set({ loading: false });
-    }
-  },
-}));
+          const token =
+            body?.access_token ||
+            body?.accessToken ||
+            body?.token ||
+            body?.data?.access_token ||
+            body?.data?.accessToken ||
+            body?.data?.token ||
+            body?.result?.access_token ||
+            null;
+
+          console.log(
+            "LOGIN TOKEN EXTRACTED:",
+            token ? token.substring(0, 20) + "..." : null,
+          );
+
+          const loginUser = body?.user ||
+            body?.data?.user || {
+              id: body?.id,
+              email: body?.email,
+              firstName: body?.profile?.firstName || body?.firstName,
+              lastName: body?.profile?.lastName || body?.lastName,
+            };
+
+          console.log("LOGIN USER:", loginUser);
+
+          set({
+            user: loginUser,
+            token,
+          });
+
+          return {
+            success: true,
+            message: body?.message || "Login successful",
+          };
+        } catch {
+          return {
+            success: false,
+            message: "Login failed",
+          };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      me: async () => {
+        set({ loading: true });
+
+        try {
+          const token = get().token;
+
+          if (!token) {
+            return {
+              success: false,
+              message: "No token found",
+            };
+          }
+
+          const response = await fetch(`${API_BASE}auth/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const body = await response.json();
+
+          console.log("ME RESPONSE:", body);
+          console.log("ME STATUS:", response.status);
+          console.log("ME DATA:", await response.json());
+
+          if (!response.ok) {
+            return {
+              success: false,
+              message: body?.message || "Failed",
+            };
+          }
+
+          const meUser = body?.user || {
+            id: body?.id,
+            email: body?.email,
+            firstName: body?.profile?.firstName || body?.firstName,
+            lastName: body?.profile?.lastName || body?.lastName,
+          };
+
+          set({
+            user: meUser,
+          });
+
+          return {
+            success: true,
+            message: "Loaded",
+            user: meUser,
+          };
+        } catch {
+          return {
+            success: false,
+            message: "Error loading user",
+          };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      logout: () =>
+        set({
+          token: null,
+          user: null,
+          error: null,
+        }),
+    }),
+    {
+      name: "skillloop-auth",
+
+      storage: createJSONStorage(() => localStorage),
+
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+      }),
+
+      onRehydrateStorage: () => (state) => {
+        console.log("AUTH STORE REHYDRATED");
+
+        state?.setHydrated(true);
+      },
+    },
+  ),
+);

@@ -14,6 +14,7 @@ import {
   Cpu,
   CalendarDays,
   X,
+  Loader2,
 } from "lucide-react";
 
 const DAYS = [
@@ -36,6 +37,7 @@ export default function SetAvailability() {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [timeRanges, setTimeRanges] = useState<Record<string, TimeRange>>({});
   const [activeDay, setActiveDay] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const bgIcons = [
     { icon: Atom, top: "5%", left: "8%", size: 36, delay: 0 },
@@ -140,7 +142,8 @@ export default function SetAvailability() {
       })
     );
 
-    router.push("/signup/profile/learn");
+    setSaving(true);
+    setTimeout(() => router.push("/signup/profile/learn"), 400);
   };
 
   return (
@@ -296,10 +299,17 @@ export default function SetAvailability() {
           id="finish-setup-btn"
           type="button"
           onClick={handleFinishSetup}
-          disabled={selectedTimeRows.length === 0}
-          className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-sky-200 disabled:cursor-not-allowed text-white font-normal py-4 rounded-[18px] shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base"
+          disabled={selectedTimeRows.length === 0 || saving}
+          className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-sky-200 disabled:cursor-not-allowed text-white font-normal py-4 rounded-[18px] shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base flex items-center justify-center gap-2"
         >
-          Finish Setup
+          {saving ? (
+            <>
+              <Loader2 size={20} className="animate-spin" />
+              Saving Schedule...
+            </>
+          ) : (
+            "Finish Setup"
+          )}
         </button>
       </div>
     </div>

@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { FolderOpen, Users } from "lucide-react";
-import { FaFacebook, FaInstagram } from "react-icons/fa";
-import { FaX } from "react-icons/fa6";
+import {  FaInstagram } from "react-icons/fa";
+import { FaLinkedin, FaTiktok, FaX } from "react-icons/fa6";
 import { supabase } from "@/lib/supabase";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
@@ -75,11 +75,11 @@ export default function WaitlistPage() {
           </div>
 
           <h1 className="mb-2 text-[30px] font-extrabold leading-tight text-black">
-            Stop Learning in Isolation. Start Trading Your Skills.
+            Your Skills Are Your Fees
           </h1>
 
           <p className="mx-auto mb-9 max-w-[900px] text-[17px] leading-snug text-slate-500 font-medium">
-            Tired of burning data on endless, lonely tutorials? SkilLoop is a peer-to-peer knowledge bank where you trade what you know for what you need. 100% live, 100% human, and completely free.
+            Stop paying for courses. Start exchanging skills.
           </p>
 
           <div className="rounded-[10px] bg-white px-4 py-6 text-left shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
@@ -110,7 +110,7 @@ export default function WaitlistPage() {
               Secure Your Day-1 Beta Access
             </h2>
             <p className="mb-4 text-[16px] text-slate-500">
-              Join the first 500 Professionals trading value without spending any money.
+              Join the first 500 Professionals exchanging skills without spending any money.
             </p>
 
             <div className="rounded-[8px] border border-[#0ea5e9] bg-white p-4">
@@ -308,16 +308,25 @@ export default function WaitlistPage() {
               </span>
             </div>
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-              SkilLoop is a peer-to-peer exchange community where African talent
-              trades what they know for what they need. No long tutorials, no
+              SkilLoop is a peer-to-peer exchange community where African talents
+              exchange what they know for what they need. No long tutorials, no
               expensive fees—just 15-minute live loops and collaborative
               projects to build the portfolio that gets you hired.
             </p>
-            <div className="mb-8 flex items-center gap-3 text-slate-300">
+            <div className="mb-8 flex items-center gap-4 text-slate-300">
               <span className="font-semibold">Follow Us</span>
-              <FaInstagram className="h-5 w-5" />
-              <FaFacebook className="h-5 w-5" />
-              <FaX className="h-5 w-5" />
+              <a href="https://www.instagram.com/getskilloop?igsh=aGltMHhjeGNjZmZh" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <FaInstagram className="h-5 w-5" />
+              </a>
+              <a href="https://x.com/SkilLoop0" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <FaX className="h-5 w-5" />
+              </a>
+              <a href="https://vm.tiktok.com/ZS9jP4SHcoddC-TBqey/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <FaTiktok className="h-5 w-5" />
+              </a>
+              <a href="https://www.linkedin.com/company/getskilloop/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                <FaLinkedin className="h-5 w-5" />
+              </a>
             </div>
             <p className="text-xs text-slate-500">
               © 2026 SkilLoop, Inc. All rights reserved.

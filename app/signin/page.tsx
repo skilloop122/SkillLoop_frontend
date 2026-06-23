@@ -15,7 +15,8 @@ import {
   BarChart,
   Atom,
   Terminal,
-  Cpu
+  Cpu,
+  Loader2
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { validatePassword } from "@/lib/utils";
@@ -222,7 +223,7 @@ export default function SignIn() {
             disabled={loading}
             className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-300 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? <><Loader2 className="h-5 w-5 animate-spin mr-2 inline" /> Signing in...</> : "Sign In"}
           </button>
 
         </form>

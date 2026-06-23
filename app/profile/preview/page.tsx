@@ -1,65 +1,45 @@
 "use client";
 
-import React, { useMemo, useSyncExternalStore } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const PROFILE_KEY = "skillLoopProfile";
-
-const defaultProfile = {
-    fullName: "Dalton West",
-    title: "UI/UX Designer",
-    experience: "2-3 years",
-    skills: ["UI/UX Design", "Figma"],
-    learningGoals: ["Frontend", "Backend", "Web Development"],
-    days: ["Mon", "Tue", "Wed"],
-    startTime: "10:00 AM",
-    endTime: "05:00 PM",
-    about: "",
-    tools: ["Figma", "Notion", "Adobe"],
-    image: "/hero_collaboration.png",
-};
-
-const subscribeProfile = (callback: () => void) => {
-    window.addEventListener("storage", callback);
-    window.addEventListener("profileChanged", callback);
-
-    return () => {
-        window.removeEventListener("storage", callback);
-        window.removeEventListener("profileChanged", callback);
-    };
-};
-
-const getProfileSnapshot = () => {
-    if (typeof window === "undefined") return JSON.stringify(defaultProfile);
-    return localStorage.getItem(PROFILE_KEY) || JSON.stringify(defaultProfile);
-};
-
-const getServerProfileSnapshot = () => JSON.stringify(defaultProfile);
+import { useProfileStore } from "../../../lib/profileStore";
+import { useAuthStore } from "../../../lib/authStore";
 
 export default function PreviewProfilePage() {
     const router = useRouter();
+    const { profile, loading, fetchProfile } = useProfileStore();
+    const { hydrated, token } = useAuthStore();
 
-    const snapshot = useSyncExternalStore(
-        subscribeProfile,
-        getProfileSnapshot,
-        getServerProfileSnapshot
-    );
-
-    const profile = useMemo(() => {
-        try {
-            return { ...defaultProfile, ...JSON.parse(snapshot) };
-        } catch {
-            return defaultProfile;
+    useEffect(() => {
+        if (hydrated) {
+            if (token) {
+                if (!profile) fetchProfile();
+            } else {
+                router.push("/signin");
+            }
         }
-    }, [snapshot]);
+    }, [hydrated, token, profile, fetchProfile, router]);
+
+    if (!hydrated || (loading && !profile)) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-black text-white">
+                <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+            </div>
+        );
+    }
+
+    const fullName = profile ? (profile.firstName + " " + profile.lastName) : "Dalton West";
+    const teachSkills = profile?.teachSkills.map(s => s.name) || ["UI/UX Design", "Figma"];
+    const learnSkills = profile?.learnSkills.map(s => s.name) || ["Frontend", "Backend"];
+    const bio = profile?.bio || "";
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-black font-sans text-white">
             <Image
                 src="/hero_collaboration.png"
-                alt={profile.fullName}
+                alt={fullName}
                 fill
                 priority
                 className="object-cover"
@@ -72,9 +52,9 @@ export default function PreviewProfilePage() {
                 <div className="mb-5 flex items-end justify-between gap-4">
                     <div>
                         <h1 className="text-[25px] font-semibold leading-tight text-white">
-                            {profile.fullName}
+                            {fullName}
                         </h1>
-                        <p className="text-[17px] text-white">{profile.title}</p>
+                        <p className="text-[17px] text-white">User Profile</p>
                     </div>
 
                     <div className="text-right">
@@ -88,22 +68,21 @@ export default function PreviewProfilePage() {
 
                 <section className="mb-4">
                     <h2 className="mb-2 text-[17px] font-semibold">Teaches</h2>
-                    <ChipList items={profile.skills} />
+                    <ChipList items={teachSkills} />
                 </section>
 
                 <section className="mb-4">
                     <h2 className="mb-2 text-[17px] font-semibold">Wants to learn</h2>
-                    <ChipList items={profile.learningGoals} />
+                    <ChipList items={learnSkills} />
                 </section>
 
                 <section className="mb-7">
                     <h2 className="mb-1 text-[17px] font-semibold">
-                        You Match because:
+                        About
                     </h2>
-                    <ul className="list-disc pl-6 text-[16px] leading-snug text-white">
-                        <li>You want to learn web development</li>
-                        <li>They want to learn UI/UX Design</li>
-                    </ul>
+                    <p className="text-[16px] leading-snug text-white">
+                        {bio || "No bio available."}
+                    </p>
                 </section>
 
                 <button
@@ -121,9 +100,9 @@ export default function PreviewProfilePage() {
 function ChipList({ items }: { items: string[] }) {
     return (
         <div className="flex flex-wrap gap-2">
-            {items.map((item) => (
+            {items.map((item, index) => (
                 <span
-                    key={item}
+                    key={index}
                     className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#b8e8fb] px-3 py-2 text-[16px] text-white"
                 >
                     {item}

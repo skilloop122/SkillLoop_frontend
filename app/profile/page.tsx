@@ -1,76 +1,57 @@
 "use client";
 
-import React, { useMemo, useSyncExternalStore } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
-import { Clock } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
-
-const PROFILE_KEY = "skillLoopProfile";
-
-type ProfileData = {
-    fullName: string;
-    title: string;
-    experience: string;
-    skills: string[];
-    learningGoals: string[];
-    days: string[];
-    startTime: string;
-    endTime: string;
-    about: string;
-    tools: string[];
-    image: string;
-};
-
-const defaultProfile: ProfileData = {
-    fullName: "Dalton Harris",
-    title: "Product Designer",
-    experience: "2-3 years",
-    skills: ["UI/UX", "Prototype", "Webflow", "Figma"],
-    learningGoals: ["Frontend", "Backend", "Web Development"],
-    days: ["Mon", "Tue", "Wed"],
-    startTime: "10:00 AM",
-    endTime: "05:00 PM",
-    about:
-        "I am a Product Designer focused on crafting clean, intuitive and conversion-driven digital experiences. I am continuously improving my process, exploring better ways to design and pushing towards building valuable products.",
-    tools: ["Figma", "Notion", "Adobe"],
-    image: "/teacher.png",
-};
-
-const subscribeProfile = (callback: () => void) => {
-    window.addEventListener("storage", callback);
-    window.addEventListener("profileChanged", callback);
-
-    return () => {
-        window.removeEventListener("storage", callback);
-        window.removeEventListener("profileChanged", callback);
-    };
-};
-
-const getProfileSnapshot = () => {
-    if (typeof window === "undefined") return JSON.stringify(defaultProfile);
-    return localStorage.getItem(PROFILE_KEY) || JSON.stringify(defaultProfile);
-};
-
-const getServerProfileSnapshot = () => JSON.stringify(defaultProfile);
+import { useProfileStore } from "../../lib/profileStore";
+import { useAuthStore } from "../../lib/authStore";
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { profile, loading, error, fetchProfile } = useProfileStore();
+    const { hydrated, token } = useAuthStore();
 
-    const profileSnapshot = useSyncExternalStore(
-        subscribeProfile,
-        getProfileSnapshot,
-        getServerProfileSnapshot
-    );
-
-    const profile = useMemo<ProfileData>(() => {
-        try {
-            return { ...defaultProfile, ...JSON.parse(profileSnapshot) };
-        } catch {
-            return defaultProfile;
+    useEffect(() => {
+        if (hydrated) {
+            if (token) {
+                fetchProfile();
+            } else {
+                router.push("/signin");
+            }
         }
-    }, [profileSnapshot]);
+    }, [hydrated, token, fetchProfile, router]);
+
+    if (!hydrated || (loading && !profile)) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-white text-black">
+                <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+            </div>
+        );
+    }
+
+    if (error && !profile) {
+        return (
+            <div className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-5 text-center">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button 
+                    onClick={() => fetchProfile()}
+                    className="rounded-[4px] bg-[#0ea5e9] px-4 py-2 text-white"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
+
+    const fullName = profile ? (profile.firstName + " " + profile.lastName) : "Dalton Harris";
+    const bio = profile?.bio || "No bio provided.";
+    const teachSkills = profile?.teachSkills.map(s => s.name) || [];
+    const learnSkills = profile?.learnSkills.map(s => s.name) || [];
+    const days = profile?.schedule.map(s => s.day) || [];
+    const timeRange = profile?.schedule[0]?.time || "Not set";
 
     return (
         <div className="min-h-screen bg-white font-sans flex text-black">
@@ -78,28 +59,25 @@ export default function ProfilePage() {
 
             <main className="flex-1 w-full md:ml-64 pb-28 md:pb-12">
                 <div className="w-full max-w-md md:max-w-6xl mx-auto px-5 pt-24 md:pt-12">
-                    {/* <button
-                        type="button"
-                        onClick={() => router.back()}
-                        className="mb-3 flex h-9 w-11 items-center justify-center rounded-[4px] border border-[#0ea5e9] bg-sky-50 text-black"
-                    >
-                        <ArrowLeft className="h-6 w-6" strokeWidth={1.8} />
-                    </button> */}
-
                     <section className="mb-10 flex justify-center">
                         <div className="relative">
                             <div className="relative h-[168px] w-[168px] overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
-                                <Image src={profile.image} alt={profile.fullName} fill priority className="object-cover" />
+                                <Image 
+                                    src="/teacher.png" 
+                                    alt={fullName} 
+                                    fill 
+                                    priority 
+                                    className="object-cover" 
+                                />
                             </div>
                             <span className="absolute bottom-7 right-3 h-6 w-6 rounded-full bg-green-500 ring-4 ring-white" />
                         </div>
                     </section>
 
                     <section className="mb-9 space-y-5">
-                        <ProfileField label="Full Name" value={profile.fullName} />
-                        <ProfileField label="Title" value={profile.title} />
-                        <ProfileField label="Years of Experience" value={profile.experience} />
-
+                        <ProfileField label="Full Name" value={fullName} />
+                        <ProfileField label="Phone Number" value={profile?.phoneNumber || "Not set"} />
+                        
                         <button
                             type="button"
                             onClick={() => router.push("/profile/edit")}
@@ -110,27 +88,23 @@ export default function ProfilePage() {
                     </section>
 
                     <ProfileSection title="Your Skills">
-                        <ChipList items={profile.skills} />
+                        <ChipList items={teachSkills} />
                     </ProfileSection>
 
                     <ProfileSection title="Learning Goals">
-                        <ChipList items={profile.learningGoals} />
+                        <ChipList items={learnSkills} />
                     </ProfileSection>
 
                     <ProfileSection title="Your Availability">
-                        <ChipList items={profile.days} />
+                        <ChipList items={days} />
                         <div className="mt-3 flex items-center gap-2 text-[16px]">
                             <Clock className="h-5 w-5 text-[#0ea5e9]" />
-                            <span>{profile.startTime} - {profile.endTime}</span>
+                            <span>{timeRange}</span>
                         </div>
                     </ProfileSection>
 
                     <ProfileSection title="About">
-                        <p className="max-w-[360px] text-[18px] leading-snug">{profile.about}</p>
-                    </ProfileSection>
-
-                    <ProfileSection title="Your Tools">
-                        <ChipList items={profile.tools} />
+                        <p className="max-w-[360px] text-[18px] leading-snug">{bio}</p>
                     </ProfileSection>
 
                     <button
@@ -169,10 +143,11 @@ function ProfileSection({ title, children }: { title: string; children: React.Re
 }
 
 function ChipList({ items }: { items: string[] }) {
+    if (items.length === 0) return <p className="text-slate-400">None added yet.</p>;
     return (
         <div className="flex flex-wrap gap-2">
-            {items.map((item) => (
-                <span key={item} className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#b8e8fb] px-3 py-2 text-[16px] text-white">
+            {items.map((item, index) => (
+                <span key={index} className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#b8e8fb] px-3 py-2 text-[16px] text-white">
                     {item}
                 </span>
             ))}

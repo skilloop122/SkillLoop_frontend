@@ -14,7 +14,8 @@ import {
   BarChart,
   Atom,
   Terminal,
-  Cpu
+  Cpu,
+  Loader2
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { validatePassword } from "@/lib/utils";
@@ -28,6 +29,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const register = useAuthStore((state) => state.register);
+  const login = useAuthStore((state) => state.login);
   const loading = useAuthStore((state) => state.loading);
   const remoteError = useAuthStore((state) => state.error);
   const [toasts, setToasts] = useState<{
@@ -89,6 +91,13 @@ export default function SignUp() {
 
     if (!result.success) {
       showToast(result.message || "Registration failed.", "error");
+      return;
+    }
+
+    const loginResult = await login({ email, password });
+    if (!loginResult.success) {
+      showToast("Account created. Please sign in.", "success");
+      setTimeout(() => router.push("/signin"), 800);
       return;
     }
 
@@ -268,7 +277,7 @@ export default function SignUp() {
             disabled={loading}
             className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-300 text-white font-bold py-4.5 rounded-2xl shadow-xl shadow-sky-500/25 active:scale-98 transition-all text-base"
           >
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? <><Loader2 className="h-5 w-5 animate-spin mr-2 inline" /> Creating account...</> : "Sign Up"}
           </button>
 
         </form>

@@ -1,22 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { ArrowLeft, Check, Star } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, Check, Star, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useProfileStore } from "../../../lib/profileStore";
 
-const teaches = ["Frontend", "Web Development"];
-const wantsToLearn = ["UI/UX Design", "Figma"];
-
-export default function ViewProfilePage() {
+function ProfileContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("id");
   const [requestSent, setRequestSent] = useState(false);
+  const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
+
+  useEffect(() => {
+    if (userId) {
+      fetchPublicProfile(userId);
+    }
+  }, [userId, fetchPublicProfile]);
+
+  if (loading && !publicProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    );
+  }
+
+  if (error && !publicProfile) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-5 text-center">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button 
+          onClick={() => userId && fetchPublicProfile(userId)}
+          className="rounded-[4px] bg-[#0ea5e9] px-4 py-2 text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const profile = publicProfile;
+  const fullName = profile ? (profile.firstName + " " + profile.lastName) : "Sander James";
+  const bio = profile?.bio || "No bio provided.";
+  const teachSkills = profile?.teachSkills.map(s => s.name) || [];
+  const learnSkills = profile?.learnSkills.map(s => s.name) || [];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black font-sans text-white">
       <Image
         src="/james_klin.png"
-        alt="Sander James"
+        alt={fullName}
         fill
         priority
         className="object-cover"
@@ -38,9 +73,9 @@ export default function ViewProfilePage() {
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
             <h1 className="text-[25px] font-semibold leading-tight">
-              Sander James
+              {fullName}
             </h1>
-            <p className="text-[17px]">Web Developer</p>
+            <p className="text-[17px]">{profile?.phoneNumber || "Web Developer"}</p>
           </div>
 
           <div className="text-right">
@@ -54,22 +89,21 @@ export default function ViewProfilePage() {
 
         <section className="mb-4">
           <h2 className="mb-2 text-[17px] font-semibold">Teaches</h2>
-          <ChipList items={teaches} />
+          <ChipList items={teachSkills} />
         </section>
 
         <section className="mb-4">
           <h2 className="mb-2 text-[17px] font-semibold">Wants to learn</h2>
-          <ChipList items={wantsToLearn} />
+          <ChipList items={learnSkills} />
         </section>
 
         <section className="mb-7">
           <h2 className="mb-1 text-[17px] font-semibold">
-            You Match because:
+            About
           </h2>
-          <ul className="list-disc pl-6 text-[16px] leading-snug">
-            <li>You want to learn Web Development</li>
-            <li>They want to learn UI/UX Design</li>
-          </ul>
+          <p className="text-[16px] leading-snug">
+            {bio}
+          </p>
         </section>
 
         <button
@@ -90,7 +124,7 @@ export default function ViewProfilePage() {
 
             <h2 className="text-[18px] font-semibold">Request Sent!</h2>
             <p className="mb-4 text-[15px] leading-snug">
-              Waiting for James to accept your request.
+              Waiting for {profile?.firstName || "them"} to accept your request.
             </p>
 
             <button
@@ -108,16 +142,29 @@ export default function ViewProfilePage() {
 }
 
 function ChipList({ items }: { items: string[] }) {
+  if (items.length === 0) return <p className="text-white/50">None specified.</p>;
   return (
     <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <span
-          key={item}
+          key={index}
           className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#b8e8fb] px-3 py-2 text-[16px] text-white"
         >
           {item}
         </span>
       ))}
     </div>
+  );
+}
+
+export default function ViewProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }
