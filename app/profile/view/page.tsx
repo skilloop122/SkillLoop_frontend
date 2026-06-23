@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfileStore } from "../../../lib/profileStore";
 
-export default function ViewProfilePage() {
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get("id");
@@ -154,5 +154,17 @@ function ChipList({ items }: { items: string[] }) {
         </span>
       ))}
     </div>
+  );
+}
+
+export default function ViewProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }
