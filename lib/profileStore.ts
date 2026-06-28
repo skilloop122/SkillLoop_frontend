@@ -149,7 +149,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
       console.log("REQUEST URL:", profileUrl);
 
       const response = await fetch(profileUrl, {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -278,8 +278,15 @@ export const useProfileStore = create<ProfileState>((set) => ({
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch matches");
 
-      set({ matches: data, loading: false });
-      return { success: true, matches: data };
+      const matchesArray: UserProfile[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.matches)
+            ? data.matches
+            : [];
+      set({ matches: matchesArray, loading: false });
+      return { success: true, matches: matchesArray };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";

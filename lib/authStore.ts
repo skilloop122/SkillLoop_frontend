@@ -226,7 +226,6 @@ export const useAuthStore = create<AuthState>()(
 
           console.log("ME RESPONSE:", body);
           console.log("ME STATUS:", response.status);
-          console.log("ME DATA:", await response.json());
 
           if (!response.ok) {
             return {
