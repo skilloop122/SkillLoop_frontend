@@ -1,11 +1,15 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, CalendarDays, Folder, User } from "lucide-react";
 import Image from "next/image";
+import { useAuthStore } from "../lib/authStore";
 
 export function SideNav() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
 
   const navItems = [
     { name: "Home", href: "/home", icon: Home },
@@ -62,14 +66,23 @@ export function SideNav() {
         })}
       </nav>
 
-      {/* Bottom Profile Snippet (Optional but nice for desktop) */}
+      {/* Bottom Profile Snippet */}
       <div className="mt-auto px-4 py-4 border-t border-slate-100 flex items-center gap-3">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden bg-slate-200 shrink-0">
-          <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+        <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+          <span className="text-sm font-bold text-sky-600">
+            {user?.firstName?.[0]?.toUpperCase() ?? "?"}
+            {user?.lastName?.[0]?.toUpperCase() ?? ""}
+          </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-900 truncate">James Klin</p>
-          <p className="text-xs font-medium text-slate-500 truncate">james@example.com</p>
+          <p className="text-sm font-bold text-slate-900 truncate">
+            {user?.firstName && user?.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : user?.firstName ?? "User"}
+          </p>
+          <p className="text-xs font-medium text-slate-500 truncate">
+            {user?.email ?? ""}
+          </p>
         </div>
       </div>
     </div>

@@ -67,6 +67,15 @@ export default function PreviewProfilePage() {
                 </div>
 
                 <section className="mb-4">
+                    <h2 className="mb-1 text-[17px] font-semibold">
+                        About
+                    </h2>
+                    <p className="text-[16px] leading-snug text-white">
+                        {bio || "No bio available."}
+                    </p>
+                </section>
+
+                <section className="mb-4">
                     <h2 className="mb-2 text-[17px] font-semibold">Teaches</h2>
                     <ChipList items={teachSkills} />
                 </section>
@@ -77,12 +86,13 @@ export default function PreviewProfilePage() {
                 </section>
 
                 <section className="mb-7">
-                    <h2 className="mb-1 text-[17px] font-semibold">
-                        About
-                    </h2>
-                    <p className="text-[16px] leading-snug text-white">
-                        {bio || "No bio available."}
-                    </p>
+                    <h2 className="mb-2 text-[17px] font-semibold">Links</h2>
+                    <div className="flex flex-col gap-3">
+                        <PreviewField label="LinkedIn" value={profile?.linkedinUrl} />
+                        <PreviewField label="GitHub" value={profile?.githubUrl} />
+                        <PreviewField label="Twitter / X" value={profile?.twitterUrl} />
+                        <PreviewField label="Portfolio" value={profile?.portfolioUrl} />
+                    </div>
                 </section>
 
                 <button
@@ -93,6 +103,17 @@ export default function PreviewProfilePage() {
                     Edit Profile
                 </button>
             </main>
+        </div>
+    );
+}
+
+function PreviewField({ label, value }: { label: string; value?: string }) {
+    return (
+        <div>
+            <span className="mb-1 block text-[13px] font-medium text-white/60">{label}</span>
+            <div className="rounded-[10px] bg-white/10 px-3.5 py-2.5 text-[15px] text-white/90 backdrop-blur-sm truncate">
+                {value || "Not set"}
+            </div>
         </div>
     );
 }
