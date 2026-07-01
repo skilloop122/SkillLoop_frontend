@@ -14,7 +14,7 @@ export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkillId, setSelectedSkillId] = useState("");
   const router = useRouter();
-  
+
   const { matches, loading, error, fetchMatches, profile, fetchProfile } = useProfileStore();
   const { hydrated, token } = useAuthStore();
 
@@ -25,14 +25,16 @@ export default function ExplorePage() {
     }
   }, [hydrated, token, selectedSkillId, fetchMatches, profile, fetchProfile]);
 
-  const handleSkillChange = (e: React.ChangeEvent < HTMLSelectElement >) => {
+  const handleSkillChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedSkillId(val === "all" ? "" : val);
   };
 
-  const filteredMatches = matches.filter(m => 
-    (m.firstName + " " + m.lastName).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMatches = matches.filter(m => {
+    const fName = m.user?.profile?.firstName || m.firstName || "";
+    const lName = m.user?.profile?.lastName || m.lastName || "";
+    return (fName + " " + lName).toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-white font-sans flex text-black">
@@ -64,13 +66,13 @@ export default function ExplorePage() {
               {filteredMatches.length} Matches Found
             </span>
             <div className="relative self-start md:self-auto">
-              <select 
+              <select
                 value={selectedSkillId || "all"}
                 onChange={handleSkillChange}
                 className="appearance-none bg-white border border-[#0ea5e9] text-black text-[15px] font-medium py-2 pl-4 pr-10 rounded-[6px] outline-none shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
               >
                 <option value="all">All My Learning Goals</option>
-                {profile?.learnSkills.map(skill => (
+                {profile?.learnSkills?.map(skill => (
                   <option key={skill.id} value={skill.id}>{skill.name}</option>
                 ))}
               </select>
@@ -87,7 +89,7 @@ export default function ExplorePage() {
           ) : error ? (
             <div className="text-center py-20">
               <p className="text-red-500 font-medium mb-4">{error}</p>
-              <button 
+              <button
                 onClick={() => fetchMatches("20", selectedSkillId)}
                 className="px-6 py-2 bg-[#0ea5e9] text-white rounded-lg font-bold"
               >
@@ -102,18 +104,25 @@ export default function ExplorePage() {
                   className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
                 >
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="relative w-[52px] h-[52px] rounded-lg overflow-hidden shrink-0 bg-slate-100">
-                      <Image
-                        src="/james_klin.png"
-                        alt={match.firstName}
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="relative w-[52px] h-[52px] rounded-lg overflow-hidden shrink-0 bg-sky-100 flex items-center justify-center">
+                      {(match.user?.profile?.avatarUrl || match.avatarUrl) ? (
+                        <Image
+                          src={match.user?.profile?.avatarUrl || match.avatarUrl}
+                          alt={match.user?.profile?.firstName || match.firstName || "User"}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-bold text-sky-600">
+                          {(match.user?.profile?.firstName?.[0] || match.firstName?.[0] || "?").toUpperCase()}
+                          {(match.user?.profile?.lastName?.[0] || match.lastName?.[0] || "").toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-lg font-semibold text-black truncate leading-tight">
-                          {match.firstName} {match.lastName}
+                          {match.user?.profile?.firstName || match.firstName} {match.user?.profile?.lastName || match.lastName}
                         </h3>
                         <div className="flex items-center gap-1 shrink-0">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -122,29 +131,32 @@ export default function ExplorePage() {
                           </span>
                         </div>
                       </div>
+                      <p className="text-[13px] text-slate-500 mt-0.5 truncate">
+                        {match.user?.email || match.email || "No email available"}
+                      </p>
                       <p className="text-[14px] text-black mt-0.5 truncate">
-                        {match.bio || "No bio available"}
+                        {match.user?.profile?.bio || match.bio || "No bio available"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-end justify-between gap-4 mt-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-3">
-                      <div>
+                      <div className="flex items-center justify-center gap-2">
                         <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] mb-1">
-                          Teaches
+                          Teaches:
                         </span>
                         <p className="text-[14px] font-medium text-black truncate">
-                          {match.teachSkills.map(s => s.name).join(", ")}
+                          {(match.directSkills || match.teachSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
                         </p>
                       </div>
 
-                      <div>
+                      <div className="flex items-center justify-center gap-2">
                         <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] mb-1">
-                          Learning
-                    </span>
+                          Learning:
+                        </span>
                         <p className="text-[14px] font-medium text-black truncate">
-                          {match.learnSkills.map(s => s.name).join(", ")}
+                          {(match.reciprocalSkills || match.learnSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
                         </p>
                       </div>
                     </div>
@@ -153,9 +165,9 @@ export default function ExplorePage() {
                       <Link href={"/explore/request?id=" + match.id} className="w-full bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 rounded-[6px] text-sm transition-colors text-center inline-block">
                         Request Session
                       </Link>
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => router.push("/profile/view?id=" + match.id)} 
+                        onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
                         className="w-full bg-white border border-[#0ea5e9] text-black font-medium py-1.5 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
                       >
                         View Profile

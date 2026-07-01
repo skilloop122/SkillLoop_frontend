@@ -140,10 +140,10 @@ Deno.serve(async (req) => {
 
     // Welcome email to user
     const { data, error } = await resend.emails.send({
-      from: "SkillLoop <hello@mail.skil-loop.com>",
+      from: "SkilLoop <hello@mail.skil-loop.com>",
       replyTo: "hello@skil-loop.com",
       to: email,
-      subject: "🎉 You're on the SkillLoop waitlist!",
+      subject: "🎉 You're on the SkilLoop waitlist!",
       html: `
               <div style="
                 font-family: Arial, Helvetica, sans-serif;
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
                 ">
                   <img
                     src="https://www.skil-loop.com/images/SkilLoop.png"
-                    alt="SkillLoop"
+                    alt="SkilLoop"
                     width="140"
                     style="max-width:140px;"
                   />
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
                       Join Our WhatsApp Community
                     </a>
                   </div>                 
-                  <p> See you inside🚀,<br /> The SkillLoop Team </p>
+                  <p> See you inside🚀,<br /> The SkilLoop Team </p>
                  </div>
 
 
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
 
                   <img
                     src="https://www.skil-loop.com/images/SkilLoop.png"
-                    alt="SkillLoop"
+                    alt="SkilLoop"
                     width="140"
                     style="max-width:140px; margin-bottom:15px;"
                   />
@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
                     margin:5px 0;
                     color:#cbd5e1;
                   ">
-                    Building the future with SkillLoop 🚀
+                    Building the future with SkilLoop 🚀
                   </p>
 
 
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
                     font-size:14px;
                     color:#cbd5e1;
                   ">
-                    © 2026 SkillLoop. All rights reserved.
+                    © 2026 SkilLoop. All rights reserved.
                   </p>
 
 
@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
     // Admin notification email
     try {
       await resend.emails.send({
-        from: "SkillLoop <hello@mail.skil-loop.com>",
+        from: "SkilLoop <hello@mail.skil-loop.com>",
         replyTo: "hello@skil-loop.com",
         to: "hello@skil-loop.com",
         subject: "🎉 New Waitlist Signup",
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
 
         <hr />
 
-        <p>A new user has joined the SkillLoop waitlist.</p>
+        <p>A new user has joined the SkilLoop waitlist.</p>
       </div>
     `,
       });

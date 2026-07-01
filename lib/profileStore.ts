@@ -12,8 +12,12 @@ export interface Schedule {
 }
 
 export interface UserProfile {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [x: string]: any;
   id: string;
   userId: string;
+  email: string;
+  avatarUrl?: string;
   firstName: string;
   lastName: string;
   bio: string;
@@ -30,6 +34,9 @@ export interface UserProfile {
 export interface UpdateProfilePayload {
   bio?: string;
   phoneNumber?: string;
+  email?: string;
+  avatarUrl?: string;
+  avatarFile?: File;
   teachSkills?: (string | Skill)[];
   learnSkills?: (string | Skill)[];
   linkedinUrl?: string;
@@ -44,6 +51,8 @@ export interface CreateProfilePayload {
   lastName: string;
   bio?: string;
   phoneNumber?: string;
+  email?: string;
+  avatarUrl?: string;
   teachSkills: (string | Skill)[];
   learnSkills: (string | Skill)[];
   linkedinUrl?: string;
@@ -205,13 +214,32 @@ export const useProfileStore = create<ProfileState>((set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
+      const hasFile = !!payload.avatarFile;
+      let body: BodyInit;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const headers: any = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      if (hasFile) {
+        const formData = new FormData();
+        const { avatarFile, ...textFields } = payload;
+        for (const [key, val] of Object.entries(textFields)) {
+          if (val !== undefined) {
+            formData.append(key, typeof val === "object" ? JSON.stringify(val) : String(val));
+          }
+        }
+        formData.append("avatarFile", avatarFile as Blob);
+        body = formData;
+      } else {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(payload);
+      }
+
       const response = await fetch(API_BASE + "users/profile", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+        headers,
+        body,
       });
 
       const data = await response.json();
@@ -232,20 +260,28 @@ export const useProfileStore = create<ProfileState>((set) => ({
   fetchPublicProfile: async (id: string) => {
     set({ loading: true, error: null });
     try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
       const response = await fetch(API_BASE + "users/" + id + "/profile", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await response.json();
-      console.log("FETCH PUBLIC PROFILE RESPONSE:", data);
+      console.log("FETCH PUBLIC PROFILE RESPONSE:", JSON.stringify(data, null, 2));
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch public profile");
 
-      set({ publicProfile: data, loading: false });
-      return { success: true, profile: data };
+      const profile = data?.profile || data;
+      const email = data?.user?.email || profile.email || "";
+      const normalized = { ...profile, email };
+
+      set({ publicProfile: normalized, loading: false });
+      return { success: true, profile: normalized };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";

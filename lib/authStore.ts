@@ -43,7 +43,7 @@ interface AuthState {
     user?: User;
   }>;
 
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
@@ -260,12 +260,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () =>
-        set({
-          token: null,
-          user: null,
-          error: null,
-        }),
+      logout: async () => {
+        try {
+          const token = get().token;
+          if (token) {
+            await fetch(`${API_BASE}auth/logout`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          }
+        } catch {
+          // ignore API errors — still clear local state
+        }
+        set({ token: null, user: null, error: null });
+      },
     }),
     {
       name: "skillloop-auth",
