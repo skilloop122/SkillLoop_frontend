@@ -50,6 +50,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
     githubUrl: profile.githubUrl,
     twitterUrl: profile.twitterUrl,
     portfolioUrl: profile.portfolioUrl,
+    avatarUrl: profile.avatarUrl,
   });
 
   const [teachSkills, setTeachSkills] = useState<string[]>(
@@ -166,6 +167,22 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
     })
     .filter(Boolean) as { day: string; label: string }[];
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleUpdate("avatarUrl", reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const saveChanges = async () => {
     const schedule: Schedule[] = selectedTimeRows.map((row) => ({
       day: row.day,
@@ -173,10 +190,18 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
     }));
 
     const payload: UpdateProfilePayload = {
-      ...draft,
+      bio: draft.bio,
+      phoneNumber: draft.phoneNumber,
+      email: draft.email,
+      avatarUrl: avatarFile ? undefined : draft.avatarUrl,
+      linkedinUrl: draft.linkedinUrl,
+      githubUrl: draft.githubUrl,
+      twitterUrl: draft.twitterUrl,
+      portfolioUrl: draft.portfolioUrl,
       teachSkills,
       learnSkills,
       schedule,
+      avatarFile: avatarFile || undefined,
     };
 
     const result = await updateProfile(payload);
@@ -189,27 +214,40 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
 
   return (
     <div className="min-h-screen bg-white px-5 pt-24 pb-10 font-sans text-black">
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-md md:max-w-6xl">
         <section className="mb-10 flex justify-center">
-          {/* <div className="relative">
-            <div className="relative h-[168px] w-[168px] overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
-              <Image
-                src="/teacher.png"
-                alt="Profile"
-                fill
-                priority
-                className="object-cover"
-              />
-            </div>
-            <button className="absolute bottom-1 right-2 flex h-11 w-11 items-center justify-center rounded-[6px] bg-sky-300 text-white ring-4 ring-white">
+          <div className="relative h-[168px] w-[168px]">
+            {draft.avatarUrl ? (
+              <div className="relative h-full w-full overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
+                <Image
+                  src={draft.avatarUrl}
+                  alt="Profile"
+                  fill
+                  priority
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="h-full w-full rounded-full bg-sky-100 flex items-center justify-center shrink-0 border-[6px] border-slate-200">
+                <span className="text-6xl font-bold text-sky-600">
+                  {user?.firstName?.[0]?.toUpperCase() ?? "?"}
+                  {user?.lastName?.[0]?.toUpperCase() ?? ""}
+                </span>
+              </div>
+            )}
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-1 right-2 flex h-11 w-11 items-center justify-center rounded-[6px] bg-sky-300 text-white ring-4 ring-white"
+            >
               <Camera className="h-6 w-6" />
             </button>
-          </div> */}
-          <div className="relative h-[168px] w-[168px] rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-            <span className="text-6xl font-bold text-sky-600">
-              {user?.firstName?.[0]?.toUpperCase() ?? "?"}
-              {user?.lastName?.[0]?.toUpperCase() ?? ""}
-            </span>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+            />
           </div>
         </section>
 
@@ -273,8 +311,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                       exit={{ opacity: 0, scale: 0.85 }}
                       transition={{ type: "spring", stiffness: 420, damping: 30 }}
                       className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
-                          ? "bg-sky-500 text-white shadow-sky-200"
-                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                        ? "bg-sky-500 text-white shadow-sky-200"
+                        : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
                         }`}
                     >
                       {skill.name}
@@ -330,8 +368,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                       exit={{ opacity: 0, scale: 0.85 }}
                       transition={{ type: "spring", stiffness: 420, damping: 30 }}
                       className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
-                          ? "bg-sky-500 text-white shadow-sky-200"
-                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                        ? "bg-sky-500 text-white shadow-sky-200"
+                        : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
                         }`}
                     >
                       {skill.name}
@@ -379,8 +417,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                   whileTap={{ scale: 0.94 }}
                   transition={{ type: "spring", stiffness: 420, damping: 30 }}
                   className={`px-4 py-3 rounded-[8px] text-base font-normal transition-all duration-200 shadow-lg ${isSelected
-                      ? "bg-sky-500 text-white shadow-sky-200"
-                      : "bg-[#c1c1c1] text-black/50 hover:bg-slate-300"
+                    ? "bg-sky-500 text-white shadow-sky-200"
+                    : "bg-[#c1c1c1] text-black/50 hover:bg-slate-300"
                     }`}
                 >
                   {day}
@@ -399,8 +437,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                     type="button"
                     onClick={() => setActiveDay(day)}
                     className={`shrink-0 rounded-[8px] px-3 py-2 text-sm ${activeDay === day
-                        ? "bg-sky-500 text-white"
-                        : "bg-sky-100 text-slate-700"
+                      ? "bg-sky-500 text-white"
+                      : "bg-sky-100 text-slate-700"
                       }`}
                   >
                     {day}
