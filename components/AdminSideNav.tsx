@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Users, BookOpen, LogOut, Menu, X, Settings, BarChart3, MessageSquare } from "lucide-react";
+import { Activity, Users, BookOpen, LogOut, Menu, X, Settings, BarChart3, MessageSquare, Laptop } from "lucide-react";
 import Image from "next/image";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useRouter } from "next/navigation";
@@ -16,10 +16,11 @@ export function AdminSideNav() {
 
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: Activity },
-    { name: "Waitlist", href: "/admin/waitlist", icon: Users },
-    { name: "Courses", href: "/admin/courses", icon: BookOpen },
-    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Skills", href: "/admin/skills", icon: BookOpen },
+    { name: "Requests", href: "/admin/requests", icon: BarChart3 },
     { name: "Feedback", href: "/admin/feedback", icon: MessageSquare },
+    { name: "Sessions", href: "/admin/Sessions", icon: Laptop },
   ];
 
   const handleLogout = () => {

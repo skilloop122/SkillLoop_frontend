@@ -12,6 +12,8 @@ export interface TopUser {
   email: string;
   points: number;
   role: string;
+  status?: string;
+  createdAt?: string;
   profile: {
     firstName: string;
     lastName: string;
@@ -21,6 +23,8 @@ export interface TopUser {
 export interface AdminMetrics {
   overview: {
     totalUsers: number;
+    totalInactiveUsers: number;
+    newUsers:number;
     totalSkillListings: number;
     totalRequests: number;
     totalSessions: number;
