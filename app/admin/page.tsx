@@ -169,7 +169,7 @@ export default function AdminDashboard() {
                       width={48}
                       height={48}
                       className="w-full h-full object-cover"
-                      onError={() => {}}
+                      onError={() => { }}
                     />
                   </div>
 
@@ -318,9 +318,17 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* View Button */}
-                      <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm shrink-0">
-                        View
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/users/${user.id}`)}
+                          className="bg-sky-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-sky-400 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                          {/* <MoreVertical size={16} className="text-gray-400" /> */}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -381,9 +389,17 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="p-4">
-                            <button className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-400 transition-colors">
-                              View
-                            </button>
+                            <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => router.push(`/admin/users/${user.id}`)}
+                            className="bg-sky-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-sky-400 transition-colors"
+                          >
+                            View
+                          </button>
+                          <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                            {/* <MoreVertical size={16} className="text-gray-400" /> */}
+                          </button>
+                        </div>
                           </td>
                         </tr>
                       ))}
