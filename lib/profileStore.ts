@@ -214,27 +214,15 @@ export const useProfileStore = create<ProfileState>((set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const hasFile = !!payload.avatarFile;
-      let body: BodyInit;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const headers: any = {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
-      if (hasFile) {
-        const formData = new FormData();
-        const { avatarFile, ...textFields } = payload;
-        for (const [key, val] of Object.entries(textFields)) {
-          if (val !== undefined) {
-            formData.append(key, typeof val === "object" ? JSON.stringify(val) : String(val));
-          }
-        }
-        formData.append("avatarFile", avatarFile as Blob);
-        body = formData;
-      } else {
-        headers["Content-Type"] = "application/json";
-        body = JSON.stringify(payload);
-      }
+      delete payload.avatarFile;
+
+      const body = JSON.stringify(payload);
 
       const response = await fetch(API_BASE + "users/profile", {
         method: "PUT",

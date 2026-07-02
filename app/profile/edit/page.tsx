@@ -193,7 +193,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       bio: draft.bio,
       phoneNumber: draft.phoneNumber,
       email: draft.email,
-      avatarUrl: avatarFile ? undefined : draft.avatarUrl,
+      avatarUrl: draft.avatarUrl,
       linkedinUrl: draft.linkedinUrl,
       githubUrl: draft.githubUrl,
       twitterUrl: draft.twitterUrl,
