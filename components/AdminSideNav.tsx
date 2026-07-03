@@ -1,26 +1,58 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Activity, Users, BookOpen, LogOut, Menu, X, Settings, BarChart3, MessageSquare, Laptop } from "lucide-react";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  HandCoins,
+  MessageSquareText,
+  UserRound,
+  HelpCircle,
+  LogOut,
+} from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
-import { useRouter } from "next/navigation";
+import { useAdminSidebarStore } from "@/lib/adminSidebarStore";
 
 export function AdminSideNav() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const { logout } = useAdminAuthStore();
   const router = useRouter();
+  const { logout } = useAdminAuthStore();
+  const { isOpen, setIsOpen } = useAdminSidebarStore();
 
   const navItems = [
-    { name: "Dashboard", href: "/admin", icon: Activity },
-    { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Skills", href: "/admin/skills", icon: BookOpen },
-    { name: "Requests", href: "/admin/requests", icon: BarChart3 },
-    { name: "Feedback", href: "/admin/feedback", icon: MessageSquare },
-    { name: "Sessions", href: "/admin/Sessions", icon: Laptop },
+    {
+      name: "Dashboard",
+      href: "/admin",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "User",
+      href: "/admin/users",
+      icon: Users,
+    },
+    {
+      name: "Skills",
+      href: "/admin/skills",
+      icon: Briefcase,
+    },
+    {
+      name: "Requests",
+      href: "/admin/requests",
+      icon: HandCoins,
+    },
+    {
+      name: "Feedbacks",
+      href: "/admin/feedback",
+      icon: MessageSquareText,
+    },
+    {
+      name: "Sessions",
+      href: "/admin/sessions",
+      icon: UserRound,
+    },
   ];
 
   const handleLogout = () => {
@@ -30,82 +62,98 @@ export function AdminSideNav() {
 
   return (
     <>
-      {/* Mobile Hamburger Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-60 p-2 bg-white rounded-md shadow-md text-slate-700"
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
-
-      {/* Overlay for mobile */}
       {isOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
+        <div
           onClick={() => setIsOpen(false)}
-        />
+          className="fixed inset-0 bg-black/40 z-70 md:hidden" />
       )}
 
-      {/* Sidebar */}
-      <div className={`flex flex-col fixed pt-20 left-0 top-0 bottom-0 w-64 bg-sky-500 border-r border-slate-800 z-50 py-8 px-4 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
-        <div className="flex items-center gap-2 px-4 mb-12">
-          <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
-          <span className="text-3xl font-extrabold tracking-tight text-white">
-            Skil<span className="text-sky-900">Loop</span>
-          </span>
-        </div>
+      <aside
+        className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 z-80 transition-transform duration-300
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0`}
+      >
+        <div className="flex flex-col h-full mt-5">
 
-        <nav className="flex flex-col gap-2">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
+          {/* Logo */}
+          <div className="px-5 pt-8 pb-10">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/images/SkilLoop.png"
+                alt="SkillLoop"
+                width={44}
+                height={44}
+              />
 
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
-                  isActive
-                    ? "bg-sky-900 text-white"
-                    : "text-white hover:bg-sky-900 hover:text-sky-400"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 transition-colors ${
-                    isActive
-                      ? "text-sky-400 stroke-[2.5]"
-                      : "text-white stroke-2 group-hover:text-slate-200"
-                  }`}
-                />
-                <span
-                  className={`text-[15px] font-semibold transition-colors ${
-                    isActive ? "text-sky-400" : ""
-                  }`}
+              <div>
+                <h1 className="text-[20px] font-bold text-sky-500">
+                  SkilLoop
+                </h1>
+
+                <p className="text-[14px] text-slate-700">
+                  Admin Portal
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Menu */}
+          <nav className="flex-1 px-4 space-y-2">
+            {navItems.map((item) => {
+              const active = pathname === item.href;
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`relative flex items-center gap-4 rounded-xl px-4 py-3 transition-all
+                    ${active
+                      ? "bg-sky-500 text-white"
+                      : "text-sky-500 hover:bg-sky-50"
+                    }`}
                 >
-                  {item.name}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+                  {active && (
+                    <span className="absolute -left-4 h-10 w-1 rounded-r-full bg-slate-200" />
+                  )}
 
-        <div className="mt-auto px-4">
-          <button
-            onClick={() => router.push("/admin/settings")}
-            className="flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all group text-white hover:bg-sky-900 hover:text-sky-400"
-          >
-            <Settings className="w-5 h-5 stroke-2 group-hover:text-sky-400" />
-            <span className="text-[15px] font-semibold">Settings</span>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all group text-red-900 hover:bg-red-500/10 hover:text-red-400"
-          >
-            <LogOut className="w-5 h-5 stroke-2 group-hover:text-red-400" />
-            <span className="text-[15px] font-semibold">Logout</span>
-          </button>
+                  <Icon
+                    size={20}
+                    className={
+                      active ? "text-white" : "text-sky-500"
+                    }
+                  />
+
+                  <span className="font-medium">
+                    {item.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Bottom */}
+          <div className="border-t border-slate-200 px-4 py-5 space-y-2">
+
+            <button
+              onClick={() => router.push("/admin/settings")}
+              className="flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all group text-sky-500 hover:bg-sky-50 hover:text-sky-400"
+            >
+              <HelpCircle size={20} />
+              <span>Help Center</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sky-500 hover:bg-sky-50 transition"
+            >
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+
+          </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

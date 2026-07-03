@@ -2,19 +2,18 @@
 
 import React, { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   Users,
   Activity,
   BookOpen,
   Mail,
   Loader2,
-  Search,
   Star,
   CalendarCheck,
   MessageSquare,
   Award,
 } from "lucide-react";
+import { AdminHeader } from "@/components/AdminHeader";
 
 import {
   ResponsiveContainer,
@@ -33,7 +32,7 @@ import { AdminSideNav } from "@/components/AdminSideNav";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { admin, token, hydrated, loading: authLoading, me } = useAdminAuthStore();
+  const { token, hydrated, loading: authLoading, me } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
 
   useEffect(() => {
@@ -127,7 +126,7 @@ export default function AdminDashboard() {
 
   if (!hydrated || authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
       </div>
     );
@@ -136,54 +135,17 @@ export default function AdminDashboard() {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-white font-sans flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
       <AdminSideNav />
 
-      <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 pt-20 md:pt-8">
-          <div className="w-full max-w-7xl mx-auto px-1 py-4 md:py-8 min-w-0">
+      <div className="flex-1 min-w-0 w-full md:ml-64 pb-28 md:pb-12">
+        <div className="mx-auto w-full max-w-md md:max-w-7xl px-5 sm:px-6 pt-20 md:pt-8">
+          <div className="w-full">
 
-            {/* Header */}
-            <div className="flex flex-col-reverse gap-4 md:flex-row md:items-center md:justify-between mb-8">
-              {/* Search */}
-              <div className="relative flex-1 max-w-2xl">
-                <Search
-                  size={22}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Search for users, skills......."
-                  className="w-full h-14 pl-12 pr-4 rounded-2xl border border-gray-300 bg-white outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-
-              {/* Right Section */}
-              <div className="flex items-center justify-between md:justify-end gap-4 md:gap-8">
-                {/* Profile */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border bg-slate-100 flex items-center justify-center">
-                    <Image
-                      src="/images/ebony.jpg"
-                      alt="Admin"
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                      onError={() => { }}
-                    />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h1 className="font-bold text-2xl md:text-3xl tracking-tight truncate">
-                      Welcome, {admin?.firstName ? `${admin.firstName} ${admin.lastName || ""}` : "Admin"}
-                    </h1>
-                    <p className="text-gray-500 text-xs md:text-sm truncate">
-                      {admin?.email || "Platform Admin"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AdminHeader
+              title="Dashboard"
+              subtitle={`Operational overview for today, ${new Date().toDateString()}`}
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
@@ -390,16 +352,16 @@ export default function AdminDashboard() {
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => router.push(`/admin/users/${user.id}`)}
-                            className="bg-sky-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-sky-400 transition-colors"
-                          >
-                            View
-                          </button>
-                          <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                            {/* <MoreVertical size={16} className="text-gray-400" /> */}
-                          </button>
-                        </div>
+                              <button
+                                onClick={() => router.push(`/admin/users/${user.id}`)}
+                                className="bg-sky-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-sky-400 transition-colors"
+                              >
+                                View
+                              </button>
+                              <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                                {/* <MoreVertical size={16} className="text-gray-400" /> */}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

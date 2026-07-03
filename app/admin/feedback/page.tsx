@@ -13,6 +13,7 @@ import {
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { AdminHeader } from "@/components/AdminHeader";
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -75,19 +76,17 @@ export default function AdminFeedbackPage() {
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
         <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Feedback</h1>
-              <p className="text-gray-500 text-sm mt-1">User ratings and feedback analysis</p>
-            </div>
+          <AdminHeader
+            title="Feedback"
+            subtitle="User ratings and feedback analysis"
+          >
             <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
               <MessageSquare size={18} className="text-sky-500" />
               <span className="text-sky-700 font-semibold text-sm">
                 {metricsLoading ? "—" : totalFeedback} Reviews
               </span>
             </div>
-          </div>
+          </AdminHeader>
 
           {/* Top Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">

@@ -25,6 +25,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminUserStore, AdminUserDetailsResponse } from "@/lib/adminUserStore";
 
@@ -50,7 +51,7 @@ export default function UserDetailsPage() {
 
   if (!hydrated || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
       </div>
     );
@@ -63,7 +64,7 @@ export default function UserDetailsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-gray-50 flex">
         <AdminSideNav />
         <main className="flex-1 md:ml-64 pb-32 flex items-center justify-center">
           <p className="text-red-400">{error}</p>
@@ -74,7 +75,7 @@ export default function UserDetailsPage() {
 
   if (!details) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-gray-50 flex">
         <AdminSideNav />
         <main className="flex-1 md:ml-64 pb-32 flex items-center justify-center">
           <p className="text-gray-400 text-lg">User not found</p>
@@ -88,7 +89,7 @@ export default function UserDetailsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-gray-50 flex">
         <AdminSideNav />
         <main className="flex-1 md:ml-64 pb-32 flex items-center justify-center">
           <p className="text-gray-400 text-lg">User data not available</p>
@@ -100,10 +101,16 @@ export default function UserDetailsPage() {
   const initials = ((profile?.firstName?.[0] ?? "") + (profile?.lastName?.[0] ?? "")).toUpperCase() || "?";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-gray-50 flex text-black">
       <AdminSideNav />
       <main className="flex-1 md:ml-64 pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-10">
+
+          <AdminHeader
+            title="User Details"
+            subtitle="View detailed information about this user"
+          />
+
           <button
             onClick={() => router.back()}
             className="mb-6 h-11 w-11 rounded-xl border bg-white text-black flex items-center justify-center shadow-sm hover:bg-slate-100 transition"
@@ -115,7 +122,7 @@ export default function UserDetailsPage() {
             <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
               <div className="flex flex-col sm:flex-row gap-6">
                 {profile ? (
-                  <div className="w-[130px] h-[130px] rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                  <div className="w-[130px] h-[130px] rounded-full bg-sky-100 flex items-center justify-center shrink-0 text-black">
                     <span className="text-5xl font-bold text-sky-600">{initials}</span>
                   </div>
                 ) : (
@@ -160,7 +167,7 @@ export default function UserDetailsPage() {
                       alert(result.message || "Failed to update role");
                     }
                   }}
-                  className="border rounded-xl px-6 py-3 flex items-center justify-center gap-2 hover:bg-slate-50 transition text-black"
+                  className="border rounded-xl px-6 py-3 flex items-center justify-center gap-2 hover:bg-gray-50 transition text-black"
                 >
                   <UserCog size={18} />
                   {user.role === "ADMIN" ? "Demote to User" : "Promote to Admin"}
