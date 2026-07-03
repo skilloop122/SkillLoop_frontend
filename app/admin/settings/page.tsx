@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { AdminHeader } from "@/components/AdminHeader";
 
 type SettingsTab = "profile" | "security" | "notifications";
 
@@ -78,16 +79,10 @@ export default function AdminSettingsPage() {
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-                <Settings size={28} className="text-sky-500" />
-                Settings
-              </h1>
-              <p className="text-gray-500 text-sm mt-1">Manage your admin account and preferences</p>
-            </div>
-          </div>
+          <AdminHeader
+            title={<><Settings size={28} className="text-sky-500" /> Settings</>}
+            subtitle="Manage your admin account and preferences"
+          />
 
           <div className="flex flex-col md:flex-row gap-6">
             {/* Sidebar tabs */}

@@ -22,6 +22,7 @@ import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { useAdminUserStore } from "@/lib/adminUserStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { AdminHeader } from "@/components/AdminHeader";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -96,35 +97,31 @@ export default function AdminUsersPage() {
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
         <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Users</h1>
-              <p className="text-gray-500 text-sm mt-1">Manage and monitor all registered users</p>
+          <AdminHeader
+            title="Users"
+            subtitle="Manage and monitor all registered users"
+          >
+            <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
+              <Users size={18} className="text-sky-500" />
+              <span className="text-sky-700 font-semibold text-sm">
+                {metrics?.overview?.totalUsers ?? "—"} Total
+              </span>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
-                <Users size={18} className="text-sky-500" />
-                <span className="text-sky-700 font-semibold text-sm">
-                  {metrics?.overview?.totalUsers ?? "—"} Total
-                </span>
-              </div>
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
-              >
-                <Download size={15} />
-                Export CSV
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors shadow-sm"
-              >
-                <UserPlus size={15} />
-                Create User
-              </button>
-            </div>
-          </div>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+            >
+              <Download size={15} />
+              Export CSV
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors shadow-sm"
+            >
+              <UserPlus size={15} />
+              Create User
+            </button>
+          </AdminHeader>
 
           {/* Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
