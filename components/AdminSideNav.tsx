@@ -9,9 +9,9 @@ import {
   Briefcase,
   HandCoins,
   MessageSquareText,
-  UserRound,
   HelpCircle,
   LogOut,
+  Folder,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminSidebarStore } from "@/lib/adminSidebarStore";
@@ -49,9 +49,9 @@ export function AdminSideNav() {
       icon: MessageSquareText,
     },
     {
-      name: "Sessions",
-      href: "/admin/sessions",
-      icon: UserRound,
+      name: "Projects",
+      href: "/admin/projects",
+      icon: Folder,
     },
   ];
 
