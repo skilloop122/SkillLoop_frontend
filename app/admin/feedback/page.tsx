@@ -105,7 +105,7 @@ export default function AdminFeedbackPage() {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
       <AdminSideNav />
 
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
@@ -281,7 +281,47 @@ export default function AdminFeedbackPage() {
                 <option value="1">1 Star</option>
               </select>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile Cards */}
+            <div className="lg:hidden p-4 space-y-3">
+              {filteredFeedback.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <MessageSquare size={40} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No feedback found</p>
+                </div>
+              ) : (
+                filteredFeedback.map((item) => (
+                  <div key={item.id} className="border rounded-xl p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm truncate">{item.feedback}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{item.session}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/admin/feedback/${item.id}`)}
+                        className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                      >
+                        View
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <StarRating value={item.rating} />
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                        item.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' :
+                        item.status === 'hidden' ? 'bg-red-50 text-red-700 border-red-200' :
+                        'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                      </span>
+                      <span className="text-xs text-gray-500">{item.submitted}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50/80">
@@ -342,9 +382,12 @@ export default function AdminFeedbackPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-5 py-3 border-t text-sm text-gray-500">
-              Showing {filteredFeedback.length} feedback items
-            </div>
+
+            {!metricsLoading && filteredFeedback.length > 0 && (
+              <div className="px-5 py-3 border-t text-sm text-gray-500">
+                Showing {filteredFeedback.length} feedback items
+              </div>
+            )}
           </div>
 
         </div>

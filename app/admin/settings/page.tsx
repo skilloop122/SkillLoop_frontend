@@ -73,7 +73,7 @@ export default function AdminSettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
       <AdminSideNav />
 
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">

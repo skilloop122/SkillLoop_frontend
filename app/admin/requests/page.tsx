@@ -134,7 +134,7 @@ export default function AdminRequestsPage() {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
       <AdminSideNav />
 
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
@@ -231,8 +231,54 @@ export default function AdminRequestsPage() {
               </select>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
+            {/* Mobile Cards */}
+            <div className="lg:hidden p-4 space-y-3">
+              {filtered.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Mail size={40} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No requests match your filters</p>
+                </div>
+              ) : (
+                filtered.map((req) => {
+                  const sc = STATUS_CONFIG[req.status];
+                  const StatusIcon = sc.icon;
+                  const dc = DEMAND_COLORS[req.demand];
+                  return (
+                    <div key={req.id} className="border rounded-xl p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm truncate">{req.requesterName}</p>
+                          <p className="text-xs text-gray-500 truncate">{req.requesterEmail}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/requests/${req.id}`)}
+                          className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                        >
+                          View
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          {req.skill}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${sc.badge}`}>
+                          <StatusIcon size={12} />
+                          {sc.label}
+                        </span>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${dc}`}>
+                          {req.demand.charAt(0).toUpperCase() + req.demand.slice(1)}
+                        </span>
+                        <span className="text-xs text-gray-500">{req.date}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50/80">
@@ -305,9 +351,11 @@ export default function AdminRequestsPage() {
               </table>
             </div>
 
-            <div className="px-5 py-3 border-t text-sm text-gray-500">
-              Showing {filtered.length} of {requestsList.length} requests
-            </div>
+            {!metricsLoading && filtered.length > 0 && (
+              <div className="px-5 py-3 border-t text-sm text-gray-500">
+                Showing {filtered.length} of {requestsList.length} requests
+              </div>
+            )}
           </div>
 
         </div>
