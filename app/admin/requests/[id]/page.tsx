@@ -32,7 +32,7 @@ export default function RequestDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex text-black">
       <AdminSideNav />
       <main className="flex-1 md:ml-64 pb-32">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-10">
@@ -136,7 +136,7 @@ export default function RequestDetailsPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=hannah" alt="Hannah Stevenson" className="w-full h-full object-cover" />
+                        <Image src="https://i.pravatar.cc/150?u=hannah" alt="Hannah Stevenson" className="w-full h-full object-cover" width={20} height={20} />
                       </div>
                       <div>
                         <p className="font-semibold text-sm">Hannah Stevenson</p>
@@ -168,7 +168,7 @@ export default function RequestDetailsPage() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie Lecthin" className="w-full h-full object-cover" />
+                        <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie Lecthin" className="w-full h-full object-cover" width={20} height={20} />
                       </div>
                       <div>
                         <p className="font-semibold text-sm">Jamie Lecthin</p>

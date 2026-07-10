@@ -140,7 +140,7 @@ export default function AdminSkillsPage() {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
       <AdminSideNav />
 
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
@@ -230,8 +230,60 @@ export default function AdminSkillsPage() {
               </select>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
+            {/* Mobile Cards */}
+            <div className="lg:hidden p-4 space-y-3">
+              {filtered.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <BookOpen size={40} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No skills match your filters</p>
+                </div>
+              ) : (
+                filtered.map((listing) => {
+                  const sc = STATUS_CONFIG[listing.status];
+                  const dc = DEMAND_COLORS[listing.demand];
+                  const StatusIcon = sc.icon;
+                  return (
+                    <div key={listing.id} className="border rounded-xl p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${CATEGORY_COLORS[listing.category]}`}>
+                            {React.createElement(CATEGORY_ICONS[listing.category] || BookOpen, { size: 16 })}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">{listing.skill}</p>
+                            <p className="text-xs text-gray-500">{listing.category}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSkill(listing)}
+                          className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                        >
+                          View
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${sc.colors}`}>
+                          <StatusIcon size={12} />
+                          {sc.label}
+                        </span>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${dc}`}>
+                          {listing.demand.charAt(0).toUpperCase() + listing.demand.slice(1)}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                          <Star size={12} className="text-amber-400 fill-amber-400" />
+                          {listing.rating.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-gray-500">{listing.request} requests</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50/80">
@@ -309,9 +361,11 @@ export default function AdminSkillsPage() {
               </table>
             </div>
 
-            <div className="px-5 py-3 border-t text-sm text-gray-500">
-              Showing {filtered.length} of {listings.length} skills
-            </div>
+            {!metricsLoading && filtered.length > 0 && (
+              <div className="px-5 py-3 border-t text-sm text-gray-500">
+                Showing {filtered.length} of {listings.length} skills
+              </div>
+            )}
           </div>
 
         </div>
@@ -319,9 +373,9 @@ export default function AdminSkillsPage() {
 
       {/* Skill Details Drawer */}
       {selectedSkill && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSelectedSkill(null)}>
+        <div className="fixed inset-0 z-50 flex justify-end  bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSelectedSkill(null)}>
           <div 
-            className="w-full max-w-md bg-gray-50 h-full shadow-2xl overflow-y-auto flex flex-col transform transition-transform translate-x-0" 
+            className="w-full max-w-md bg-sky-100 md:bg-gray-50 h-full shadow-2xl overflow-y-auto flex flex-col transform transition-transform translate-x-0" 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-10">

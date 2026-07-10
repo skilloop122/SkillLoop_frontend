@@ -32,7 +32,7 @@ export default function FeedbackDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex text-black">
+    <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex text-black">
       <AdminSideNav />
       <main className="flex-1 md:ml-64 pb-32">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-10">
@@ -51,7 +51,7 @@ export default function FeedbackDetailsPage() {
               {/* Reviewer */}
               <div className="flex items-center gap-4 w-full md:w-1/3">
                 <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                  <Image src="https://i.pravatar.cc/150?u=sarah" alt="Sarah Larkson" className="w-full h-full object-cover" />
+                  <Image src="https://i.pravatar.cc/150?u=sarah" alt="Sarah Larkson" className="w-full h-full object-cover" width={20} height={20}/>
                 </div>
                 <div className="flex flex-col gap-1">
                   <h3 className="font-bold text-lg text-gray-900">Sarah Larkson</h3>
@@ -83,7 +83,7 @@ export default function FeedbackDetailsPage() {
 
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                    <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie Lecthin" className="w-full h-full object-cover" />
+                    <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie Lecthin" className="w-full h-full object-cover" width={20} height={20} />
                   </div>
                   <div>
                     <p className="font-bold text-sm text-gray-800">Jamie Lecthin</p>
@@ -163,7 +163,7 @@ export default function FeedbackDetailsPage() {
                     <p className="text-[10px] text-gray-500 font-semibold mb-2">Requester</p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=sarah" alt="Sarah" className="w-full h-full object-cover" />
+                        <Image src="https://i.pravatar.cc/150?u=sarah" alt="Sarah" className="w-full h-full object-cover" width={20} height={20} />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-sm text-gray-900">Sarah Larkson</span>
@@ -178,7 +178,7 @@ export default function FeedbackDetailsPage() {
                     <p className="text-[10px] text-gray-500 font-semibold mb-2">Receiver</p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie" className="w-full h-full object-cover" />
+                        <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie" className="w-full h-full object-cover" width={20} height={20} />
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-sm text-gray-900">Jamie Lecthin</span>
