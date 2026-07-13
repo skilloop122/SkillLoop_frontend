@@ -12,6 +12,7 @@ import {
   HelpCircle,
   LogOut,
   Folder,
+  CalendarCheck,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminSidebarStore } from "@/lib/adminSidebarStore";
@@ -52,6 +53,11 @@ export function AdminSideNav() {
       name: "Projects",
       href: "/admin/projects",
       icon: Folder,
+    },
+    {
+      name: "Sessions",
+      href: "/admin/sessions",
+      icon: CalendarCheck,
     },
   ];
 
