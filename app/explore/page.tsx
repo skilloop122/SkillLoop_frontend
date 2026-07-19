@@ -97,7 +97,7 @@ export default function ExplorePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
               {filteredMatches.map((match) => (
                 <div
                   key={match.id}
@@ -140,10 +140,10 @@ export default function ExplorePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-end justify-between gap-4 mt-1">
-                    <div className="flex-1 min-w-0 flex flex-col gap-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] mb-1">
+                  <div className="flex flex-col gap-4 mt-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] shrink-0">
                           Teaches:
                         </span>
                         <p className="text-[14px] font-medium text-black truncate">
@@ -151,8 +151,8 @@ export default function ExplorePage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] shrink-0">
                           Learning:
                         </span>
                         <p className="text-[14px] font-medium text-black truncate">
@@ -161,14 +161,14 @@ export default function ExplorePage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 w-[140px] shrink-0">
-                      <Link href={"/explore/request?id=" + match.id} className="w-full bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 rounded-[6px] text-sm transition-colors text-center inline-block">
+                    <div className="flex gap-2 w-full lg:w-[240px] shrink-0">
+                      <Link href={"/explore/request?id=" + match.id} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
                         Request Session
                       </Link>
                       <button
                         type="button"
                         onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
-                        className="w-full bg-white border border-[#0ea5e9] text-black font-medium py-1.5 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
+                        className="flex-1 bg-white border border-[#0ea5e9] text-black font-medium py-2 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
                       >
                         View Profile
                       </button>
