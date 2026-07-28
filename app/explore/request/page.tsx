@@ -12,6 +12,7 @@ import {
   FileCode,
   BarChart,
   Cpu,
+  Loader2,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -19,7 +20,9 @@ import { useProfileStore, Schedule } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import type { ZoomStatus } from "../../../lib/requestStore";
 
-export default function RequestSessionPage() {
+import { Suspense } from "react";
+
+function RequestSessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const matchId = searchParams.get("id");
@@ -345,5 +348,17 @@ export default function RequestSessionPage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function RequestSessionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white text-black">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    }>
+      <RequestSessionContent />
+    </Suspense>
   );
 }
