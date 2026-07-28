@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Star, Clock, Loader2 } from "lucide-react";
+import { Star, Clock, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { useRouter } from "next/navigation";
@@ -12,16 +12,22 @@ import { useAuthStore } from "../../lib/authStore";
 export default function SessionsPage() {
   const router = useRouter();
   const { hydrated, token } = useAuthStore();
-  const { sentRequests, receivedRequests, loading, fetchRequests, updateRequestStatus } = useRequestStore();
+  const { sentRequests, receivedRequests, sessions, loading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
 
   const [activeTab, setActiveTab] = useState("Pending");
   const [toast, setToast] = useState("");
+  const [feedbackModal, setFeedbackModal] = useState<{ sessionId: string } | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
       fetchRequests();
+      fetchSessions();
     }
-  }, [hydrated, token, fetchRequests]);
+  }, [hydrated, token, fetchRequests, fetchSessions]);
 
   useEffect(() => {
     loadData();
@@ -44,19 +50,67 @@ export default function SessionsPage() {
     }
   };
 
+  const handleCompleteSession = async (sessionId: string) => {
+    setCompletingId(sessionId);
+    const result = await completeSession(sessionId);
+    setCompletingId(null);
+    if (result.success) {
+      showToast("Session marked as completed!");
+      loadData();
+    } else {
+      showToast(result.message || "Failed to complete session.");
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackModal) return;
+    setFeedbackLoading(true);
+    const result = await submitFeedback(feedbackModal.sessionId, { rating: feedbackRating, comment: feedbackComment });
+    setFeedbackLoading(false);
+    if (result.success) {
+      showToast("Feedback submitted!");
+      setFeedbackModal(null);
+      setFeedbackRating(5);
+      setFeedbackComment("");
+      loadData();
+    } else {
+      showToast(result.message || "Failed to submit feedback.");
+    }
+  };
+
   const pendingRequests = [
     ...sentRequests.filter(r => r.status === "pending").map(r => ({ ...r, type: "sent" })),
     ...receivedRequests.filter(r => r.status === "pending").map(r => ({ ...r, type: "received" }))
   ];
 
-  const upcomingSessions = [
-    ...sentRequests.filter(r => r.status === "accepted"),
-    ...receivedRequests.filter(r => r.status === "accepted")
+  const upcomingRequests = [
+    ...sentRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "received" as const }))
   ];
 
+  const upcomingSessions = upcomingRequests.map((req) => {
+    const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
+    return {
+      ...req,
+      session: {
+        ...req.session,
+        ...(sessionMatch ? {
+          zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
+          zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
+          zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
+        } : {}),
+      },
+    };
+  });
+
   const canceledSessions = [
-    ...sentRequests.filter(r => r.status === "rejected" || r.status === "cancelled"),
-    ...receivedRequests.filter(r => r.status === "rejected" || r.status === "cancelled")
+    ...sentRequests.filter(r => r.status === "rejected" || r.status === "cancelled").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status === "rejected" || r.status === "cancelled").map(r => ({ ...r, type: "received" }))
+  ];
+
+  const completedSessions = [
+    ...sentRequests.filter(r => r.status === "completed").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status === "completed").map(r => ({ ...r, type: "received" }))
   ];
 
   if (!hydrated || (loading && pendingRequests.length === 0 && upcomingSessions.length === 0)) {
@@ -97,7 +151,7 @@ export default function SessionsPage() {
                 <div key={session.id} className="rounded-lg border border-[#bae6fd] bg-white p-4">
                   <div className="flex items-start gap-4">
                     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                      <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
@@ -107,12 +161,50 @@ export default function SessionsPage() {
                           <span className="text-xs font-bold">4.8</span>
                         </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-1">{session.skillName}</h3>
+                      <h3 className="font-bold text-slate-900 mb-1">{session.skillListing?.title || "Skill Session"}</h3>
                       <div className="flex items-center gap-1.5 text-slate-400 mb-4">
                         <Clock size={14} />
-                        <span className="text-xs font-medium">{session.proposedTime}</span>
+                        <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
                       </div>
-                      <button onClick={() => router.push("/sessions/live")} className="w-full py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors">Join Session</button>
+                      <div className="flex gap-2 mt-4">
+                        {session.session?.zoomJoinUrl ? (
+                          <>
+                            <button
+                              onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                              className="flex-1 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <ExternalLink size={14} />
+                              Open in Zoom
+                            </button>
+                            <button
+                              onClick={() => {
+                                const params = new URLSearchParams();
+                                if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
+                                if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
+                                if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                                router.push("/sessions/live?" + params.toString());
+                              }}
+                              className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              Join in App
+                            </button>
+                          </>
+                        ) : null}
+                        <button
+                          onClick={() => handleCompleteSession(session.session?.id || session.id)}
+                          disabled={completingId === (session.session?.id || session.id)}
+                          className="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                          Mark Complete
+                        </button>
+                        <button
+                          onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
+                          className="flex-1 py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
+                        >
+                          Leave Feedback
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -127,7 +219,7 @@ export default function SessionsPage() {
                 <div key={request.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                      <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+                      <Image src={request.type === "sent" ? (request.provider?.profile?.avatarUrl || "/james_klin.png") : (request.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-2">
@@ -139,10 +231,10 @@ export default function SessionsPage() {
                           <span className="text-xs font-bold">4.8</span>
                         </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-0.5">{request.skillName}</h3>
+                      <h3 className="font-bold text-slate-900 mb-0.5">{request.skillListing?.title || "Skill Session"}</h3>
                       <div className="flex items-center gap-1.5 text-slate-400">
                         <Clock size={14} />
-                        <span className="text-xs font-medium">{request.proposedTime}</span>
+                        <span className="text-xs font-medium">{request.proposedDate} at {request.proposedTime}</span>
                       </div>
                     </div>
                   </div>
@@ -168,12 +260,12 @@ export default function SessionsPage() {
                 <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm opacity-60">
                    <div className="flex items-start gap-4">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 grayscale">
-                      <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">{session.status}</span>
-                      <h3 className="font-bold text-slate-900 mb-0.5">{session.skillName}</h3>
-                      <p className="text-xs text-slate-400">{session.proposedTime}</p>
+                      <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
+                      <p className="text-xs text-slate-400">{session.proposedDate} at {session.proposedTime}</p>
                     </div>
                    </div>
                 </div>
@@ -183,13 +275,81 @@ export default function SessionsPage() {
           )}
 
           {activeTab === "Completed" && (
-            <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {completedSessions.map((session) => (
+                <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                   <div className="flex items-start gap-4">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">Completed</span>
+                      <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
+                      <p className="text-xs text-slate-400">{session.proposedDate} at {session.proposedTime}</p>
+                    </div>
+                   </div>
+                </div>
+              ))}
+              {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
+            </div>
           )}
         </div>
       </div>
 
       {toast && (
         <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-2xl">{toast}</div>
+      )}
+
+      {feedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-slate-900 mb-1">Leave Feedback</h2>
+            <p className="text-sm text-slate-500 mb-5">Rate your session experience</p>
+
+            <div className="flex items-center gap-2 justify-center mb-5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setFeedbackRating(star)}
+                  className="focus:outline-none"
+                >
+                  <Star
+                    size={32}
+                    className={star <= feedbackRating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200"}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              placeholder="Share your experience (optional)"
+              rows={3}
+              value={feedbackComment}
+              onChange={(e) => setFeedbackComment(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 resize-none mb-5 transition-all"
+            />
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setFeedbackModal(null); setFeedbackRating(5); setFeedbackComment(""); }}
+                className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitFeedback}
+                disabled={feedbackLoading}
+                className="flex-1 py-3 bg-sky-500 text-white rounded-xl text-sm font-bold hover:bg-sky-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {feedbackLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <BottomNav />

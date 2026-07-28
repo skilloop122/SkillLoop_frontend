@@ -13,55 +13,41 @@ import {
   BarChart,
   Cpu,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-
-const ALL_DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-const ALL_TIMES = [
-  "Morning (9am – 12pm)",
-  "Afternoon (1pm – 3pm)",
-  "Evening (6pm – 9pm)",
-  "Night (10pm – 12am)",
-];
+import { useProfileStore, Schedule } from "../../../lib/profileStore";
+import { useRequestStore } from "../../../lib/requestStore";
+import type { ZoomStatus } from "../../../lib/requestStore";
 
 export default function RequestSessionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const matchId = searchParams.get("id");
+
+  const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
+  const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus } = useRequestStore();
+
   const [showSuccess, setShowSuccess] = useState(false);
+  const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
 
-  const [availableDays, setAvailableDays] = useState<string[]>([]);
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
-
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [skillListingId, setSkillListingId] = useState("");
+  const [proposedDate, setProposedDate] = useState("");
+  const [proposedTime, setProposedTime] = useState("");
   const [sessionLink, setSessionLink] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("userAvailability");
-
-      if (raw) {
-        const parsed = JSON.parse(raw) as { days: string[]; times: string[] };
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setAvailableDays(parsed.days?.length ? parsed.days : ALL_DAYS);
-        setAvailableTimes(parsed.times?.length ? parsed.times : ALL_TIMES);
-      } else {
-        setAvailableDays(ALL_DAYS);
-        setAvailableTimes(ALL_TIMES);
-      }
-    } catch {
-      setAvailableDays(ALL_DAYS);
-      setAvailableTimes(ALL_TIMES);
+    if (matchId) {
+      fetchPublicProfile(matchId);
     }
-  }, []);
+  }, [matchId, fetchPublicProfile]);
+
+  useEffect(() => {
+    checkZoomStatus().then(res => {
+      if (res.data) setZoomStatus(res.data);
+    });
+  }, [checkZoomStatus]);
+
 
   const bgIcons = [
     { icon: Atom, top: "5%", left: "8%", size: 36, delay: 0 },
@@ -75,16 +61,37 @@ export default function RequestSessionPage() {
     { icon: Atom, bottom: "5%", left: "16%", size: 28, delay: 2 },
   ];
 
-  const handleConfirmSession = () => {
-    setShowSuccess(true);
-    setTimeout(() => {
-      router.push("/home");
-    }, 5000);
+  const profile = publicProfile;
+  const effectiveSkillListingId = skillListingId || (profile?.teachSkills?.length ? (profile.teachSkills[0].id || profile.teachSkills[0].name || "") : "");
+  console.log("REQUEST PAGE - skillListingId:", skillListingId, "effectiveSkillListingId:", effectiveSkillListingId, "teachSkills:", profile?.teachSkills);
+
+  const handleConfirmSession = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!proposedDate || !proposedTime || !effectiveSkillListingId || !message) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+    console.log("CREATING REQUEST WITH:", { skillListingId: effectiveSkillListingId, schedulingLink: sessionLink, message, proposedDate, proposedTime });
+    const result = await createRequest({
+      skillListingId: effectiveSkillListingId,
+      schedulingLink: sessionLink,
+      message,
+      proposedDate,
+      proposedTime
+    });
+    if (result.success) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push("/explore");
+      }, 5000);
+    }
   };
+
+  const fullName = profile ? `${profile.firstName} ${profile.lastName}` : "User";
 
   return (
     <div className="min-h-screen bg-white font-sans pb-10">
-      <div className="w-full max-w-md mx-auto px-5 pt-12">
+      <div className="w-full max-w-md md:max-w-6xl md:pt-16  mx-auto px-5 pt-12">
         <button
           type="button"
           onClick={() => router.back()}
@@ -93,125 +100,160 @@ export default function RequestSessionPage() {
           <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
         </button>
 
-        <div className="relative w-full h-[220px] rounded-[12px] overflow-hidden mb-6 bg-slate-200">
-          <Image
-            src="/hero_collaboration.png"
-            alt="Sander James"
-            fill
-            className="object-cover"
-          />
-        </div>
-
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
-              Sander James
-            </h1>
-            <p className="text-[15px] text-slate-700 font-medium">
-              Frontend Session
-            </p>
+        {profileLoading ? (
+          <div className="flex justify-center py-20">
+            <span className="text-slate-500">Loading profile...</span>
           </div>
-          <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-[4px]">
-            Learning
-          </span>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="relative w-[80px] h-[80px] rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
+                {profile?.avatarUrl ? (
+                  <Image
+                    src={profile.avatarUrl}
+                    alt={fullName}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-sky-600">
+                    {(profile?.firstName?.[0] || "?").toUpperCase()}{(profile?.lastName?.[0] || "").toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div>
+                <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
+                  {fullName}
+                </h1>
+                <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-[4px]">
+                  Teaching
+                </span>
+              </div>
+            </div>
 
-        <div className="mb-8">
-          <h2 className="text-[22px] font-medium text-black mb-4">
-            Select a Day
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {availableDays.map((day) => (
-              <motion.button
-                key={day}
-                type="button"
-                onClick={() => setSelectedDay(day)}
-                whileTap={{ scale: 0.93 }}
-                transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                className={`px-4 py-2.5 rounded-2xl text-[13px] font-semibold transition-all duration-200 shadow-sm ${
-                  selectedDay === day
-                    ? "bg-[#0ea5e9] text-white shadow-sky-200"
-                    : "bg-[#d1d5db] text-black/60 hover:bg-[#9ca3af]"
-                }`}
-              >
-                {day}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="text-[22px] font-medium text-black mb-4">
-            Select a Time
-          </h2>
-          <div className="flex flex-col gap-3">
-            {availableTimes.map((slot) => (
-              <motion.button
-                key={slot}
-                type="button"
-                onClick={() => setSelectedTime(slot)}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                className={`w-full text-left px-5 py-3.5 rounded-2xl text-[14px] font-semibold transition-all duration-200 shadow-sm ${
-                  selectedTime === slot
-                    ? "bg-[#0ea5e9] text-white shadow-sky-200"
-                    : "bg-[#d1d5db] text-black/60 hover:bg-[#9ca3af]"
-                }`}
-              >
-                {slot}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="text-[22px] font-medium text-black mb-4">
-            Add a Link
-          </h2>
-
-          <input
-            type="url"
-            value={sessionLink}
-            onChange={(e) => setSessionLink(e.target.value)}
-            placeholder="Paste link here"
-            className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3.5 text-[14px] font-medium text-black outline-none transition-all placeholder:text-slate-400 focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100"
-          />
-        </div>
-
-        {(selectedDay || selectedTime || sessionLink) && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="mb-8 rounded-2xl border border-[#0ea5e9] px-5 py-4 bg-sky-50"
-          >
-            <h2 className="text-[16px] font-semibold text-sky-600 mb-2">
-              Proposed Schedule
-            </h2>
-            <p className="text-[14px] text-slate-700">
-              {selectedDay && <span className="font-medium">{selectedDay}</span>}
-              {selectedDay && selectedTime && " · "}
-              {selectedTime && (
-                <span className="font-medium">{selectedTime}</span>
+            {/* <div className="mb-8 p-5 bg-sky-50 rounded-xl border border-sky-100">
+              <h2 className="text-lg font-semibold text-sky-800 mb-3">User&apos;s Availability</h2>
+              {profile?.schedule && profile.schedule.length > 0 ? (
+                <ul className="space-y-2">
+                  {profile.schedule.map((slot: Schedule, idx: number) => (
+                    <li key={idx} className="text-[15px] text-slate-700 flex justify-between bg-white px-4 py-2 rounded-lg border border-slate-200">
+                      <span className="font-medium text-sky-900">{slot.day}</span>
+                      <span>{slot.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[15px] text-slate-500">No specific availability set.</p>
               )}
-              {sessionLink && (
-                <>
-                  {(selectedDay || selectedTime) && <br />}
-                  <span className="font-medium break-all">{sessionLink}</span>
-                </>
-              )}
-            </p>
-          </motion.div>
+            </div> */}
+
+            {requestError && (
+              <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+                {requestError}
+              </div>
+            )}
+
+            {zoomStatus && (
+              <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-3 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-amber-50 border-amber-100 text-amber-700"}`}>
+                <span className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-500" : "bg-amber-400"}`} />
+                <div>
+                  <p className="font-semibold mb-0.5">{zoomStatus.connected && zoomStatus.isConfigured ? "Zoom integration is active" : "Zoom not connected"}</p>
+                  <p className="font-normal">{zoomStatus.message}</p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmSession}>
+              <div className="mb-6">
+              <label className="block text-[15px] font-medium text-black mb-2">Skill to Learn *</label>
+              <select 
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                value={effectiveSkillListingId}
+                onChange={(e) => setSkillListingId(e.target.value)}
+              >
+                <option value="" disabled>Select a skill...</option>
+                {profile?.teachSkills?.map((skill: { id?: string; name?: string } | string, index: number) => {
+                  const skillId = typeof skill === 'string' ? skill : (skill.id || skill.name || `skill-${index}`);
+                  const skillName = typeof skill === 'string' ? skill : (skill.name || "Unknown Skill");
+                  return (
+                    <option key={skillId} value={skillId}>
+                      {skillName}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1">
+                <label className="block text-[15px] font-medium text-black mb-2">Proposed Day *</label>
+                <select 
+                  required
+                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                  value={proposedDate}
+                  onChange={(e) => {
+                    setProposedDate(e.target.value);
+                    setProposedTime("");
+                  }}
+                >
+                  <option value="" disabled>Select a day</option>
+                  {profile?.schedule?.map((slot: Schedule) => (
+                    <option key={slot.day} value={slot.day}>{slot.day}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-[15px] font-medium text-black mb-2">Proposed Time *</label>
+                <input 
+                  type="time" 
+                  required
+                  min={profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time?.split(" - ")[0]}
+                  max={profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time?.split(" - ")[1]}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                  value={proposedTime}
+                  onChange={(e) => setProposedTime(e.target.value)}
+                />
+                {proposedDate && profile?.schedule?.find((s: Schedule) => s.day === proposedDate) && (
+                  <p className="text-xs text-slate-500 mt-1">Available: {profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-[15px] font-medium text-black mb-2">Scheduling Link (Optional)</label>
+              <input
+                type="url"
+                value={sessionLink}
+                onChange={(e) => setSessionLink(e.target.value)}
+                placeholder="e.g. https://calendly.com/your-link"
+                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-[15px] font-medium text-black mb-2">Message *</label>
+              <textarea 
+                required
+                placeholder="Hi, I'd like to learn more about..."
+                rows={4}
+                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400 resize-none"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+            </div>
+
+              <button
+                id="confirm-session-btn"
+                type="submit"
+                disabled={requestLoading}
+                className="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold py-4 rounded-xl text-[17px] shadow-sm transition-colors disabled:opacity-50"
+              >
+                {requestLoading ? "Sending..." : "Confirm Session"}
+              </button>
+            </form>
+          </>
         )}
-
-        <button
-          id="confirm-session-btn"
-          type="button"
-          onClick={handleConfirmSession}
-          className="w-full bg-[#7dd3fc] hover:bg-[#38bdf8] text-white font-semibold py-4 rounded-[12px] text-[17px] shadow-sm transition-colors"
-        >
-          Confirm Session
-        </button>
 
         <AnimatePresence>
           {showSuccess && (
@@ -292,10 +334,10 @@ export default function RequestSessionPage() {
               >
                 <button
                   type="button"
-                  onClick={() => router.push("/home")}
+                  onClick={() => router.push("/explore")}
                   className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-full shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base"
                 >
-                  Go to Dashboard
+                  Back to Explore
                 </button>
               </motion.div>
             </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -19,6 +19,7 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
+import { useSkillsStore } from "../../../lib/skillsStore";
 
 type AddedSkill = {
   name: string;
@@ -37,8 +38,13 @@ const proofOptions = [
 
 export default function ProfileSetup() {
   const router = useRouter();
+  const { skills: apiSkills, loading: skillsLoading, fetchSkills } = useSkillsStore();
 
   const [customSkills, setCustomSkills] = useState<AddedSkill[]>([]);
+
+  useEffect(() => {
+    fetchSkills({ limit: "50" });
+  }, [fetchSkills]);
 
   const [inputValue, setInputValue] = useState("");
   const [showSuccess] = useState(false);
@@ -334,18 +340,39 @@ export default function ProfileSetup() {
                       <span className="mb-1 block text-base text-slate-500">
                         Skill
                       </span>
-                      <input
-                        type="text"
-                        value={skillForm.skill}
-                        onChange={(e) =>
-                          setSkillForm((current) => ({
-                            ...current,
-                            skill: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none"
-                        placeholder="UI/UX Design"
-                      />
+                      {skillsLoading ? (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400 border border-slate-500 rounded-[8px]">
+                          <Loader2 size={16} className="animate-spin" />
+                          Loading skills...
+                        </div>
+                      ) : (
+                        <select
+                          value={skillForm.skill}
+                          onChange={(e) =>
+                            setSkillForm((current) => ({
+                              ...current,
+                              skill: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none bg-white"
+                        >
+                          <option value="">Select a skill</option>
+                          {apiSkills.map((skill) => {
+                            const added = customSkills.some(
+                              (c) => c.name.toLowerCase() === skill.name.toLowerCase()
+                            );
+                            return (
+                              <option
+                                key={skill.id}
+                                value={skill.name}
+                                disabled={added}
+                              >
+                                {skill.name}{added ? " (added)" : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )}
                     </label>
 
                     <label className="block">

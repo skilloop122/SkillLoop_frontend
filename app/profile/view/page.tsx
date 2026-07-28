@@ -4,14 +4,25 @@ import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2, Globe, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useProfileStore } from "../../../lib/profileStore";
+import { useProfileStore, Skill } from "../../../lib/profileStore";
+import { useRequestStore } from "../../../lib/requestStore";
 
 function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get("id");
   const [requestSent, setRequestSent] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [formData, setFormData] = useState({
+    skillListingId: "",
+    schedulingLink: "",
+    message: "",
+    proposedDate: "",
+    proposedTime: "",
+  });
+  
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
+  const { createRequest, loading: requestLoading, error: requestError } = useRequestStore();
 
   useEffect(() => {
     if (userId) {
@@ -57,7 +68,7 @@ function ProfileContent() {
         {/* Left: Image */}
         <div className="relative w-full md:w-1/2 min-h-[40vh] md:min-h-screen bg-slate-100">
           <Image
-            src="/james_klin.png"
+            src="/hero_collaboration.png"
             alt={fullName}
             fill
             priority
@@ -134,11 +145,32 @@ function ProfileContent() {
             </div>
           </section>
 
+          {/* Availability */}
+          <section className="mb-8">
+            <h2 className="mb-2 text-[18px] font-semibold text-black">Availability</h2>
+            {profile?.schedule && profile.schedule.length > 0 ? (
+              <ul className="space-y-1">
+                {profile.schedule.map((slot: { day: string; time: string }, idx: number) => (
+                  <li key={idx} className="text-[15px] text-slate-700 flex items-center justify-between bg-slate-50 p-3 rounded-[8px] mb-2 border border-slate-100">
+                    <span className="font-medium">{slot.day}</span>
+                    <span className="text-slate-500">{slot.time}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[15px] text-slate-500">No availability set.</p>
+            )}
+          </section>
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setRequestSent(true)}
+              onClick={() => {
+                const defaultSkillId = profile?.teachSkills?.[0]?.id || "";
+                setFormData(prev => ({ ...prev, skillListingId: defaultSkillId }));
+                setShowRequestForm(true);
+              }}
               className="flex-1 rounded-[12px] bg-[#0ea5e9] py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 transition-colors"
             >
               Request Session
@@ -154,6 +186,138 @@ function ProfileContent() {
         </div>
       </div>
 
+      {showRequestForm && !requestSent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 md:px-8">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 md:p-8 text-black shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 className="text-2xl font-bold mb-4">Request a Session</h2>
+            
+            <div className="mb-6 p-4 bg-sky-50 rounded-lg border border-sky-100">
+              <h3 className="font-semibold text-sm text-sky-800 mb-2">User&apos;s Availability</h3>
+              {profile?.schedule && profile.schedule.length > 0 ? (
+                <ul className="space-y-1">
+                  {profile.schedule.map((slot: { day: string; time: string }, idx: number) => (
+                    <li key={idx} className="text-sm text-slate-700 flex justify-between">
+                      <span className="font-medium">{slot.day}</span>
+                      <span>{slot.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500">No specific availability set.</p>
+              )}
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const result = await createRequest({
+                ...formData,
+                skillListingId: formData.skillListingId || "default-id"
+              });
+              if (result.success) {
+                setShowRequestForm(false);
+                setRequestSent(true);
+              }
+            }} className="space-y-4">
+              
+              {requestError && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+                  {requestError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Skill to Learn</label>
+                <select 
+                  required
+                  className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  value={formData.skillListingId}
+                  onChange={(e) => setFormData({...formData, skillListingId: e.target.value})}
+                >
+                  <option value="" disabled>Select a skill</option>
+                  {profile?.teachSkills?.map((skill: Skill) => (
+                    <option key={skill.id || skill.name} value={skill.id || skill.name}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Proposed Day</label>
+                  <select 
+                    required
+                    className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    value={formData.proposedDate}
+                    onChange={(e) => setFormData({...formData, proposedDate: e.target.value, proposedTime: ""})}
+                  >
+                    <option value="" disabled>Select a day</option>
+                    {profile?.schedule?.map((slot: { day: string; time: string }) => (
+                      <option key={slot.day} value={slot.day}>{slot.day}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Proposed Time</label>
+                  <input 
+                    type="time" 
+                    required
+                    min={profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time.split(" - ")[0]}
+                    max={profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time.split(" - ")[1]}
+                    className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    value={formData.proposedTime}
+                    onChange={(e) => setFormData({...formData, proposedTime: e.target.value})}
+                  />
+                  {formData.proposedDate && profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate) && (
+                    <p className="text-xs text-slate-500 mt-1">Available: {profile.schedule.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Scheduling Link (Optional)</label>
+                <input 
+                  type="url" 
+                  placeholder="e.g., https://calendly.com/your-link"
+                  className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  value={formData.schedulingLink}
+                  onChange={(e) => setFormData({...formData, schedulingLink: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
+                <textarea 
+                  required
+                  placeholder="Hi, I'd like to learn more about..."
+                  rows={3}
+                  className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  value={formData.message}
+                  onChange={(e) => setFormData({...formData, message: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRequestForm(false)}
+                  className="flex-1 rounded-md border border-slate-300 bg-white py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestLoading}
+                  className="flex-1 rounded-md bg-[#0ea5e9] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 transition-colors disabled:opacity-50"
+                >
+                  {requestLoading ? "Sending..." : "Send Request"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {requestSent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-8">
           <div className="w-full max-w-[236px] rounded-[4px] bg-white px-5 py-7 text-center text-black shadow-2xl">
@@ -166,10 +330,12 @@ function ProfileContent() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/sessions")}
+              onClick={() => {
+                setRequestSent(false);
+              }}
               className="rounded-[4px] bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
             >
-              Go to Sessions
+              Close
             </button>
           </div>
         </div>

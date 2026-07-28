@@ -3,21 +3,74 @@ import { useAuthStore } from "./authStore";
 
 export interface SessionRequest {
   id: string;
-  senderId: string;
-  receiverId: string;
-  skillId: string;
-  skillName: string;
-  status: "pending" | "accepted" | "rejected" | "cancelled";
+  requesterId: string;
+  providerId: string;
+  skillListingId: string;
+  status: string;
+  schedulingLink: string;
+  message: string;
+  proposedDate: string;
   proposedTime: string;
   createdAt: string;
-  sender?: {
-    firstName: string;
-    lastName: string;
+  updatedAt: string;
+  requester: {
+    id: string;
+    email: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+      avatarUrl: string;
+    };
   };
-  receiver?: {
-    firstName: string;
-    lastName: string;
+  provider: {
+    id: string;
+    email: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+      avatarUrl: string;
+    };
   };
+  skillListing: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+  };
+  session?: {
+    id: string;
+    status: string;
+    scheduledAt: string;
+    zoomMeetingId?: string;
+    zoomPassword?: string;
+    zoomJoinUrl?: string;
+  };
+  type?: "sent" | "received";
+}
+
+export interface Session {
+  id: string;
+  requestId: string;
+  status: string;
+  scheduledAt: string;
+  zoomMeetingId?: string;
+  zoomPassword?: string;
+  zoomJoinUrl?: string;
+  request?: SessionRequest;
+}
+
+export interface ZoomStatus {
+  connected: boolean;
+  mode: string;
+  isConfigured: boolean;
+  message: string;
+}
+
+export interface ZoomSignature {
+  sdkKey: string;
+  signature: string;
+  meetingNumber: string;
+  role: number;
 }
 
 interface RequestState {
@@ -25,8 +78,22 @@ interface RequestState {
   error: string | null;
   sentRequests: SessionRequest[];
   receivedRequests: SessionRequest[];
+  sessions: Session[];
+  zoomStatus: ZoomStatus | null;
   fetchRequests: () => Promise<{ success: boolean; message?: string }>;
+  fetchSessions: () => Promise<{ success: boolean; data?: Session[]; message?: string }>;
+  checkZoomStatus: () => Promise<{ success: boolean; data?: ZoomStatus; message?: string }>;
+  fetchZoomSignature: (meetingNumber: string, role?: number) => Promise<{ success: boolean; data?: ZoomSignature; message?: string }>;
   updateRequestStatus: (id: string, status: "accepted" | "rejected" | "cancelled") => Promise<{ success: boolean; message?: string }>;
+  createRequest: (payload: {
+    skillListingId: string;
+    schedulingLink?: string;
+    message?: string;
+    proposedDate?: string;
+    proposedTime?: string;
+  }) => Promise<{ success: boolean; message?: string; data?: SessionRequest }>;
+  completeSession: (sessionId: string) => Promise<{ success: boolean; message?: string }>;
+  submitFeedback: (sessionId: string, payload: { rating: number; comment: string }) => Promise<{ success: boolean; message?: string }>;
 }
 
 const API_BASE = typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL : "";
@@ -36,6 +103,80 @@ export const useRequestStore = create < RequestState > ( (set) => ({
   error: null,
   sentRequests: [],
   receivedRequests: [],
+  sessions: [],
+  zoomStatus: null,
+
+  checkZoomStatus: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      const response = await fetch(API_BASE + "zoom/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {}),
+        },
+      });
+      const data: ZoomStatus = await response.json();
+      console.log("ZOOM STATUS:", data);
+      set({ zoomStatus: data });
+      return { success: true, data };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      return { success: false, message };
+    }
+  },
+
+  fetchZoomSignature: async (meetingNumber: string, role: number = 0) => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(API_BASE + "zoom/signature", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ meetingNumber, role }),
+      });
+
+      const raw = await response.json();
+      console.log("ZOOM SIGNATURE:", raw);
+      if (!response.ok) throw new Error(raw.message || "Failed to get Zoom signature");
+      const data: ZoomSignature = raw;
+
+      return { success: true, data };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      return { success: false, message };
+    }
+  },
+
+  fetchSessions: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(API_BASE + "sessions", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      console.log("FETCH SESSIONS RESPONSE:", data);
+      if (!response.ok) throw new Error(data.message || "Failed to fetch sessions");
+
+      const sessions: Session[] = Array.isArray(data) ? data : data.sessions || [];
+      set({ sessions });
+      return { success: true, data: sessions };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      return { success: false, message };
+    }
+  },
 
   fetchRequests: async () => {
     set({ loading: true, error: null });
@@ -43,7 +184,7 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "requests", {
+      const response = await fetch(API_BASE + "requests?type=all", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -55,20 +196,19 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       console.log("FETCH REQUESTS RESPONSE:", data);
       if (!response.ok) throw new Error(data.message || "Failed to fetch requests");
 
-      const userId = useAuthStore.getState().user?.email;
+      const userEmail = useAuthStore.getState().user?.email;
 
       if (Array.isArray(data)) {
-         // simplified logic if it returns a flat list
          set({
-           sentRequests: data.filter(r => r.type === 'sent' || r.senderId === userId),
-           receivedRequests: data.filter(r => r.type === 'received' || r.receiverId === userId),
+           sentRequests: data.filter(r => r.type === 'sent' || r.requester?.email === userEmail),
+           receivedRequests: data.filter(r => r.type === 'received' || r.provider?.email === userEmail),
            loading: false
          });
       } else {
         set({
-          sentRequests: data.sent || [],
-          receivedRequests: data.received || [],
-          loading: false
+           sentRequests: data.sent || [],
+           receivedRequests: data.received || [],
+           loading: false
         });
       }
       
@@ -92,12 +232,107 @@ export const useRequestStore = create < RequestState > ( (set) => ({
           "Content-Type": "application/json",
           Authorization: "Bearer " + token,
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: status.toUpperCase() }),
       });
 
       const data = await response.json();
       console.log("UPDATE REQUEST STATUS RESPONSE:", data);
       if (!response.ok) throw new Error(data.message || "Failed to update request");
+
+      set({ loading: false });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      set({ error: message, loading: false });
+      return { success: false, message };
+    }
+  },
+
+  createRequest: async (payload) => {
+    set({ loading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      console.log("CREATE REQUEST PAYLOAD:", JSON.stringify(payload));
+      console.log("CREATE REQUEST URL:", API_BASE + "requests");
+
+      const response = await fetch(API_BASE + "requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const rawResponse = await response.text();
+      console.log("CREATE REQUEST STATUS:", response.status);
+      console.log("CREATE REQUEST RAW RESPONSE:", rawResponse);
+
+      let data;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch {
+        data = rawResponse;
+      }
+      console.log("CREATE REQUEST RESPONSE:", data);
+      if (!response.ok) throw new Error(typeof data === "object" ? (data.message || data.error || JSON.stringify(data)) : String(data));
+
+      set({ loading: false });
+      return { success: true, data };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      set({ error: message, loading: false });
+      return { success: false, message };
+    }
+  },
+
+  completeSession: async (sessionId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(API_BASE + "sessions/" + sessionId + "/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      console.log("COMPLETE SESSION RESPONSE:", data);
+      if (!response.ok) throw new Error(data.message || "Failed to complete session");
+
+      set({ loading: false });
+      return { success: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      set({ error: message, loading: false });
+      return { success: false, message };
+    }
+  },
+
+  submitFeedback: async (sessionId: string, payload: { rating: number; comment: string }) => {
+    set({ loading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(API_BASE + "sessions/" + sessionId + "/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      console.log("SUBMIT FEEDBACK RESPONSE:", data);
+      if (!response.ok) throw new Error(data.message || "Failed to submit feedback");
 
       set({ loading: false });
       return { success: true };
