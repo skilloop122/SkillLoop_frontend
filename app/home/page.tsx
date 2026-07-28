@@ -15,23 +15,39 @@ export default function HomePage() {
   const router = useRouter();
   const { user, hydrated, token } = useAuthStore();
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
-  const { sentRequests, receivedRequests, loading: requestsLoading, fetchRequests, updateRequestStatus } = useRequestStore();
+  const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
       fetchProfile();
       fetchRequests();
+      fetchSessions();
     }
-  }, [hydrated, token, fetchProfile, fetchRequests]);
+  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const upcomingSessions = [
-    ...sentRequests.filter(r => r.status === "accepted"),
-    ...receivedRequests.filter(r => r.status === "accepted")
+  const upcomingRequests = [
+    ...sentRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "received" as const }))
   ];
+
+  const upcomingSessions = upcomingRequests.map((req) => {
+    const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
+    return {
+      ...req,
+      session: {
+        ...req.session,
+        ...(sessionMatch ? {
+          zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
+          zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
+          zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
+        } : {}),
+      },
+    };
+  });
 
   const pendingReceived = receivedRequests.filter(r => r.status === "pending");
   const pendingSent = sentRequests.filter(r => r.status === "pending");
@@ -149,10 +165,10 @@ export default function HomePage() {
                         </div>
                       </div>
                       <h3 className="text-[15px] font-semibold text-black leading-snug">
-                        {session.skillName}
+                        {session.skillListing?.title || "Skill Session"}
                       </h3>
                       <p className="text-[15px] text-black/80 mt-0.5">
-                        {session.senderId === token ? "Request Sent" : "Request Received"}
+                        {session.type === "sent" ? "Request Sent" : "Request Received"}
                       </p>
                     </div>
                   </div>
@@ -161,9 +177,28 @@ export default function HomePage() {
                       <Clock className="w-4 h-4" />
                       <span className="text-[13px] font-medium">{session.proposedTime}</span>
                     </div>
-                    <button onClick={() => router.push("/sessions/live")} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-4 rounded-[6px] text-sm transition-colors">
-                      Join Session
-                    </button>
+                    {session.session?.zoomJoinUrl ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                          className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
+                        >
+                          Open in Zoom
+                        </button>
+                        <button
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
+                            if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
+                            if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                            router.push("/sessions/live?" + params.toString());
+                          }}
+                          className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded-[6px] text-sm transition-colors"
+                        >
+                          Join in App
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )) : (
@@ -202,7 +237,7 @@ export default function HomePage() {
                         </div>
                       </div>
                       <h3 className="text-[15px] font-semibold text-black leading-snug">
-                        {request.skillName}
+                        {request.skillListing?.title || "Skill Session"}
                       </h3>
                       <p className="text-[15px] text-black/80 mt-0.5">
                         from Peer

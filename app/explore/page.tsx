@@ -97,8 +97,10 @@ export default function ExplorePage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
-              {filteredMatches.map((match) => (
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
+              {filteredMatches.map((match) => {
+                console.log("MATCH OBJECT:", JSON.stringify(match, null, 2));
+                return (
                 <div
                   key={match.id}
                   className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
@@ -175,7 +177,8 @@ export default function ExplorePage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
 
