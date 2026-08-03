@@ -73,6 +73,17 @@ export interface ZoomSignature {
   role: number;
 }
 
+export interface SkillSlot {
+  startTime: string;
+  endTime: string;
+}
+
+export interface SkillSlotsResponse {
+  date: string;
+  day: string;
+  slots: SkillSlot[];
+}
+
 interface RequestState {
   loading: boolean;
   error: string | null;
@@ -94,6 +105,7 @@ interface RequestState {
   }) => Promise<{ success: boolean; message?: string; data?: SessionRequest }>;
   completeSession: (sessionId: string) => Promise<{ success: boolean; message?: string }>;
   submitFeedback: (sessionId: string, payload: { rating: number; comment: string }) => Promise<{ success: boolean; message?: string }>;
+  fetchSkillSlots: (skillId: string, date?: string) => Promise<{ success: boolean; data?: SkillSlotsResponse[]; message?: string }>;
 }
 
 const API_BASE = typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL : "";
@@ -157,7 +169,7 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "sessions", {
+      const response = await fetch(API_BASE + "requests", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -339,6 +351,47 @@ export const useRequestStore = create < RequestState > ( (set) => ({
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
+      return { success: false, message };
+    }
+  },
+
+  fetchSkillSlots: async (skillId: string, date?: string) => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const url = API_BASE + "skills/" + skillId + "/slots" + (date ? "?date=" + encodeURIComponent(date) : "");
+      console.log("FETCH SLOTS URL:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const raw = await response.text();
+      console.log("FETCH SLOTS STATUS:", response.status);
+      console.log("FETCH SLOTS RAW RESPONSE:", raw);
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = raw;
+      }
+      if (!response.ok) throw new Error(typeof data === "object" ? (data.message || data.error || JSON.stringify(data)) : String(data));
+
+      const slots: SkillSlotsResponse[] = Array.isArray(data)
+        ? data
+        : data && typeof data === "object" && (data.date || Array.isArray(data.slots))
+          ? [data]
+          : (data?.slots || []);
+      console.log("FETCH SLOTS PARSED:", slots);
+      return { success: true, data: slots };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },

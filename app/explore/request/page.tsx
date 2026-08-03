@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -16,11 +16,29 @@ import {
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { useProfileStore, Schedule } from "../../../lib/profileStore";
+import { useProfileStore } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
-import type { ZoomStatus } from "../../../lib/requestStore";
+import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
 import { Suspense } from "react";
+
+function toLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function nextDateForDay(day: string, from: Date = new Date()): string {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const target = days.indexOf(day);
+  if (target === -1) return toLocalDate(from);
+  let diff = (target - from.getDay() + 7) % 7;
+  if (diff === 0) diff = 7;
+  const d = new Date(from);
+  d.setDate(d.getDate() + diff);
+  return toLocalDate(d);
+}
 
 function RequestSessionContent() {
   const router = useRouter();
@@ -28,7 +46,7 @@ function RequestSessionContent() {
   const matchId = searchParams.get("id");
 
   const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
-  const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus } = useRequestStore();
+  const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus, fetchSkillSlots } = useRequestStore();
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
@@ -39,11 +57,48 @@ function RequestSessionContent() {
   const [sessionLink, setSessionLink] = useState("");
   const [message, setMessage] = useState("");
 
+  const [slots, setSlots] = useState<SkillSlotsResponse[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState("");
+  const [slotDate, setSlotDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
+
+  const loadSlots = useCallback((skillId: string, date?: string) => {
+    if (!skillId) return;
+    const targetDate = date || slotDate;
+    setSlotsLoading(true);
+    setSlotsError("");
+    setSlots([]);
+    setSelectedSlot(null);
+    setProposedDate("");
+    setProposedTime("");
+    fetchSkillSlots(skillId, targetDate).then(res => {
+      if (res.success && res.data) {
+        setSlots(res.data);
+      } else {
+        setSlotsError(res.message || "Failed to load available slots.");
+      }
+      setSlotsLoading(false);
+    });
+  }, [fetchSkillSlots, slotDate]);
+
   useEffect(() => {
     if (matchId) {
-      fetchPublicProfile(matchId);
+      fetchPublicProfile(matchId).then(res => {
+        if (res.success && res.profile?.teachSkills?.length) {
+          const first = res.profile.teachSkills[0];
+          const firstId = first.id || first.name || "";
+          if (firstId) {
+            const firstDay = (res.profile.schedule && res.profile.schedule.length > 0) ? res.profile.schedule[0].day : "";
+            const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
+            setSkillListingId(firstId);
+            setSlotDate(initialDate);
+            loadSlots(firstId, initialDate);
+          }
+        }
+      });
     }
-  }, [matchId, fetchPublicProfile]);
+  }, [matchId, fetchPublicProfile, loadSlots]);
 
   useEffect(() => {
     checkZoomStatus().then(res => {
@@ -68,10 +123,25 @@ function RequestSessionContent() {
   const effectiveSkillListingId = skillListingId || (profile?.teachSkills?.length ? (profile.teachSkills[0].id || profile.teachSkills[0].name || "") : "");
   console.log("REQUEST PAGE - skillListingId:", skillListingId, "effectiveSkillListingId:", effectiveSkillListingId, "teachSkills:", profile?.teachSkills);
 
+  const availabilityOptions = useMemo(() => {
+    if (!profile?.schedule?.length) return [];
+    return profile.schedule.map((s: { day: string; time: string }) => ({
+      day: s.day,
+      time: s.time,
+      date: nextDateForDay(s.day),
+    }));
+  }, [profile]);
+
+  const handleSlotSelect = (date: string, slot: SkillSlot) => {
+    setSelectedSlot({ date, startTime: slot.startTime, endTime: slot.endTime });
+    setProposedDate(date);
+    setProposedTime(slot.startTime);
+  };
+
   const handleConfirmSession = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!proposedDate || !proposedTime || !effectiveSkillListingId || !message) {
-      alert("Please fill in all required fields.");
+      alert("Please select a time slot and fill in all required fields.");
       return;
     }
     console.log("CREATING REQUEST WITH:", { skillListingId: effectiveSkillListingId, schedulingLink: sessionLink, message, proposedDate, proposedTime });
@@ -173,7 +243,11 @@ function RequestSessionContent() {
                 required
                 className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
                 value={effectiveSkillListingId}
-                onChange={(e) => setSkillListingId(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setSkillListingId(next);
+                  loadSlots(next, slotDate);
+                }}
               >
                 <option value="" disabled>Select a skill...</option>
                 {profile?.teachSkills?.map((skill: { id?: string; name?: string } | string, index: number) => {
@@ -188,39 +262,101 @@ function RequestSessionContent() {
               </select>
             </div>
 
-            <div className="flex gap-4 mb-6">
-              <div className="flex-1">
-                <label className="block text-[15px] font-medium text-black mb-2">Proposed Day *</label>
-                <select 
-                  required
-                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
-                  value={proposedDate}
+            <div className="mb-6">
+              <label className="block text-[15px] font-medium text-black mb-2">Select an Available Slot *</label>
+
+              {availabilityOptions.length > 0 && (
+                <div className="mb-3">
+                  <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Available Days</label>
+                  <div className="flex flex-wrap gap-2">
+                    {availabilityOptions.map((opt) => {
+                      const isActive = slotDate === opt.date;
+                      return (
+                        <button
+                          key={opt.day}
+                          type="button"
+                          onClick={() => {
+                            setSlotDate(opt.date);
+                            if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, opt.date);
+                          }}
+                          className={`px-3 py-2 rounded-lg border text-[13px] font-semibold transition-all ${
+                            isActive
+                              ? "bg-[#0ea5e9] border-[#0ea5e9] text-white"
+                              : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                          }`}
+                        >
+                          {opt.day} <span className="font-normal opacity-70">{opt.time}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="mb-3">
+                <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Date</label>
+                <input
+                  type="date"
+                  min={toLocalDate(new Date())}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                  value={slotDate}
                   onChange={(e) => {
-                    setProposedDate(e.target.value);
-                    setProposedTime("");
+                    const next = e.target.value;
+                    setSlotDate(next);
+                    if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, next);
                   }}
-                >
-                  <option value="" disabled>Select a day</option>
-                  {profile?.schedule?.map((slot: Schedule) => (
-                    <option key={slot.day} value={slot.day}>{slot.day}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[15px] font-medium text-black mb-2">Proposed Time *</label>
-                <input 
-                  type="time" 
-                  required
-                  min={profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time?.split(" - ")[0]}
-                  max={profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time?.split(" - ")[1]}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
-                  value={proposedTime}
-                  onChange={(e) => setProposedTime(e.target.value)}
                 />
-                {proposedDate && profile?.schedule?.find((s: Schedule) => s.day === proposedDate) && (
-                  <p className="text-xs text-slate-500 mt-1">Available: {profile?.schedule?.find((s: Schedule) => s.day === proposedDate)?.time}</p>
-                )}
               </div>
+
+              {slotsLoading ? (
+                <div className="flex items-center gap-2 text-slate-500 text-sm py-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading available slots...</span>
+                </div>
+              ) : slotsError ? (
+                <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+                  {slotsError}
+                </div>
+              ) : slots.length === 0 ? (
+                <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
+                  No available slots on this date. Pick one of the available days above or another date.
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {slots.map((daySlots) => (
+                    <div key={daySlots.date}>
+                      <p className="text-sm font-semibold text-slate-700 mb-2 capitalize">
+                        {daySlots.day}, {daySlots.date}
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {daySlots.slots.map((slot) => {
+                          const isSelected = selectedSlot?.date === daySlots.date && selectedSlot?.startTime === slot.startTime;
+                          return (
+                            <button
+                              key={slot.startTime}
+                              type="button"
+                              onClick={() => handleSlotSelect(daySlots.date, slot)}
+                              className={`px-2 py-2.5 rounded-lg border text-[13px] font-semibold transition-all ${
+                                isSelected
+                                  ? "bg-[#0ea5e9] border-[#0ea5e9] text-white shadow-sm"
+                                  : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                              }`}
+                            >
+                              {slot.startTime} - {slot.endTime}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedSlot && (
+                <p className="text-xs text-slate-500 mt-3">
+                  Selected: {selectedSlot.startTime} - {selectedSlot.endTime} on {selectedSlot.date}
+                </p>
+              )}
             </div>
 
             <div className="mb-6">
