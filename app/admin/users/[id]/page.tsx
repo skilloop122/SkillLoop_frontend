@@ -28,6 +28,7 @@ import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminUserStore, AdminUserDetailsResponse } from "@/lib/adminUserStore";
+import { scheduleTime } from "@/lib/profileStore";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
@@ -397,7 +398,7 @@ function OverviewTab({ details }: { details: AdminUserDetailsResponse }) {
                 <div key={i} className="flex items-center gap-3 text-sm">
                   <Clock className="w-4 h-4 text-gray-400" />
                   <span className="font-medium text-gray-700 w-28">{s.day}</span>
-                  <span className="text-gray-500">{s.time}</span>
+                  <span className="text-gray-500">{scheduleTime(s)}</span>
                 </div>
               ))}
             </div>

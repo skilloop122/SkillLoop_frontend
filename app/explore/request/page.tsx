@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { useProfileStore } from "../../../lib/profileStore";
+import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
@@ -125,9 +125,9 @@ function RequestSessionContent() {
 
   const availabilityOptions = useMemo(() => {
     if (!profile?.schedule?.length) return [];
-    return profile.schedule.map((s: { day: string; time: string }) => ({
+    return profile.schedule.map((s) => ({
       day: s.day,
-      time: s.time,
+      time: scheduleTime(s),
       date: nextDateForDay(s.day),
     }));
   }, [profile]);

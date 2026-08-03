@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense, useCallback, useMemo } from "reac
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2, Globe, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useProfileStore, Skill } from "../../../lib/profileStore";
+import { useProfileStore, Skill, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import type { SkillSlotsResponse } from "../../../lib/requestStore";
 
@@ -56,9 +56,9 @@ function ProfileContent() {
 
   const availabilityOptions = useMemo(() => {
     if (!publicProfile?.schedule?.length) return [];
-    return publicProfile.schedule.map((s: { day: string; time: string }) => ({
+    return publicProfile.schedule.map((s) => ({
       day: s.day,
-      time: s.time,
+      time: scheduleTime(s),
       date: nextDateForDay(s.day),
     }));
   }, [publicProfile]);
@@ -201,10 +201,10 @@ function ProfileContent() {
             <h2 className="mb-2 text-[18px] font-semibold text-black">Availability</h2>
             {profile?.schedule && profile.schedule.length > 0 ? (
               <ul className="space-y-1">
-                {profile.schedule.map((slot: { day: string; time: string }, idx: number) => (
+                {profile.schedule.map((slot, idx: number) => (
                   <li key={idx} className="text-[15px] text-slate-700 flex items-center justify-between bg-slate-50 p-3 rounded-[8px] mb-2 border border-slate-100">
                     <span className="font-medium">{slot.day}</span>
-                    <span className="text-slate-500">{slot.time}</span>
+                    <span className="text-slate-500">{scheduleTime(slot)}</span>
                   </li>
                 ))}
               </ul>
@@ -250,10 +250,10 @@ function ProfileContent() {
               <h3 className="font-semibold text-sm text-sky-800 mb-2">User&apos;s Availability</h3>
               {profile?.schedule && profile.schedule.length > 0 ? (
                 <ul className="space-y-1">
-                  {profile.schedule.map((slot: { day: string; time: string }, idx: number) => (
+                  {profile.schedule.map((slot, idx: number) => (
                     <li key={idx} className="text-sm text-slate-700 flex justify-between">
                       <span className="font-medium">{slot.day}</span>
-                      <span>{slot.time}</span>
+                      <span>{scheduleTime(slot)}</span>
                     </li>
                   ))}
                 </ul>

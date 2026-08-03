@@ -26,10 +26,13 @@ function parseScheduleToState(schedule: Schedule[] | undefined) {
   const ranges: Record<string, TimeRange> = {};
   for (const s of schedule ?? []) {
     days.push(s.day);
-    const parts = s.time.split(" - ");
+    let start = s.startTime;
+    let end = s.endTime;
+    if (!start && s.time) start = s.time.split(" - ")[0];
+    if (!end && s.time) end = s.time.split(" - ")[1];
     ranges[s.day] = {
-      start: parts[0] || "09:00",
-      end: parts[1] || "16:00",
+      start: start || "09:00",
+      end: end || "16:00",
     };
   }
   return { days, ranges };
@@ -186,7 +189,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   const saveChanges = async () => {
     const schedule: Schedule[] = selectedTimeRows.map((row) => ({
       day: row.day,
-      time: `${timeRanges[row.day].start} - ${timeRanges[row.day].end}`,
+      startTime: timeRanges[row.day].start,
+      endTime: timeRanges[row.day].end,
     }));
 
     const payload: UpdateProfilePayload = {

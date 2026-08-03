@@ -17,7 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
-import { useProfileStore } from "../../lib/profileStore";
+import { useProfileStore, scheduleTime } from "../../lib/profileStore";
 import { useAuthStore } from "../../lib/authStore";
 import Image from "next/image";
 
@@ -76,7 +76,7 @@ export default function ProfilePage() {
   const teachSkills = profile?.teachSkills.map(s => s.name) || [];
   const learnSkills = profile?.learnSkills.map(s => s.name) || [];
   const days = profile?.schedule.map(s => s.day) || [];
-  const timeRange = profile?.schedule[0]?.time || "Not set";
+  const timeRange = profile?.schedule?.[0] ? scheduleTime(profile.schedule[0]) || "Not set" : "Not set";
 
   return (
     <div className="relative min-h-screen bg-slate-50 font-sans flex text-black overflow-hidden">
