@@ -177,26 +177,30 @@ export default function HomePage() {
                       <Clock className="w-4 h-4" />
                       <span className="text-[13px] font-medium">{session.proposedTime}</span>
                     </div>
-                    {session.session?.zoomJoinUrl ? (
+                    {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) ? (
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
-                          className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
-                        >
-                          Open in Zoom
-                        </button>
-                        <button
-                          onClick={() => {
-                            const params = new URLSearchParams();
-                            if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
-                            if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
-                            if (session.skillListing?.title) params.set("topic", session.skillListing.title);
-                            router.push("/sessions/live?" + params.toString());
-                          }}
-                          className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded-[6px] text-sm transition-colors"
-                        >
-                          Join in App
-                        </button>
+                        {session.session?.zoomJoinUrl ? (
+                          <button
+                            onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                            className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
+                          >
+                            Open in Zoom
+                          </button>
+                        ) : null}
+                        {session.session?.zoomMeetingId ? (
+                          <button
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
+                              if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
+                              if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                              router.push("/sessions/live?" + params.toString());
+                            }}
+                            className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded-[6px] text-sm transition-colors"
+                          >
+                            Join in App
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

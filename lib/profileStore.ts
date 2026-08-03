@@ -8,7 +8,15 @@ export interface Skill {
 
 export interface Schedule {
   day: string;
-  time: string;
+  time?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export function scheduleTime(s: { time?: string; startTime?: string; endTime?: string }): string {
+  if (s.time) return s.time;
+  if (s.startTime && s.endTime) return `${s.startTime} - ${s.endTime}`;
+  return "";
 }
 
 export interface UserProfile {

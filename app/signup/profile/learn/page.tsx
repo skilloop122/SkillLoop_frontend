@@ -103,9 +103,8 @@ export default function LearnSkills() {
         };
         schedule = avail.days.map((day) => ({
           day,
-          time: avail.timeRanges?.[day]
-            ? `${avail.timeRanges[day].start} - ${avail.timeRanges[day].end}`
-            : "",
+          startTime: avail.timeRanges?.[day]?.start || "",
+          endTime: avail.timeRanges?.[day]?.end || "",
         }));
       }
     } catch { /* ignore */ }

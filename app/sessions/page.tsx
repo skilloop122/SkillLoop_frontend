@@ -78,6 +78,16 @@ export default function SessionsPage() {
     }
   };
 
+  const getOtherParty = (item: {
+    type?: string;
+    provider?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string } };
+    requester?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string } };
+  }) => {
+    const other = item.type === "sent" ? item.provider : item.requester;
+    const name = [other?.profile?.firstName, other?.profile?.lastName].filter(Boolean).join(" ") || other?.email || "User";
+    return { name, email: other?.email || "" };
+  };
+
   const pendingRequests = [
     ...sentRequests.filter(r => r.status?.toLowerCase() === "pending").map(r => ({ ...r, type: "sent" })),
     ...receivedRequests.filter(r => r.status?.toLowerCase() === "pending").map(r => ({ ...r, type: "received" }))
@@ -162,34 +172,42 @@ export default function SessionsPage() {
                         </div>
                       </div>
                       <h3 className="font-bold text-slate-900 mb-1">{session.skillListing?.title || "Skill Session"}</h3>
+                      <p className="text-sm font-semibold text-slate-700 leading-tight">
+                        {getOtherParty(session).name}
+                      </p>
+                      <p className="text-xs text-slate-400 mb-3">{getOtherParty(session).email}</p>
                       <div className="flex items-center gap-1.5 text-slate-400 mb-4">
                         <Clock size={14} />
                         <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
                       </div>
                       <div className="flex gap-2 mt-4">
-                        {session.session?.zoomJoinUrl ? (
+                        {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
                           <>
-                            <button
-                              onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
-                              className="flex-1 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
-                            >
-                              <ExternalLink size={14} />
-                              Open in Zoom
-                            </button>
-                            <button
-                              onClick={() => {
-                                const params = new URLSearchParams();
-                                if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
-                                if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
-                                if (session.skillListing?.title) params.set("topic", session.skillListing.title);
-                                router.push("/sessions/live?" + params.toString());
-                              }}
-                              className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
-                            >
-                              Join in App
-                            </button>
+                            {session.session?.zoomJoinUrl ? (
+                              <button
+                                onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                                className="flex-1 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                              >
+                                <ExternalLink size={14} />
+                                Open in Zoom
+                              </button>
+                            ) : null}
+                            {session.session?.zoomMeetingId ? (
+                              <button
+                                onClick={() => {
+                                  const params = new URLSearchParams();
+                                  if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
+                                  if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
+                                  if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                                  router.push("/sessions/live?" + params.toString());
+                                }}
+                                className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
+                              >
+                                Join in App
+                              </button>
+                            ) : null}
                           </>
-                        ) : null}
+                        )}
                         <button
                           onClick={() => handleCompleteSession(session.session?.id || session.id)}
                           disabled={completingId === (session.session?.id || session.id)}
@@ -232,6 +250,10 @@ export default function SessionsPage() {
                         </div>
                       </div>
                       <h3 className="font-bold text-slate-900 mb-0.5">{request.skillListing?.title || "Skill Session"}</h3>
+                      <p className="text-sm font-semibold text-slate-700 leading-tight">
+                        {getOtherParty(request).name}
+                      </p>
+                      <p className="text-xs text-slate-400 mb-1">{getOtherParty(request).email}</p>
                       <div className="flex items-center gap-1.5 text-slate-400">
                         <Clock size={14} />
                         <span className="text-xs font-medium">{request.proposedDate} at {request.proposedTime}</span>
@@ -265,7 +287,9 @@ export default function SessionsPage() {
                     <div className="flex-1 min-w-0">
                       <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">{session.status}</span>
                       <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-xs text-slate-400">{session.proposedDate} at {session.proposedTime}</p>
+                      <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
+                      <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
+                      <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
                     </div>
                    </div>
                 </div>
@@ -285,7 +309,9 @@ export default function SessionsPage() {
                     <div className="flex-1 min-w-0">
                       <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">Completed</span>
                       <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-xs text-slate-400">{session.proposedDate} at {session.proposedTime}</p>
+                      <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
+                      <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
+                      <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
                     </div>
                    </div>
                 </div>
