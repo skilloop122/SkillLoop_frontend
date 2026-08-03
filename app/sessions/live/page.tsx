@@ -43,7 +43,7 @@ function ZoomMeeting() {
 
         const { sdkKey, signature } = result.data;
         const userName =
-          user?.email?.split("@")[0] || "SkillLoop Participant";
+          user?.email?.split("@")[0] || "SkilLoop Participant";
 
         ZoomMtg.init({
           leaveUrl: window.location.origin + "/sessions",

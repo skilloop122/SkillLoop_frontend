@@ -67,14 +67,30 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
       setHydrated: (state) => set({ hydrated: state }),
 
-      register: async ({ email, password, firstName, lastName, secret, learnSkills, schedule }) => {
+      register: async ({
+        email,
+        password,
+        firstName,
+        lastName,
+        secret,
+        learnSkills,
+        schedule,
+      }) => {
         set({ loading: true, error: null });
 
         try {
           const response = await fetch(`${API_BASE}admin/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, firstName, lastName, secret, learnSkills, schedule }),
+            body: JSON.stringify({
+              email,
+              password,
+              firstName,
+              lastName,
+              secret,
+              learnSkills,
+              schedule,
+            }),
           });
 
           const body = await response.json();
@@ -104,8 +120,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
             token ? token.substring(0, 20) + "..." : null,
           );
 
-          const registerAdmin =
-            body?.user ||
+          const registerAdmin = body?.user ||
             body?.data?.user || {
               id: body?.id,
               email: body?.email,
@@ -169,8 +184,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
             token ? token.substring(0, 20) + "..." : null,
           );
 
-          const loginAdmin =
-            body?.user ||
+          const loginAdmin = body?.user ||
             body?.data?.user || {
               id: body?.id,
               email: body?.email,
@@ -248,7 +262,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         }),
     }),
     {
-      name: "skillloop-admin-auth",
+      name: "SkilLoop-admin-auth",
 
       storage: createJSONStorage(() => localStorage),
 

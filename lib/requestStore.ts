@@ -92,10 +92,24 @@ interface RequestState {
   sessions: Session[];
   zoomStatus: ZoomStatus | null;
   fetchRequests: () => Promise<{ success: boolean; message?: string }>;
-  fetchSessions: () => Promise<{ success: boolean; data?: Session[]; message?: string }>;
-  checkZoomStatus: () => Promise<{ success: boolean; data?: ZoomStatus; message?: string }>;
-  fetchZoomSignature: (meetingNumber: string, role?: number) => Promise<{ success: boolean; data?: ZoomSignature; message?: string }>;
-  updateRequestStatus: (id: string, status: "accepted" | "rejected" | "cancelled") => Promise<{ success: boolean; message?: string }>;
+  fetchSessions: () => Promise<{
+    success: boolean;
+    data?: Session[];
+    message?: string;
+  }>;
+  checkZoomStatus: () => Promise<{
+    success: boolean;
+    data?: ZoomStatus;
+    message?: string;
+  }>;
+  fetchZoomSignature: (
+    meetingNumber: string,
+    role?: number,
+  ) => Promise<{ success: boolean; data?: ZoomSignature; message?: string }>;
+  updateRequestStatus: (
+    id: string,
+    status: "accepted" | "rejected" | "cancelled",
+  ) => Promise<{ success: boolean; message?: string }>;
   createRequest: (payload: {
     skillListingId: string;
     schedulingLink?: string;
@@ -103,14 +117,29 @@ interface RequestState {
     proposedDate?: string;
     proposedTime?: string;
   }) => Promise<{ success: boolean; message?: string; data?: SessionRequest }>;
-  completeSession: (sessionId: string) => Promise<{ success: boolean; message?: string }>;
-  submitFeedback: (sessionId: string, payload: { rating: number; comment: string }) => Promise<{ success: boolean; message?: string }>;
-  fetchSkillSlots: (skillId: string, date?: string) => Promise<{ success: boolean; data?: SkillSlotsResponse[]; message?: string }>;
+  completeSession: (
+    sessionId: string,
+  ) => Promise<{ success: boolean; message?: string }>;
+  submitFeedback: (
+    sessionId: string,
+    payload: { rating: number; comment: string },
+  ) => Promise<{ success: boolean; message?: string }>;
+  fetchSkillSlots: (
+    skillId: string,
+    date?: string,
+  ) => Promise<{
+    success: boolean;
+    data?: SkillSlotsResponse[];
+    message?: string;
+  }>;
 }
 
-const API_BASE = typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL : "";
+const API_BASE =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL
+    : "";
 
-const ZOOM_CACHE_KEY = "skillloop-session-zoom-cache";
+const ZOOM_CACHE_KEY = "SkilLoop-session-zoom-cache";
 
 interface SessionZoomCache {
   [sessionId: string]: {
@@ -148,13 +177,16 @@ function enrichWithZoomCache<T extends { session?: SessionRequest["session"] }>(
   return { ...item, session: { ...item.session, ...zoom } };
 }
 
-function enrichSessionRecord(session: Session, cache: SessionZoomCache): Session {
+function enrichSessionRecord(
+  session: Session,
+  cache: SessionZoomCache,
+): Session {
   const zoom = cache[session.id];
   if (!zoom) return session;
   return { ...session, ...zoom };
 }
 
-export const useRequestStore = create < RequestState > ( (set) => ({
+export const useRequestStore = create<RequestState>((set) => ({
   loading: false,
   error: null,
   sentRequests: [],
@@ -177,7 +209,8 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       set({ zoomStatus: data });
       return { success: true, data };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },
@@ -198,12 +231,14 @@ export const useRequestStore = create < RequestState > ( (set) => ({
 
       const raw = await response.json();
       console.log("ZOOM SIGNATURE:", raw);
-      if (!response.ok) throw new Error(raw.message || "Failed to get Zoom signature");
+      if (!response.ok)
+        throw new Error(raw.message || "Failed to get Zoom signature");
       const data: ZoomSignature = raw;
 
       return { success: true, data };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },
@@ -223,16 +258,18 @@ export const useRequestStore = create < RequestState > ( (set) => ({
 
       const data = await response.json();
       console.log("FETCH SESSIONS RESPONSE:", data);
-      if (!response.ok) throw new Error(data.message || "Failed to fetch sessions");
+      if (!response.ok)
+        throw new Error(data.message || "Failed to fetch sessions");
 
       const zoomCache = loadZoomCache();
-      const sessions: Session[] = (Array.isArray(data) ? data : data.sessions || []).map(
-        (s: Session) => enrichSessionRecord(s, zoomCache),
-      );
+      const sessions: Session[] = (
+        Array.isArray(data) ? data : data.sessions || []
+      ).map((s: Session) => enrichSessionRecord(s, zoomCache));
       set({ sessions });
       return { success: true, data: sessions };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },
@@ -253,34 +290,51 @@ export const useRequestStore = create < RequestState > ( (set) => ({
 
       const data = await response.json();
       console.log("FETCH REQUESTS RESPONSE:", data);
-      if (!response.ok) throw new Error(data.message || "Failed to fetch requests");
+      if (!response.ok)
+        throw new Error(data.message || "Failed to fetch requests");
 
       const userEmail = useAuthStore.getState().user?.email;
       const zoomCache = loadZoomCache();
 
       if (Array.isArray(data)) {
-         set({
-           sentRequests: data.filter(r => r.type === 'sent' || r.requester?.email === userEmail).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-           receivedRequests: data.filter(r => r.type === 'received' || r.provider?.email === userEmail).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-           loading: false
-         });
+        set({
+          sentRequests: data
+            .filter(
+              (r) => r.type === "sent" || r.requester?.email === userEmail,
+            )
+            .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+          receivedRequests: data
+            .filter(
+              (r) => r.type === "received" || r.provider?.email === userEmail,
+            )
+            .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+          loading: false,
+        });
       } else {
         set({
-           sentRequests: (data.sent || []).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-           receivedRequests: (data.received || []).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-           loading: false
+          sentRequests: (data.sent || []).map((r: SessionRequest) =>
+            enrichWithZoomCache(r, zoomCache),
+          ),
+          receivedRequests: (data.received || []).map((r: SessionRequest) =>
+            enrichWithZoomCache(r, zoomCache),
+          ),
+          loading: false,
         });
       }
-      
+
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
       return { success: false, message };
     }
   },
 
-  updateRequestStatus: async (id: string, status: "accepted" | "rejected" | "cancelled") => {
+  updateRequestStatus: async (
+    id: string,
+    status: "accepted" | "rejected" | "cancelled",
+  ) => {
     set({ loading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
@@ -297,7 +351,8 @@ export const useRequestStore = create < RequestState > ( (set) => ({
 
       const data = await response.json();
       console.log("UPDATE REQUEST STATUS RESPONSE:", data);
-      if (!response.ok) throw new Error(data.message || "Failed to update request");
+      if (!response.ok)
+        throw new Error(data.message || "Failed to update request");
 
       if (status === "accepted") {
         const session = data?.session || data?.data?.session;
@@ -315,7 +370,8 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       set({ loading: false });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
       return { success: false, message };
     }
@@ -350,12 +406,18 @@ export const useRequestStore = create < RequestState > ( (set) => ({
         data = rawResponse;
       }
       console.log("CREATE REQUEST RESPONSE:", data);
-      if (!response.ok) throw new Error(typeof data === "object" ? (data.message || data.error || JSON.stringify(data)) : String(data));
+      if (!response.ok)
+        throw new Error(
+          typeof data === "object"
+            ? data.message || data.error || JSON.stringify(data)
+            : String(data),
+        );
 
       set({ loading: false });
       return { success: true, data };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
       return { success: false, message };
     }
@@ -367,50 +429,63 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "sessions/" + sessionId + "/complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
+      const response = await fetch(
+        API_BASE + "sessions/" + sessionId + "/complete",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
         },
-      });
+      );
 
       const data = await response.json();
       console.log("COMPLETE SESSION RESPONSE:", data);
-      if (!response.ok) throw new Error(data.message || "Failed to complete session");
+      if (!response.ok)
+        throw new Error(data.message || "Failed to complete session");
 
       set({ loading: false });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
       return { success: false, message };
     }
   },
 
-  submitFeedback: async (sessionId: string, payload: { rating: number; comment: string }) => {
+  submitFeedback: async (
+    sessionId: string,
+    payload: { rating: number; comment: string },
+  ) => {
     set({ loading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "sessions/" + sessionId + "/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
+      const response = await fetch(
+        API_BASE + "sessions/" + sessionId + "/feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       const data = await response.json();
       console.log("SUBMIT FEEDBACK RESPONSE:", data);
-      if (!response.ok) throw new Error(data.message || "Failed to submit feedback");
+      if (!response.ok)
+        throw new Error(data.message || "Failed to submit feedback");
 
       set({ loading: false });
       return { success: true };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       set({ error: message, loading: false });
       return { success: false, message };
     }
@@ -421,7 +496,12 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const url = API_BASE + "skills/" + skillId + "/slots" + (date ? "?date=" + encodeURIComponent(date) : "");
+      const url =
+        API_BASE +
+        "skills/" +
+        skillId +
+        "/slots" +
+        (date ? "?date=" + encodeURIComponent(date) : "");
       console.log("FETCH SLOTS URL:", url);
 
       const response = await fetch(url, {
@@ -442,17 +522,25 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       } catch {
         data = raw;
       }
-      if (!response.ok) throw new Error(typeof data === "object" ? (data.message || data.error || JSON.stringify(data)) : String(data));
+      if (!response.ok)
+        throw new Error(
+          typeof data === "object"
+            ? data.message || data.error || JSON.stringify(data)
+            : String(data),
+        );
 
       const slots: SkillSlotsResponse[] = Array.isArray(data)
         ? data
-        : data && typeof data === "object" && (data.date || Array.isArray(data.slots))
+        : data &&
+            typeof data === "object" &&
+            (data.date || Array.isArray(data.slots))
           ? [data]
-          : (data?.slots || []);
+          : data?.slots || [];
       console.log("FETCH SLOTS PARSED:", slots);
       return { success: true, data: slots };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "An unknown error occurred";
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },
