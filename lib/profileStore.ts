@@ -19,6 +19,25 @@ export function scheduleTime(s: { time?: string; startTime?: string; endTime?: s
   return "";
 }
 
+export function resolveSkillId(
+  profileSkill: { id?: string; name?: string } | undefined | null,
+  currentSkills: { id: string; name: string }[]
+): string {
+  if (!profileSkill) return "";
+  if (profileSkill.id) {
+    const byId = currentSkills.find((s) => s.id === profileSkill.id);
+    if (byId) return byId.id;
+  }
+  if (profileSkill.name) {
+    const name = profileSkill.name;
+    const byName = currentSkills.find(
+      (s) => s.name.toLowerCase() === name.toLowerCase()
+    );
+    if (byName) return byName.id;
+  }
+  return profileSkill.id || "";
+}
+
 export interface UserProfile {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [x: string]: any;

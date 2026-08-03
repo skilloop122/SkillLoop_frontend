@@ -147,7 +147,7 @@ export default function HomePage() {
             <h2 className="text-[22px] font-medium text-black mb-4 tracking-tight">
               Upcoming Sessions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {upcomingSessions.length > 0 ? upcomingSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
@@ -223,7 +223,7 @@ export default function HomePage() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {pendingReceived.length > 0 ? pendingReceived.slice(0, 4).map((request) => (
                 <div key={request.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">

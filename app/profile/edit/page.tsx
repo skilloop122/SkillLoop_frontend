@@ -39,7 +39,7 @@ function parseScheduleToState(schedule: Schedule[] | undefined) {
 }
 
 function ProfileForm({ profile }: { profile: UserProfile }) {
-  const { skills: apiSkills, loading: skillsLoading } = useSkillsStore();
+  const { skills: apiSkills, loading: skillsLoading, syncSkillListings } = useSkillsStore();
   const { updateProfile, loading } = useProfileStore();
   const router = useRouter();
   const { user } = useAuthStore();
@@ -210,6 +210,10 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
 
     const result = await updateProfile(payload);
     if (result.success) {
+      const sync = await syncSkillListings(teachSkills);
+      if (!sync.success) {
+        console.warn("LISTING SYNC ISSUE:", sync.message);
+      }
       router.push("/profile");
     } else {
       alert(result.message || "Failed to update profile");

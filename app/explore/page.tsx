@@ -164,7 +164,7 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="flex gap-2 w-full lg:w-[240px] shrink-0">
-                      <Link href={"/explore/request?id=" + match.id} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
+                      <Link href={"/explore/request?id=" + (match.user?.id || match.id)} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
                         Request Session
                       </Link>
                       <button
