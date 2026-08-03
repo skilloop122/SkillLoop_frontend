@@ -30,8 +30,8 @@ export default function HomePage() {
   }, [loadData]);
 
   const upcomingRequests = [
-    ...sentRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "sent" as const })),
-    ...receivedRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "received" as const }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "received" as const }))
   ];
 
   const upcomingSessions = upcomingRequests.map((req) => {
@@ -49,8 +49,8 @@ export default function HomePage() {
     };
   });
 
-  const pendingReceived = receivedRequests.filter(r => r.status === "pending");
-  const pendingSent = sentRequests.filter(r => r.status === "pending");
+  const pendingReceived = receivedRequests.filter(r => r.status?.toLowerCase() === "pending");
+  const pendingSent = sentRequests.filter(r => r.status?.toLowerCase() === "pending");
   const totalPending = pendingReceived.length + pendingSent.length;
 
   const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "cancelled") => {

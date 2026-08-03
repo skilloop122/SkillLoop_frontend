@@ -1,11 +1,30 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2, Globe, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfileStore, Skill } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
+import type { SkillSlotsResponse } from "../../../lib/requestStore";
+
+function toLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function nextDateForDay(day: string, from: Date = new Date()): string {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const target = days.indexOf(day);
+  if (target === -1) return toLocalDate(from);
+  let diff = (target - from.getDay() + 7) % 7;
+  if (diff === 0) diff = 7;
+  const d = new Date(from);
+  d.setDate(d.getDate() + diff);
+  return toLocalDate(d);
+}
 
 function ProfileContent() {
   const router = useRouter();
@@ -20,15 +39,47 @@ function ProfileContent() {
     proposedDate: "",
     proposedTime: "",
   });
-  
+  const [slots, setSlots] = useState<SkillSlotsResponse[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState("");
+  const [slotDate, setSlotDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
+
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
-  const { createRequest, loading: requestLoading, error: requestError } = useRequestStore();
+  const { createRequest, loading: requestLoading, error: requestError, fetchSkillSlots } = useRequestStore();
 
   useEffect(() => {
     if (userId) {
       fetchPublicProfile(userId);
     }
   }, [userId, fetchPublicProfile]);
+
+  const availabilityOptions = useMemo(() => {
+    if (!publicProfile?.schedule?.length) return [];
+    return publicProfile.schedule.map((s: { day: string; time: string }) => ({
+      day: s.day,
+      time: s.time,
+      date: nextDateForDay(s.day),
+    }));
+  }, [publicProfile]);
+
+  const loadSlots = useCallback((skillId: string, date?: string) => {
+    if (!skillId) return;
+    const targetDate = date || slotDate;
+    setSlotsLoading(true);
+    setSlotsError("");
+    setSlots([]);
+    setSelectedSlot(null);
+    setFormData(prev => ({ ...prev, proposedDate: "", proposedTime: "" }));
+    fetchSkillSlots(skillId, targetDate).then(res => {
+      if (res.success && res.data) {
+        setSlots(res.data);
+      } else {
+        setSlotsError(res.message || "Failed to load available slots.");
+      }
+      setSlotsLoading(false);
+    });
+  }, [fetchSkillSlots, slotDate]);
 
   if (loading && !publicProfile) {
     return (
@@ -168,8 +219,12 @@ function ProfileContent() {
               type="button"
               onClick={() => {
                 const defaultSkillId = profile?.teachSkills?.[0]?.id || "";
+                const firstDay = profile?.schedule && profile.schedule.length > 0 ? profile.schedule[0].day : "";
+                const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
                 setFormData(prev => ({ ...prev, skillListingId: defaultSkillId }));
+                setSlotDate(initialDate);
                 setShowRequestForm(true);
+                loadSlots(defaultSkillId, initialDate);
               }}
               className="flex-1 rounded-[12px] bg-[#0ea5e9] py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 transition-colors"
             >
@@ -231,7 +286,11 @@ function ProfileContent() {
                   required
                   className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                   value={formData.skillListingId}
-                  onChange={(e) => setFormData({...formData, skillListingId: e.target.value})}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setFormData({...formData, skillListingId: next});
+                    loadSlots(next, slotDate);
+                  }}
                 >
                   <option value="" disabled>Select a skill</option>
                   {profile?.teachSkills?.map((skill: Skill) => (
@@ -242,36 +301,104 @@ function ProfileContent() {
                 </select>
               </div>
 
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Proposed Day</label>
-                  <select 
-                    required
-                    className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    value={formData.proposedDate}
-                    onChange={(e) => setFormData({...formData, proposedDate: e.target.value, proposedTime: ""})}
-                  >
-                    <option value="" disabled>Select a day</option>
-                    {profile?.schedule?.map((slot: { day: string; time: string }) => (
-                      <option key={slot.day} value={slot.day}>{slot.day}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Proposed Time</label>
-                  <input 
-                    type="time" 
-                    required
-                    min={profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time.split(" - ")[0]}
-                    max={profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time.split(" - ")[1]}
-                    className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                    value={formData.proposedTime}
-                    onChange={(e) => setFormData({...formData, proposedTime: e.target.value})}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Select an Available Slot</label>
+
+                {availabilityOptions.length > 0 && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Available Days</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availabilityOptions.map((opt) => {
+                        const isActive = slotDate === opt.date;
+                        return (
+                          <button
+                            key={opt.day}
+                            type="button"
+                            onClick={() => {
+                              setSlotDate(opt.date);
+                              if (formData.skillListingId) loadSlots(formData.skillListingId, opt.date);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-md border text-xs font-semibold transition-all ${
+                              isActive
+                                ? "bg-[#0ea5e9] border-[#0ea5e9] text-white"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                            }`}
+                          >
+                            {opt.day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
+                  <input
+                    type="date"
+                    min={toLocalDate(new Date())}
+                    className="w-full rounded-md border border-slate-300 p-2.5 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    value={slotDate}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSlotDate(next);
+                      if (formData.skillListingId) loadSlots(formData.skillListingId, next);
+                    }}
                   />
-                  {formData.proposedDate && profile?.schedule?.find((s: { day: string; time: string }) => s.day === formData.proposedDate) && (
-                    <p className="text-xs text-slate-500 mt-1">Available: {profile.schedule.find((s: { day: string; time: string }) => s.day === formData.proposedDate)?.time}</p>
-                  )}
                 </div>
+
+                {slotsLoading ? (
+                  <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading available slots...</span>
+                  </div>
+                ) : slotsError ? (
+                  <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">
+                    {slotsError}
+                  </div>
+                ) : slots.length === 0 ? (
+                  <div className="p-3 bg-amber-50 text-amber-700 rounded-md text-sm">
+                    No available slots for this skill right now. Try another skill.
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                    {slots.map((daySlots) => (
+                      <div key={daySlots.date}>
+                        <p className="text-xs font-semibold text-slate-600 mb-1.5 capitalize">
+                          {daySlots.day}, {daySlots.date}
+                        </p>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {daySlots.slots.map((slot) => {
+                            const isSelected = selectedSlot?.date === daySlots.date && selectedSlot?.startTime === slot.startTime;
+                            return (
+                              <button
+                                key={slot.startTime}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSlot({ date: daySlots.date, startTime: slot.startTime, endTime: slot.endTime });
+                                  setFormData(prev => ({ ...prev, proposedDate: daySlots.date, proposedTime: slot.startTime }));
+                                }}
+                                className={`px-1.5 py-2 rounded-md border text-xs font-semibold transition-all ${
+                                  isSelected
+                                    ? "bg-[#0ea5e9] border-[#0ea5e9] text-white"
+                                    : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                                }`}
+                              >
+                                {slot.startTime}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedSlot && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    Selected: {selectedSlot.startTime} - {selectedSlot.endTime} on {selectedSlot.date}
+                  </p>
+                )}
               </div>
 
               <div>

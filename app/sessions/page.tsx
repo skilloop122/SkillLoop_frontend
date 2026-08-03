@@ -79,13 +79,13 @@ export default function SessionsPage() {
   };
 
   const pendingRequests = [
-    ...sentRequests.filter(r => r.status === "pending").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status === "pending").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "pending").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "pending").map(r => ({ ...r, type: "received" }))
   ];
 
   const upcomingRequests = [
-    ...sentRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "sent" as const })),
-    ...receivedRequests.filter(r => r.status === "accepted").map(r => ({ ...r, type: "received" as const }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "received" as const }))
   ];
 
   const upcomingSessions = upcomingRequests.map((req) => {
@@ -104,13 +104,13 @@ export default function SessionsPage() {
   });
 
   const canceledSessions = [
-    ...sentRequests.filter(r => r.status === "rejected" || r.status === "cancelled").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status === "rejected" || r.status === "cancelled").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "received" }))
   ];
 
   const completedSessions = [
-    ...sentRequests.filter(r => r.status === "completed").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status === "completed").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "received" }))
   ];
 
   if (!hydrated || (loading && pendingRequests.length === 0 && upcomingSessions.length === 0)) {
