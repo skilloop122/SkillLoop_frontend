@@ -32,7 +32,7 @@ export default function LearnSkills() {
 
   const { createProfile, loading } = useProfileStore();
   const { user } = useAuthStore();
-  const { skills: apiSkills, loading: skillsLoading, fetchSkills } = useSkillsStore();
+  const { skills: apiSkills, loading: skillsLoading, fetchSkills, syncSkillListings } = useSkillsStore();
 
   useEffect(() => {
     fetchSkills({ limit: "50" });
@@ -123,6 +123,8 @@ export default function LearnSkills() {
       setErrorMsg(result.message ?? "Profile creation failed. Please try again.");
       return;
     }
+
+    await syncSkillListings(teachSkills);
 
     // Clean up onboarding keys
     localStorage.removeItem("onboarding_teachSkills");

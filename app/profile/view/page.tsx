@@ -4,8 +4,9 @@ import React, { useState, useEffect, Suspense, useCallback, useMemo } from "reac
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2, Globe, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useProfileStore, Skill, scheduleTime } from "../../../lib/profileStore";
+import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
+import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
 import type { SkillSlotsResponse } from "../../../lib/requestStore";
 
 function toLocalDate(d: Date): string {
@@ -47,12 +48,33 @@ function ProfileContent() {
 
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, fetchSkillSlots } = useRequestStore();
+  const { fetchSkillListings } = useSkillsStore();
+  const [resolvedTeachSkills, setResolvedTeachSkills] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (userId) {
-      fetchPublicProfile(userId);
+      fetchPublicProfile(userId).then(res => {
+        if (res.success && res.profile?.teachSkills?.length) {
+          const profile = res.profile;
+          fetchSkillListings({ limit: 200 }).then(listingRes => {
+            const allListings = listingRes.success && listingRes.listings ? listingRes.listings : [];
+            const listings = allListings.filter((l) => l.userId === userId);
+            const resolved = profile.teachSkills
+              .map((s: { id?: string; name?: string } | string) => {
+                const skillName = typeof s === "string" ? s : (s.name || s.id || "");
+                const listing = findListingForSkill(listings, skillName);
+                return {
+                  id: listing?.id || "",
+                  name: skillName || listing?.title || "Unknown Skill",
+                };
+              })
+              .filter((s) => s.id);
+            setResolvedTeachSkills(resolved);
+          });
+        }
+      });
     }
-  }, [userId, fetchPublicProfile]);
+  }, [userId, fetchPublicProfile, fetchSkillListings]);
 
   const availabilityOptions = useMemo(() => {
     if (!publicProfile?.schedule?.length) return [];
@@ -110,6 +132,7 @@ function ProfileContent() {
     (Array.isArray(arr) ? arr : []).map((s: unknown) => (typeof s === "string" ? s : (s as { name?: string })?.name || "")).filter(Boolean);
   const teachSkills = extractNames(profile?.teachSkills);
   const learnSkills = extractNames(profile?.learnSkills);
+  const skillOptions = resolvedTeachSkills;
 
   const initials = (profile?.firstName?.[0] ?? "?").toUpperCase() + (profile?.lastName?.[0] ?? "").toUpperCase();
 
@@ -218,7 +241,7 @@ function ProfileContent() {
             <button
               type="button"
               onClick={() => {
-                const defaultSkillId = profile?.teachSkills?.[0]?.id || "";
+                const defaultSkillId = skillOptions[0]?.id || "";
                 const firstDay = profile?.schedule && profile.schedule.length > 0 ? profile.schedule[0].day : "";
                 const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
                 setFormData(prev => ({ ...prev, skillListingId: defaultSkillId }));
@@ -282,6 +305,11 @@ function ProfileContent() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Skill to Learn</label>
+                {skillOptions.length === 0 ? (
+                  <div className="p-3 bg-amber-50 text-amber-700 rounded-md text-sm">
+                    This user hasn&apos;t set up any available sessions yet. Ask them to save their profile to enable session requests.
+                  </div>
+                ) : (
                 <select 
                   required
                   className="w-full rounded-md border border-slate-300 p-2.5 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
@@ -293,12 +321,13 @@ function ProfileContent() {
                   }}
                 >
                   <option value="" disabled>Select a skill</option>
-                  {profile?.teachSkills?.map((skill: Skill) => (
-                    <option key={skill.id || skill.name} value={skill.id || skill.name}>
+                  {skillOptions.map((skill) => (
+                    <option key={skill.id} value={skill.id}>
                       {skill.name}
                     </option>
                   ))}
                 </select>
+                )}
               </div>
 
               <div>

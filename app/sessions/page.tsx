@@ -156,11 +156,11 @@ export default function SessionsPage() {
           </div>
 
           {activeTab === "Upcoming" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {upcomingSessions.map((session) => (
                 <div key={session.id} className="rounded-lg border border-[#bae6fd] bg-white p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:h-20 sm:w-20">
                       <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -171,22 +171,22 @@ export default function SessionsPage() {
                           <span className="text-xs font-bold">4.8</span>
                         </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-1">{session.skillListing?.title || "Skill Session"}</h3>
+                      <h3 className="font-bold text-slate-900 mb-1 wrap-break-word">{session.skillListing?.title || "Skill Session"}</h3>
                       <p className="text-sm font-semibold text-slate-700 leading-tight">
                         {getOtherParty(session).name}
                       </p>
-                      <p className="text-xs text-slate-400 mb-3">{getOtherParty(session).email}</p>
-                      <div className="flex items-center gap-1.5 text-slate-400 mb-4">
+                      <p className="text-xs text-slate-400 mb-3 truncate">{getOtherParty(session).email}</p>
+                      <div className="flex items-center gap-1.5 text-slate-400 mb-4 flex-wrap">
                         <Clock size={14} />
                         <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
                       </div>
-                      <div className="flex gap-2 mt-4">
+                      <div className="flex flex-wrap gap-2 mt-4">
                         {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
                           <>
                             {session.session?.zoomJoinUrl ? (
                               <button
                                 onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
-                                className="flex-1 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                                className="flex-1 min-w-[130px] py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
                               >
                                 <ExternalLink size={14} />
                                 Open in Zoom
@@ -201,7 +201,7 @@ export default function SessionsPage() {
                                   if (session.skillListing?.title) params.set("topic", session.skillListing.title);
                                   router.push("/sessions/live?" + params.toString());
                                 }}
-                                className="flex-1 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
+                                className="flex-1 min-w-[130px] py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
                               >
                                 Join in App
                               </button>
@@ -211,14 +211,14 @@ export default function SessionsPage() {
                         <button
                           onClick={() => handleCompleteSession(session.session?.id || session.id)}
                           disabled={completingId === (session.session?.id || session.id)}
-                          className="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          className="flex-1 min-w-[130px] py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
                           {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                           Mark Complete
                         </button>
                         <button
                           onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
-                          className="flex-1 py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
+                          className="flex-1 min-w-[130px] py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
                         >
                           Leave Feedback
                         </button>
@@ -232,7 +232,7 @@ export default function SessionsPage() {
           )}
 
           {activeTab === "Pending" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {pendingRequests.map((request) => (
                 <div key={request.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
@@ -277,7 +277,7 @@ export default function SessionsPage() {
           )}
 
           {activeTab === "Canceled" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {canceledSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm opacity-60">
                    <div className="flex items-start gap-4">
@@ -299,7 +299,7 @@ export default function SessionsPage() {
           )}
 
           {activeTab === "Completed" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {completedSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
                    <div className="flex items-start gap-4">

@@ -110,6 +110,50 @@ interface RequestState {
 
 const API_BASE = typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL : "";
 
+const ZOOM_CACHE_KEY = "skillloop-session-zoom-cache";
+
+interface SessionZoomCache {
+  [sessionId: string]: {
+    zoomMeetingId?: string;
+    zoomPassword?: string;
+    zoomJoinUrl?: string;
+  };
+}
+
+function loadZoomCache(): SessionZoomCache {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(ZOOM_CACHE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveZoomCache(cache: SessionZoomCache) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ZOOM_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function enrichWithZoomCache<T extends { session?: SessionRequest["session"] }>(
+  item: T,
+  cache: SessionZoomCache,
+): T {
+  if (!item.session?.id) return item;
+  const zoom = cache[item.session.id];
+  if (!zoom) return item;
+  return { ...item, session: { ...item.session, ...zoom } };
+}
+
+function enrichSessionRecord(session: Session, cache: SessionZoomCache): Session {
+  const zoom = cache[session.id];
+  if (!zoom) return session;
+  return { ...session, ...zoom };
+}
+
 export const useRequestStore = create < RequestState > ( (set) => ({
   loading: false,
   error: null,
@@ -181,7 +225,10 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       console.log("FETCH SESSIONS RESPONSE:", data);
       if (!response.ok) throw new Error(data.message || "Failed to fetch sessions");
 
-      const sessions: Session[] = Array.isArray(data) ? data : data.sessions || [];
+      const zoomCache = loadZoomCache();
+      const sessions: Session[] = (Array.isArray(data) ? data : data.sessions || []).map(
+        (s: Session) => enrichSessionRecord(s, zoomCache),
+      );
       set({ sessions });
       return { success: true, data: sessions };
     } catch (error: unknown) {
@@ -209,17 +256,18 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       if (!response.ok) throw new Error(data.message || "Failed to fetch requests");
 
       const userEmail = useAuthStore.getState().user?.email;
+      const zoomCache = loadZoomCache();
 
       if (Array.isArray(data)) {
          set({
-           sentRequests: data.filter(r => r.type === 'sent' || r.requester?.email === userEmail),
-           receivedRequests: data.filter(r => r.type === 'received' || r.provider?.email === userEmail),
+           sentRequests: data.filter(r => r.type === 'sent' || r.requester?.email === userEmail).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+           receivedRequests: data.filter(r => r.type === 'received' || r.provider?.email === userEmail).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
            loading: false
          });
       } else {
         set({
-           sentRequests: data.sent || [],
-           receivedRequests: data.received || [],
+           sentRequests: (data.sent || []).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+           receivedRequests: (data.received || []).map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
            loading: false
         });
       }
@@ -250,6 +298,19 @@ export const useRequestStore = create < RequestState > ( (set) => ({
       const data = await response.json();
       console.log("UPDATE REQUEST STATUS RESPONSE:", data);
       if (!response.ok) throw new Error(data.message || "Failed to update request");
+
+      if (status === "accepted") {
+        const session = data?.session || data?.data?.session;
+        if (session?.id && (session.zoomMeetingId || session.zoomJoinUrl)) {
+          const cache = loadZoomCache();
+          cache[session.id] = {
+            zoomMeetingId: session.zoomMeetingId,
+            zoomPassword: session.zoomPassword,
+            zoomJoinUrl: session.zoomJoinUrl,
+          };
+          saveZoomCache(cache);
+        }
+      }
 
       set({ loading: false });
       return { success: true };

@@ -18,6 +18,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
+import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
 import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
 import { Suspense } from "react";
@@ -47,9 +48,11 @@ function RequestSessionContent() {
 
   const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus, fetchSkillSlots } = useRequestStore();
+  const { fetchSkillListings } = useSkillsStore();
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
+  const [resolvedTeachSkills, setResolvedTeachSkills] = useState<{ id: string; name: string }[]>([]);
 
   const [skillListingId, setSkillListingId] = useState("");
   const [proposedDate, setProposedDate] = useState("");
@@ -86,19 +89,34 @@ function RequestSessionContent() {
     if (matchId) {
       fetchPublicProfile(matchId).then(res => {
         if (res.success && res.profile?.teachSkills?.length) {
-          const first = res.profile.teachSkills[0];
-          const firstId = first.id || first.name || "";
-          if (firstId) {
-            const firstDay = (res.profile.schedule && res.profile.schedule.length > 0) ? res.profile.schedule[0].day : "";
-            const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
-            setSkillListingId(firstId);
-            setSlotDate(initialDate);
-            loadSlots(firstId, initialDate);
-          }
+          const profile = res.profile;
+          fetchSkillListings({ limit: 200 }).then(listingRes => {
+            const allListings = listingRes.success && listingRes.listings ? listingRes.listings : [];
+            const listings = allListings.filter((l) => l.userId === matchId);
+            const resolved = profile.teachSkills
+              .map((s: { id?: string; name?: string } | string) => {
+                const skillName = typeof s === "string" ? s : (s.name || s.id || "");
+                const listing = findListingForSkill(listings, skillName);
+                return {
+                  id: listing?.id || "",
+                  name: skillName || listing?.title || "Unknown Skill",
+                };
+              })
+              .filter((s) => s.id);
+            setResolvedTeachSkills(resolved);
+            const first = resolved[0];
+            if (first) {
+              const firstDay = (profile.schedule && profile.schedule.length > 0) ? profile.schedule[0].day : "";
+              const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
+              setSkillListingId(first.id);
+              setSlotDate(initialDate);
+              loadSlots(first.id, initialDate);
+            }
+          });
         }
       });
     }
-  }, [matchId, fetchPublicProfile, loadSlots]);
+  }, [matchId, fetchPublicProfile, fetchSkillListings, loadSlots]);
 
   useEffect(() => {
     checkZoomStatus().then(res => {
@@ -120,8 +138,9 @@ function RequestSessionContent() {
   ];
 
   const profile = publicProfile;
-  const effectiveSkillListingId = skillListingId || (profile?.teachSkills?.length ? (profile.teachSkills[0].id || profile.teachSkills[0].name || "") : "");
-  console.log("REQUEST PAGE - skillListingId:", skillListingId, "effectiveSkillListingId:", effectiveSkillListingId, "teachSkills:", profile?.teachSkills);
+  const skillOptions = resolvedTeachSkills;
+  const effectiveSkillListingId = skillListingId || (skillOptions.length ? skillOptions[0].id : "");
+  console.log("REQUEST PAGE - skillListingId:", skillListingId, "effectiveSkillListingId:", effectiveSkillListingId, "teachSkills:", profile?.teachSkills, "resolvedTeachSkills:", resolvedTeachSkills);
 
   const availabilityOptions = useMemo(() => {
     if (!profile?.schedule?.length) return [];
@@ -238,6 +257,12 @@ function RequestSessionContent() {
 
             <form onSubmit={handleConfirmSession}>
               <div className="mb-6">
+              {skillOptions.length === 0 ? (
+                <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
+                  This user hasn&apos;t set up any available sessions yet. Ask them to save their profile to enable session requests.
+                </div>
+              ) : (
+                <>
               <label className="block text-[15px] font-medium text-black mb-2">Skill to Learn *</label>
               <select 
                 required
@@ -250,16 +275,14 @@ function RequestSessionContent() {
                 }}
               >
                 <option value="" disabled>Select a skill...</option>
-                {profile?.teachSkills?.map((skill: { id?: string; name?: string } | string, index: number) => {
-                  const skillId = typeof skill === 'string' ? skill : (skill.id || skill.name || `skill-${index}`);
-                  const skillName = typeof skill === 'string' ? skill : (skill.name || "Unknown Skill");
-                  return (
-                    <option key={skillId} value={skillId}>
-                      {skillName}
-                    </option>
-                  );
-                })}
+                {skillOptions.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.name}
+                  </option>
+                ))}
               </select>
+                </>
+              )}
             </div>
 
             <div className="mb-6">

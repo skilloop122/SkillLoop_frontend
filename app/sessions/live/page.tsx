@@ -30,7 +30,7 @@ function ZoomMeeting() {
       try {
         const ZoomMtg = (await import("@zoom/meetingsdk")).ZoomMtg;
 
-        ZoomMtg.setZoomJSLib("https://source.zoom.us/2.18.0/lib", "/av");
+        ZoomMtg.setZoomJSLib("https://source.zoom.us/6.2.0/lib", "/av");
         ZoomMtg.preLoadWasm();
         ZoomMtg.prepareWebSDK();
 
