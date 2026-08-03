@@ -86,7 +86,7 @@ export function AdminSideNav() {
             <div className="flex items-center gap-3">
               <Image
                 src="/images/SkilLoop.png"
-                alt="SkillLoop"
+                alt="SkilLoop"
                 width={44}
                 height={44}
               />
