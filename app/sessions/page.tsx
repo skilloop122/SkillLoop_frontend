@@ -50,9 +50,9 @@ export default function SessionsPage() {
     }
   };
 
-  const handleCompleteSession = async (sessionId: string) => {
+  const handleCompleteSession = async (sessionId: string, status: "completed") => {
     setCompletingId(sessionId);
-    const result = await completeSession(sessionId);
+    const result = await completeSession(sessionId,status);
     setCompletingId(null);
     if (result.success) {
       showToast("Session marked as completed!");
@@ -94,8 +94,8 @@ export default function SessionsPage() {
   ];
 
   const upcomingRequests = [
-    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "sent" as const })),
-    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "received" as const }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "received" as const }))
   ];
 
   const upcomingSessions = upcomingRequests.map((req) => {
@@ -119,8 +119,8 @@ export default function SessionsPage() {
   ];
 
   const completedSessions = [
-    ...sentRequests.filter(r => r.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.session?.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.session?.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "received" }))
   ];
 
   if (!hydrated || (loading && pendingRequests.length === 0 && upcomingSessions.length === 0)) {
@@ -209,7 +209,7 @@ export default function SessionsPage() {
                           </>
                         )}
                         <button
-                          onClick={() => handleCompleteSession(session.session?.id || session.id)}
+                          onClick={() => handleCompleteSession(session.session?.id || session.id, "completed")}
                           disabled={completingId === (session.session?.id || session.id)}
                           className="flex-1 min-w-[130px] py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
