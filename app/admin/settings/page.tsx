@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
 
   if (!token) return null;
 
-  const tabs: { key: SettingsTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  const tabs: { key: SettingsTab; label: string; icon: React.ComponentType<{ size?: string | number; className?: string }> }[] = [
     { key: "profile", label: "Profile", icon: User },
     { key: "security", label: "Security", icon: ShieldCheck },
     { key: "notifications", label: "Notifications", icon: Bell },

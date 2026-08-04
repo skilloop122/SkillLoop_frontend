@@ -48,7 +48,7 @@ const SAMPLE_REQUESTS: RequestListing[] = [
   { id: "6", requesterName: "Kevin Hart", requesterEmail: "kevin@example.com", skill: "Agile", category: "Management", status: "approved", demand: "low", date: "2026-07-06" },
 ];
 
-const STATUS_CONFIG: Record<StatusKey, { label: string; icon: React.ComponentType<{ size?: number; className?: string }>; iconColor: string; bg: string; border: string; badge: string }> = {
+const STATUS_CONFIG: Record<StatusKey, { label: string; icon: React.ComponentType<{ size?: string | number; className?: string }>; iconColor: string; bg: string; border: string; badge: string }> = {
   all: {
     label: "Total Requests",
     icon: File,

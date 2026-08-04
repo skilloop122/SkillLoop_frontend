@@ -119,6 +119,7 @@ interface RequestState {
   }) => Promise<{ success: boolean; message?: string; data?: SessionRequest }>;
   completeSession: (
     sessionId: string,
+    status: "completed"
   ) => Promise<{ success: boolean; message?: string }>;
   submitFeedback: (
     sessionId: string,
@@ -423,7 +424,7 @@ export const useRequestStore = create<RequestState>((set) => ({
     }
   },
 
-  completeSession: async (sessionId: string) => {
+  completeSession: async (sessionId: string, status: "completed") => {
     set({ loading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
@@ -437,6 +438,9 @@ export const useRequestStore = create<RequestState>((set) => ({
             "Content-Type": "application/json",
             Authorization: "Bearer " + token,
           },
+          body: JSON.stringify({
+          status,
+        }),
         },
       );
 
