@@ -432,7 +432,7 @@ export const useRequestStore = create<RequestState>((set) => ({
       const response = await fetch(
         API_BASE + "sessions/" + sessionId + "/complete",
         {
-          method: "POST",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: "Bearer " + token,
