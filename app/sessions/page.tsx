@@ -11,7 +11,7 @@ import { useAuthStore } from "../../lib/authStore";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const { hydrated, token } = useAuthStore();
+  const { hydrated, token, user } = useAuthStore();
   const { sentRequests, receivedRequests, sessions, loading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
 
   const [activeTab, setActiveTab] = useState("Pending");
@@ -102,12 +102,14 @@ export default function SessionsPage() {
     const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
     return {
       ...req,
+      isProvider: user?.id === req.providerId,
       session: {
         ...req.session,
         ...(sessionMatch ? {
           zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
           zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
           zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
+          zoomStartUrl: sessionMatch.zoomStartUrl || req.session?.zoomStartUrl,
         } : {}),
       },
     };
@@ -185,11 +187,11 @@ export default function SessionsPage() {
                           <>
                             {session.session?.zoomJoinUrl ? (
                               <button
-                                onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                                onClick={() => window.open(session.isProvider && session.session?.zoomStartUrl ? session.session.zoomStartUrl : session.session!.zoomJoinUrl, "_blank")}
                                 className="flex-1 min-w-[130px] py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
                               >
                                 <ExternalLink size={14} />
-                                Open in Zoom
+                                {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
                               </button>
                             ) : null}
                             {session.session?.zoomMeetingId ? (
@@ -199,11 +201,16 @@ export default function SessionsPage() {
                                   if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
                                   if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
                                   if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                                  if (session.isProvider && session.session?.zoomStartUrl) {
+                                    params.set("role", "1");
+                                    const zak = new URL(session.session.zoomStartUrl, window.location.origin).searchParams.get("zak");
+                                    if (zak) params.set("zak", zak);
+                                  }
                                   router.push("/sessions/live?" + params.toString());
                                 }}
                                 className="flex-1 min-w-[130px] py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
                               >
-                                Join in App
+                                {session.isProvider ? "Start in App" : "Join in App"}
                               </button>
                             ) : null}
                           </>

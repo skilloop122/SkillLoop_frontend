@@ -44,6 +44,7 @@ export interface SessionRequest {
     zoomMeetingId?: string;
     zoomPassword?: string;
     zoomJoinUrl?: string;
+    zoomStartUrl?: string;
   };
   type?: "sent" | "received";
 }
@@ -56,6 +57,7 @@ export interface Session {
   zoomMeetingId?: string;
   zoomPassword?: string;
   zoomJoinUrl?: string;
+  zoomStartUrl?: string;
   request?: SessionRequest;
 }
 
@@ -147,6 +149,7 @@ interface SessionZoomCache {
     zoomMeetingId?: string;
     zoomPassword?: string;
     zoomJoinUrl?: string;
+    zoomStartUrl?: string;
   };
 }
 
@@ -363,6 +366,7 @@ export const useRequestStore = create<RequestState>((set) => ({
             zoomMeetingId: session.zoomMeetingId,
             zoomPassword: session.zoomPassword,
             zoomJoinUrl: session.zoomJoinUrl,
+            zoomStartUrl: session.zoomStartUrl,
           };
           saveZoomCache(cache);
         }

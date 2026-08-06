@@ -30,20 +30,22 @@ export default function HomePage() {
   }, [loadData]);
 
   const upcomingRequests = [
-    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "sent" as const })),
-    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted").map(r => ({ ...r, type: "received" as const }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "sent" as const })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "received" as const }))
   ];
 
   const upcomingSessions = upcomingRequests.map((req) => {
     const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
     return {
       ...req,
+      isProvider: user?.id === req.providerId,
       session: {
         ...req.session,
         ...(sessionMatch ? {
           zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
           zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
           zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
+          zoomStartUrl: sessionMatch.zoomStartUrl || req.session?.zoomStartUrl,
         } : {}),
       },
     };
@@ -181,10 +183,10 @@ export default function HomePage() {
                       <div className="flex gap-2">
                         {session.session?.zoomJoinUrl ? (
                           <button
-                            onClick={() => window.open(session.session!.zoomJoinUrl, "_blank")}
+                            onClick={() => window.open(session.isProvider && session.session?.zoomStartUrl ? session.session.zoomStartUrl : session.session!.zoomJoinUrl, "_blank")}
                             className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
                           >
-                            Open in Zoom
+                            {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
                           </button>
                         ) : null}
                         {session.session?.zoomMeetingId ? (
@@ -194,11 +196,16 @@ export default function HomePage() {
                               if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
                               if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
                               if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                              if (session.isProvider && session.session?.zoomStartUrl) {
+                                params.set("role", "1");
+                                const zak = new URL(session.session.zoomStartUrl, window.location.origin).searchParams.get("zak");
+                                if (zak) params.set("zak", zak);
+                              }
                               router.push("/sessions/live?" + params.toString());
                             }}
                             className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded-[6px] text-sm transition-colors"
                           >
-                            Join in App
+                            {session.isProvider ? "Start in App" : "Join in App"}
                           </button>
                         ) : null}
                       </div>
