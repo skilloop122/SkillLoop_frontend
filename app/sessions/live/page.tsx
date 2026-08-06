@@ -13,6 +13,7 @@ function ZoomMeeting() {
 
   const meetingNumber = searchParams.get("meetingId") || "";
   const zoomPassword = searchParams.get("password") || "";
+  const zak = searchParams.get("zak") || "";
   const role = Number(searchParams.get("role") || "0");
 
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ function ZoomMeeting() {
               meetingNumber,
               passWord: zoomPassword,
               userName,
+              ...(zak ? { zak } : {}),
               success: () => {
                 if (!cancelled) setLoading(false);
               },
@@ -87,7 +89,7 @@ function ZoomMeeting() {
     return () => {
       cancelled = true;
     };
-  }, [meetingNumber, zoomPassword, role, fetchZoomSignature, user, noMeeting]);
+  }, [meetingNumber, zoomPassword, zak, role, fetchZoomSignature, user, noMeeting]);
 
   return (
     <div className="w-full">
