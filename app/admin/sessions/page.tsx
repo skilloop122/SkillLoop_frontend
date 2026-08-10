@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
+import { useAdminSessionStore, ApiSession } from "@/lib/adminSessionStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 
@@ -24,6 +25,7 @@ type SessionType = "one-on-one" | "group" | "workshop";
 interface SessionListing {
   id: string;
   session: string;
+  category: string;
   skill: string;
   users: string;
   type: SessionType;
@@ -31,16 +33,28 @@ interface SessionListing {
   date: string;
 }
 
-const SAMPLE_SESSIONS: SessionListing[] = [
-  { id: "S-001", session: "React Fundamentals Intro", skill: "React.js", users: "Sarah L. & Jamie T.", type: "one-on-one", status: "completed", date: "2026-06-15" },
-  { id: "S-002", session: "Advanced TypeScript Patterns", skill: "TypeScript", users: "Mark R. & Anna K.", type: "one-on-one", status: "upcoming", date: "2026-07-20" },
-  { id: "S-003", session: "UI/UX Design Workshop", skill: "UI/UX Design", users: "5 participants", type: "workshop", status: "upcoming", date: "2026-07-22" },
-  { id: "S-004", session: "Python Data Science Bootcamp", skill: "Python", users: "8 participants", type: "group", status: "completed", date: "2026-06-28" },
-  { id: "S-005", session: "Node.js API Building", skill: "Node.js", users: "Chris B. & Lisa M.", type: "one-on-one", status: "cancelled", date: "2026-07-01" },
-  { id: "S-006", session: "Figma Prototyping Session", skill: "Figma", users: "David O. & Emma P.", type: "one-on-one", status: "completed", date: "2026-07-05" },
-  { id: "S-007", session: "DevOps & CI/CD Overview", skill: "DevOps", users: "6 participants", type: "group", status: "upcoming", date: "2026-07-25" },
-  { id: "S-008", session: "Machine Learning Basics", skill: "Machine Learning", users: "4 participants", type: "workshop", status: "cancelled", date: "2026-06-30" },
-];
+const mapSessionToUI = (s: ApiSession): SessionListing => {
+  let status: SessionStatus = "upcoming";
+  if (s.completedAt) status = "completed";
+  // The API doesn't have an explicit 'canceled' status based on the sample, 
+  // but if it ever gets added as a field, we'd handle it here.
+
+  const req = s.request;
+  const userStr = s.requester?.profile && s.provider?.profile
+    ? `${s.requester.profile.firstName} & ${s.provider.profile.firstName}`
+    : "Unknown users";
+
+  return {
+    id: s.id,
+    session: req?.skillListing?.title || "Untitled Session",
+    category: req?.skillListing?.category || "Unknown Category",
+    skill: req?.skillListing?.title || "Unknown Skill",
+    users: userStr,
+    type: "one-on-one", // default
+    status,
+    date: new Date(s.createdAt || Date.now()).toISOString().split('T')[0],
+  };
+};
 
 const STATUS_CONFIG: Record<SessionStatus, { label: string; badge: string }> = {
   upcoming: { label: "Upcoming", badge: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -58,8 +72,9 @@ export default function AdminSessionsPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
+  const { sessions: apiSessions, fetchSessions } = useAdminSessionStore();
 
-  const [sessionsList] = useState<SessionListing[]>(SAMPLE_SESSIONS);
+  const sessionsList = useMemo(() => apiSessions.map(mapSessionToUI), [apiSessions]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -68,8 +83,9 @@ export default function AdminSessionsPage() {
   useEffect(() => {
     if (hydrated && token) {
       fetchMetrics(token);
+      fetchSessions(token, { limit: 100 });
     }
-  }, [hydrated, token, fetchMetrics]);
+  }, [hydrated, token, fetchMetrics, fetchSessions]);
 
   useEffect(() => {
     if (hydrated && !token) {
@@ -306,7 +322,7 @@ export default function AdminSessionsPage() {
                           <td className="px-4 py-4">
                             <div>
                               <p className="font-medium text-gray-900">{item.session}</p>
-                              <p className="text-xs text-gray-400 mt-0.5">{item.id}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{item.category}</p>
                             </div>
                           </td>
                           <td className="px-4 py-4">

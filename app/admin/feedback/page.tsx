@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
+import { useAdminFeedbackStore, ApiFeedback } from "@/lib/adminFeedbackStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 
@@ -26,12 +27,16 @@ interface FeedbackListing {
   submitted: string;
 }
 
-const SAMPLE_FEEDBACK: FeedbackListing[] = [
-  { id: "1", feedback: "Great session, very helpful!", session: "React Basics", rating: 5, status: "published", submitted: "2026-07-01" },
-  { id: "2", feedback: "A bit too fast, but good.", session: "Advanced TypeScript", rating: 3, status: "published", submitted: "2026-07-02" },
-  { id: "3", feedback: "The mentor was very knowledgeable.", session: "UI/UX Design", rating: 5, status: "pending", submitted: "2026-07-03" },
-  { id: "4", feedback: "Not what I expected.", session: "Python for Beginners", rating: 2, status: "hidden", submitted: "2026-07-04" },
-];
+const mapFeedbackToUI = (f: ApiFeedback): FeedbackListing => {
+  return {
+    id: f.id,
+    feedback: f.comments || "No comments provided",
+    session: f.session?.sessionRequest?.skillListing?.title || "Untitled Session",
+    rating: f.rating,
+    status: (f.status as FeedbackListing["status"]) || "published",
+    submitted: new Date(f.createdAt || Date.now()).toISOString().split('T')[0],
+  };
+};
 
 function StarRating({ value }: { value: number }) {
   return (
@@ -51,7 +56,9 @@ export default function AdminFeedbackPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
-  const [feedbackList] = useState<FeedbackListing[]>(SAMPLE_FEEDBACK);
+  const { feedbacks: apiFeedbacks, fetchFeedback } = useAdminFeedbackStore();
+  
+  const feedbackList = useMemo(() => apiFeedbacks.map(mapFeedbackToUI), [apiFeedbacks]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
@@ -69,8 +76,9 @@ export default function AdminFeedbackPage() {
   useEffect(() => {
     if (hydrated && token) {
       fetchMetrics(token);
+      fetchFeedback(token, { limit: 100 });
     }
-  }, [hydrated, token, fetchMetrics]);
+  }, [hydrated, token, fetchMetrics, fetchFeedback]);
 
   useEffect(() => {
     if (hydrated && !token) {

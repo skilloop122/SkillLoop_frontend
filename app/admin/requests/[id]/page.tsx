@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Copy,
@@ -15,21 +16,78 @@ import {
   Clock3,
   Send,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
-import Image from "next/image";
+import { useAdminRequestStore } from "@/lib/adminRequestStore";
 
 export default function RequestDetailsPage() {
   const router = useRouter();
-  // const { id } = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params?.id as string;
   const { hydrated, token } = useAdminAuthStore();
+  const { requests, fetchRequests } = useAdminRequestStore();
+  const [localLoading, setLocalLoading] = useState(() => requests.length === 0);
 
-  if (!hydrated) return null;
+  useEffect(() => {
+    if (hydrated && token) {
+      if (requests.length === 0) {
+        fetchRequests(token).finally(() => setLocalLoading(false));
+      }
+    }
+  }, [hydrated, token, requests.length, fetchRequests]);
+
+  if (!hydrated || localLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    );
+  }
+
   if (!token) {
     router.push("/admin/login");
     return null;
   }
+
+  const request = requests.find((r) => r.id === id);
+
+  if (!request) {
+    return (
+      <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Request Not Found</h2>
+          <button onClick={() => router.back()} className="text-sky-500 hover:underline">
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const skillTitle = request.skillListing?.title || "Untitled";
+  const skillCategory = request.skillListing?.category || "Unknown Category";
+  const skillDescription = request.skillListing?.description || "";
+
+  const createdDate = request.createdAt ? new Date(request.createdAt) : null;
+  const dateStr = createdDate ? createdDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "N/A";
+  const timeStr = createdDate ? createdDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "N/A";
+
+  const requester = request.requester;
+  const reqName = requester?.profile ? `${requester.profile.firstName} ${requester.profile.lastName}` : "Unknown";
+  const reqEmail = requester?.email || "";
+  const reqInitials = requester?.profile ? `${requester.profile.firstName?.[0] || ""}${requester.profile.lastName?.[0] || ""}` : "?";
+
+  const provider = request.provider;
+  const provName = provider?.profile ? `${provider.profile.firstName} ${provider.profile.lastName}` : "Unknown";
+  const provEmail = provider?.email || "";
+  const provInitials = provider?.profile ? `${provider.profile.firstName?.[0] || ""}${provider.profile.lastName?.[0] || ""}` : "?";
+
+  const statusLabel = request.status
+    ? request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase()
+    : "Pending";
+  const isPending = request.status?.toLowerCase() === "pending";
 
   return (
     <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex text-black">
@@ -43,25 +101,30 @@ export default function RequestDetailsPage() {
             <ArrowLeft size={18} />
           </button>
 
-          <h1 className="text-3xl font-bold mb-1">Requests Details</h1>
+          <h1 className="text-3xl font-bold mb-1">Request Details</h1>
           <p className="text-gray-500 mb-8">View and manage the details of this skill request.</p>
 
           <div className="flex items-center gap-4 mb-6">
             <div>
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Request ID</p>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold">REQ-2026-0124</span>
-                <button className="text-gray-400 hover:text-gray-600 transition">
+                <span className="text-xl font-bold">{request.id}</span>
+                <button
+                  className="text-gray-400 hover:text-gray-600 transition"
+                  onClick={() => navigator.clipboard.writeText(request.id)}
+                >
                   <Copy size={16} />
                 </button>
               </div>
             </div>
             <div className="h-8 w-px bg-gray-200 mx-2"></div>
             <div className="flex items-center gap-3">
-              <span className="px-4 py-1.5 rounded-full bg-amber-50 text-amber-600 text-sm font-medium border border-amber-200">
-                Pending
+              <span className={`px-4 py-1.5 rounded-full text-sm font-medium border ${isPending ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-green-50 text-green-600 border-green-200"}`}>
+                {statusLabel}
               </span>
-              <span className="text-sm text-gray-500">This request is awaiting approval.</span>
+              <span className="text-sm text-gray-500">
+                {isPending ? "This request is awaiting approval." : `This request is ${statusLabel.toLowerCase()}.`}
+              </span>
             </div>
           </div>
 
@@ -75,8 +138,8 @@ export default function RequestDetailsPage() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold mb-2">UI/UX Design</h2>
-                  <span className="px-3 py-1 bg-purple-50 text-purple-500 rounded-full text-xs font-medium border border-purple-200">Design</span>
+                  <h2 className="text-xl font-bold mb-2">{skillTitle}</h2>
+                  <span className="px-3 py-1 bg-purple-50 text-purple-500 rounded-full text-xs font-medium border border-purple-200">{skillCategory}</span>
                 </div>
               </div>
 
@@ -89,7 +152,7 @@ export default function RequestDetailsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">Requested on</p>
-                    <p className="text-sm font-semibold">May 20, 2026</p>
+                    <p className="text-sm font-semibold">{dateStr}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -98,7 +161,7 @@ export default function RequestDetailsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">Session Type</p>
-                    <p className="text-sm font-semibold">Zoom Meeting</p>
+                    <p className="text-sm font-semibold">Virtual Meeting</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -115,8 +178,8 @@ export default function RequestDetailsPage() {
                     <TrendingUp size={18} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-0.5">Demand Level</p>
-                    <span className="px-3 py-0.5 bg-green-50 text-green-600 rounded-full text-xs font-medium border border-green-200">High</span>
+                    <p className="text-xs text-gray-500 mb-0.5">Skill</p>
+                    <span className="text-sm font-semibold">{skillTitle}</span>
                   </div>
                 </div>
               </div>
@@ -131,126 +194,76 @@ export default function RequestDetailsPage() {
                   <LinkIcon size={20} className="stroke-3" />
                 </div>
 
+                {/* Requester */}
                 <div className="flex-1 bg-white border rounded-2xl p-5 shadow-sm">
                   <p className="text-sm font-semibold mb-4">Requester</p>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=hannah" alt="Hannah Stevenson" className="w-full h-full object-cover" width={20} height={20} />
+                      <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm uppercase shrink-0">
+                        {reqInitials}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">Hannah Stevenson</p>
-                        <p className="text-xs text-gray-500">stevensonhannah01@gmail.com</p>
+                        <p className="font-semibold text-sm">{reqName}</p>
+                        <p className="text-xs text-gray-500">{reqEmail}</p>
                       </div>
-                    </div>
-                    <button className="px-4 py-1.5 rounded-full border border-sky-200 text-sky-500 text-xs font-semibold hover:bg-sky-50 transition">
-                      View Profile
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-center pt-4 border-t border-gray-100">
-                    <div>
-                      <p className="text-xs font-semibold flex items-center justify-center gap-1"><span className="text-amber-400 text-sm">★</span> 4.6</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Avg. Rating</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">12</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Completed Sessions</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">10</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Reviews</p>
                     </div>
                   </div>
                 </div>
 
+                {/* Provider */}
                 <div className="flex-1 bg-white border rounded-2xl p-5 shadow-sm">
-                  <p className="text-sm font-semibold mb-4">Receiver</p>
+                  <p className="text-sm font-semibold mb-4">Provider</p>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                        <Image src="https://i.pravatar.cc/150?u=jamie" alt="Jamie Lecthin" className="w-full h-full object-cover" width={20} height={20} />
+                      <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-sm uppercase shrink-0">
+                        {provInitials}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">Jamie Lecthin</p>
-                        <p className="text-xs text-gray-500">lecthinjamie01@gmail.com</p>
+                        <p className="font-semibold text-sm">{provName}</p>
+                        <p className="text-xs text-gray-500">{provEmail}</p>
                       </div>
                     </div>
-                    <button className="px-4 py-1.5 rounded-full border border-sky-200 text-sky-500 text-xs font-semibold hover:bg-sky-50 transition">
-                      View Profile
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-center pt-4 border-t border-gray-100">
-                    <div>
-                      <p className="text-xs font-semibold flex items-center justify-center gap-1"><span className="text-amber-400 text-sm">★</span> 4.7</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Avg. Rating</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">15</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Completed Sessions</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold">12</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Reviews</p>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Preferences */}
-            <div className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col gap-5">
-              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-                <span className="text-sm font-semibold w-40">Preferred Schedule :</span>
-                <div className="flex flex-wrap gap-3 text-xs items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-[#0ea5e9] text-white px-3 py-1 rounded-full font-medium">Monday</span>
-                    <span className="text-gray-500">12:00 AM-1:00 PM</span>
+            {/* Notes & Description */}
+            {(request.message || skillDescription) && (
+              <div className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+                {skillDescription && (
+                  <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+                    <span className="text-sm font-semibold w-40">Skill Description :</span>
+                    <span className="text-sm text-gray-600">{skillDescription}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-[#0ea5e9] text-white px-3 py-1 rounded-full font-medium">Wednesday</span>
-                    <span className="text-gray-500">10:00 AM-11:00 PM</span>
+                )}
+                {request.message && (
+                  <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+                    <span className="text-sm font-semibold w-40">Additional Notes :</span>
+                    <span className="text-sm text-gray-600">{request.message}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-[#0ea5e9] text-white px-3 py-1 rounded-full font-medium">Friday</span>
-                    <span className="text-gray-500">12:00 AM-1:00 PM</span>
-                  </div>
-                </div>
+                )}
               </div>
-              
-              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-                <span className="text-sm font-semibold w-40">Session Format :</span>
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <div className="w-5 h-5 bg-[#0ea5e9] rounded-full flex items-center justify-center text-white">
-                    <Video size={10} />
-                  </div>
-                  Zoom Meeting
-                </div>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-2 md:gap-4">
-                <span className="text-sm font-semibold w-40">Additional Notes :</span>
-                <span className="text-sm text-gray-600">I prefer short sessions and hands on projects.</span>
-              </div>
-            </div>
+            )}
 
             {/* Bottom Two Columns */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Timeline */}
               <div className="lg:col-span-2 bg-white border rounded-2xl p-6 shadow-sm">
                 <h3 className="text-lg font-bold mb-8">Timeline</h3>
-                
+
                 <div className="relative pl-10 space-y-12 before:absolute before:inset-0 before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-400">
-                  
+
                   <div className="relative flex items-center">
                     <div className="absolute left-[-2.15rem] w-9 h-9 rounded-full bg-[#0ea5e9] text-white flex items-center justify-center shadow z-10">
                       <FileText size={16} />
                     </div>
                     <div className="flex-1 flex items-center">
-                      <div className="w-24 text-xs font-medium text-gray-600">10:30 AM</div>
+                      <div className="w-24 text-xs font-medium text-gray-600">{timeStr}</div>
                       <div className="flex-1 text-center">
                         <div className="font-semibold text-gray-800 text-sm">Request Created</div>
-                        <div className="text-xs text-gray-400 mt-1">Hannah created this request.</div>
+                        <div className="text-xs text-gray-400 mt-1">{reqName} created this request on {dateStr}.</div>
                       </div>
                     </div>
                   </div>
@@ -260,7 +273,7 @@ export default function RequestDetailsPage() {
                       <Send size={16} />
                     </div>
                     <div className="flex-1 flex items-center">
-                      <div className="w-24 text-xs font-medium text-gray-600">10:35 AM</div>
+                      <div className="w-24 text-xs font-medium text-gray-600">{timeStr}</div>
                       <div className="flex-1 text-center">
                         <div className="font-semibold text-gray-800 text-sm">Request Submitted</div>
                         <div className="text-xs text-gray-400 mt-1">Request was submitted and awaiting review.</div>
@@ -268,46 +281,25 @@ export default function RequestDetailsPage() {
                     </div>
                   </div>
 
-                  <div className="relative flex items-center">
-                    <div className="absolute left-[-2.15rem] w-9 h-9 rounded-full bg-gray-300 text-white flex items-center justify-center shadow z-10">
-                    </div>
-                    <div className="flex-1 flex items-center">
-                      <div className="w-24 text-xs font-medium text-gray-500"></div>
-                      <div className="flex-1 text-center">
-                        <div className="font-semibold text-gray-800 text-sm">Request Accepted</div>
-                        <div className="text-xs text-gray-400 mt-1">Waiting on receiver&apos;s decision.</div>
+                  {!isPending && (
+                    <div className="relative flex items-center">
+                      <div className="absolute left-[-2.15rem] w-9 h-9 rounded-full bg-green-500 text-white flex items-center justify-center shadow z-10">
+                        <CheckCircle size={16} />
+                      </div>
+                      <div className="flex-1 flex items-center">
+                        <div className="w-24 text-xs font-medium text-gray-600"></div>
+                        <div className="flex-1 text-center">
+                          <div className="font-semibold text-gray-800 text-sm">Request {statusLabel}</div>
+                          <div className="text-xs text-gray-400 mt-1">Provider has responded to this request.</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <div className="absolute left-[-2.15rem] w-9 h-9 rounded-full bg-gray-300 text-white flex items-center justify-center shadow z-10">
-                    </div>
-                    <div className="flex-1 flex items-center">
-                      <div className="w-24 text-xs font-medium text-gray-500"></div>
-                      <div className="flex-1 text-center">
-                        <div className="font-semibold text-gray-800 text-sm">Session Scheduled</div>
-                        <div className="text-xs text-gray-400 mt-1">No schedules yet.</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <div className="absolute left-[-2.15rem] w-9 h-9 rounded-full bg-gray-300 text-white flex items-center justify-center shadow z-10">
-                    </div>
-                    <div className="flex-1 flex items-center">
-                      <div className="w-24 text-xs font-medium text-gray-500"></div>
-                      <div className="flex-1 text-center">
-                        <div className="font-semibold text-gray-800 text-sm">Completed</div>
-                        <div className="text-xs text-gray-400 mt-1">Not yet completed.</div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
                 </div>
               </div>
 
-              {/* Reports & Actions */}
+              {/* Quick Actions */}
               <div className="lg:col-span-1 flex flex-col gap-6">
                 <div className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
                   <div className="flex items-center justify-between w-full mb-6">
@@ -324,14 +316,6 @@ export default function RequestDetailsPage() {
                   </h3>
                   <div className="space-y-5 text-sm">
                     <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left">
-                      <Send size={16} className="text-green-500" />
-                      Send a message to the Requester.
-                    </button>
-                    <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left">
-                      <Send size={16} className="text-green-500" />
-                      Send a message to the Receiver.
-                    </button>
-                    <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left">
                       <Clock3 size={16} className="text-amber-500" />
                       View Session History.
                     </button>
@@ -347,7 +331,7 @@ export default function RequestDetailsPage() {
             {/* Bottom Buttons */}
             <div className="flex items-center justify-end gap-4 mt-2">
               <button className="px-6 py-2.5 rounded-lg border border-red-200 bg-red-50 text-red-500 font-semibold text-sm hover:bg-red-100 transition">
-                Delete Feedback
+                Delete Request
               </button>
               <button className="px-6 py-2.5 rounded-lg bg-[#0ea5e9] text-white font-semibold text-sm hover:bg-sky-600 transition">
                 Mark as Completed

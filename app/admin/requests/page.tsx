@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
+import { useAdminRequestStore } from "@/lib/adminRequestStore";
+import { SessionRequest } from "@/lib/requestStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 import { FaUserCheck } from "react-icons/fa";
@@ -30,7 +32,7 @@ interface RequestListing {
 }
 
 const STATUS_OPTIONS = ["all", "pending", "approved", "canceled"] as const;
-const CATEGORY_OPTIONS = ["all", "Design", "Development", "Management"] as const;
+const CATEGORY_OPTIONS = ["all", "Design & PM", "Frontend", "Backend","Management"] as const;
 const DEMAND_OPTIONS = ["all", "high", "medium", "low"] as const;
 
 const DEMAND_COLORS: Record<string, string> = {
@@ -39,14 +41,22 @@ const DEMAND_COLORS: Record<string, string> = {
   low: "text-red-600 bg-red-50 border-red-200",
 };
 
-const SAMPLE_REQUESTS: RequestListing[] = [
-  { id: "1", requesterName: "Alice Doe", requesterEmail: "alice@example.com", skill: "React", category: "Development", status: "pending", demand: "high", date: "2026-07-01" },
-  { id: "2", requesterName: "Charlie Brown", requesterEmail: "charlie@example.com", skill: "Python", category: "Development", status: "approved", demand: "medium", date: "2026-07-02" },
-  { id: "3", requesterName: "Eve Smith", requesterEmail: "eve@example.com", skill: "Figma", category: "Design", status: "canceled", demand: "low", date: "2026-07-03" },
-  { id: "4", requesterName: "Grace Lee", requesterEmail: "grace@example.com", skill: "Node.js", category: "Development", status: "canceled", demand: "high", date: "2026-07-04" },
-  { id: "5", requesterName: "Ivan Ivanov", requesterEmail: "ivan@example.com", skill: "UI/UX", category: "Design", status: "pending", demand: "medium", date: "2026-07-05" },
-  { id: "6", requesterName: "Kevin Hart", requesterEmail: "kevin@example.com", skill: "Agile", category: "Management", status: "approved", demand: "low", date: "2026-07-06" },
-];
+const mapRequestToUI = (req: SessionRequest): RequestListing => {
+  let uiStatus: StatusKey = "pending";
+  if (req.status === "ACCEPTED") uiStatus = "approved";
+  if (req.status === "REJECTED" || req.status === "CANCELED") uiStatus = "canceled";
+  
+  return {
+    id: req.id,
+    requesterName: req.requester?.profile ? `${req.requester.profile.firstName} ${req.requester.profile.lastName}` : "Unknown",
+    requesterEmail: req.requester?.email || "",
+    skill: req.skillListing?.title || "Unknown Skill",
+    category: req.skillListing?.category || "Other",
+    status: uiStatus,
+    demand: "medium",
+    date: new Date(req.createdAt).toISOString().split('T')[0],
+  };
+};
 
 const STATUS_CONFIG: Record<StatusKey, { label: string; icon: React.ComponentType<{ size?: string | number; className?: string }>; iconColor: string; bg: string; border: string; badge: string }> = {
   all: {
@@ -87,12 +97,13 @@ export default function AdminRequestsPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
+  const { requests: apiRequests, fetchRequests } = useAdminRequestStore();
   
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [demandFilter, setDemandFilter] = useState<string>("all");
-  const [requestsList] = useState<RequestListing[]>(SAMPLE_REQUESTS);
+  const requestsList = useMemo(() => apiRequests.map(mapRequestToUI), [apiRequests]);
 
   const filtered = useMemo(() => {
     return requestsList.filter((req) => {
@@ -109,8 +120,9 @@ export default function AdminRequestsPage() {
   useEffect(() => {
     if (hydrated && token) {
       fetchMetrics(token);
+      fetchRequests(token, { limit: 100 });
     }
-  }, [hydrated, token, fetchMetrics]);
+  }, [hydrated, token, fetchMetrics, fetchRequests]);
 
   useEffect(() => {
     if (hydrated && !token) {

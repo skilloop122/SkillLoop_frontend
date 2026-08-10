@@ -22,8 +22,10 @@ import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { useAdminSkillsStore } from "@/lib/adminSkillsStore";
+import { SkillListing } from "@/lib/skillsStore";
 
-interface SkillListing {
+interface UISkillListing {
   id: string;
   skill: string;
   category: string;
@@ -39,7 +41,7 @@ interface SkillListing {
 }
 
 const STATUS_OPTIONS = ["all", "approved", "pending", "failed"] as const;
-const CATEGORY_OPTIONS = ["all", "Design", "Development", "Management"] as const;
+const CATEGORY_OPTIONS = ["all", "Design & PM", "Frontend", "Backend","Management"] as const;
 const DEMAND_OPTIONS = ["all", "high", "medium", "low"] as const;
 
 const DEMAND_COLORS: Record<string, string> = {
@@ -55,8 +57,8 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; co
 };
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Design: Palette,
-  Development: Code2,
+  "Design & PM": Palette,
+  Frontend: Code2,
   Management: Briefcase,
 };
 
@@ -66,49 +68,51 @@ const CATEGORY_COLORS: Record<string, string> = {
   Management: "bg-emerald-50 text-emerald-600",
 };
 
-const SAMPLE_LISTINGS: SkillListing[] = [
-  { id: "1", skill: "UI/UX Design", category: "Design", status: "approved", demand: "high", request: 48, rating: 4.8, description: "Creating user interfaces and experiences for web and mobile apps.", tags: ["Figma", "UI", "UX", "Web"], sessions: 120, completionRate: 95, growth: 15 },
-  { id: "2", skill: "Figma Prototyping", category: "Design", status: "approved", demand: "medium", request: 32, rating: 4.5, description: "Advanced prototyping techniques using Figma.", tags: ["Figma", "Prototyping", "Design"], sessions: 85, completionRate: 90, growth: 8 },
-  { id: "3", skill: "React Development", category: "Development", status: "approved", demand: "high", request: 56, rating: 4.9, description: "Building interactive user interfaces using React.", tags: ["React", "JavaScript", "Frontend"], sessions: 150, completionRate: 98, growth: 22 },
-  { id: "4", skill: "Node.js API", category: "Development", status: "pending", demand: "medium", request: 21, rating: 4.2, description: "Creating scalable APIs with Node.js and Express.", tags: ["Node.js", "Backend", "API"], sessions: 45, completionRate: 88, growth: 5 },
-  { id: "5", skill: "Agile Coaching", category: "Management", status: "pending", demand: "low", request: 8, rating: 3.8, description: "Guiding teams in Agile practices and frameworks.", tags: ["Agile", "Scrum", "Management"], sessions: 12, completionRate: 80, growth: -2 },
-  { id: "6", skill: "Brand Strategy", category: "Design", status: "failed", demand: "low", request: 5, rating: 3.2, description: "Developing brand identities and strategies.", tags: ["Branding", "Strategy", "Marketing"], sessions: 8, completionRate: 75, growth: -5 },
-  { id: "7", skill: "Python Scripting", category: "Development", status: "approved", demand: "high", request: 44, rating: 4.7, description: "Automating tasks and building scripts with Python.", tags: ["Python", "Automation", "Scripting"], sessions: 110, completionRate: 92, growth: 18 },
-  { id: "8", skill: "Scrum Master", category: "Management", status: "approved", demand: "medium", request: 27, rating: 4.4, description: "Facilitating Scrum teams to deliver value.", tags: ["Scrum", "Management", "Agile"], sessions: 60, completionRate: 94, growth: 10 },
-  { id: "9", skill: "Product Roadmap", category: "Management", status: "pending", demand: "high", request: 19, rating: 4.1, description: "Planning and creating product roadmaps.", tags: ["Product", "Roadmap", "Management"], sessions: 35, completionRate: 85, growth: 12 },
-  { id: "10", skill: "Motion Design", category: "Design", status: "approved", demand: "medium", request: 15, rating: 4.3, description: "Creating motion graphics and animations.", tags: ["Motion", "Animation", "After Effects"], sessions: 40, completionRate: 89, growth: 7 },
-];
+// const SAMPLE_LISTINGS: UISkillListing[] = [
+//   { id: "1", skill: "UI/UX Design", category: "Design", status: "approved", demand: "high", request: 48, rating: 4.8, description: "Creating user interfaces and experiences for web and mobile apps.", tags: ["Figma", "UI", "UX", "Web"], sessions: 120, completionRate: 95, growth: 15 },
+//   { id: "2", skill: "Figma Prototyping", category: "Design", status: "approved", demand: "medium", request: 32, rating: 4.5, description: "Advanced prototyping techniques using Figma.", tags: ["Figma", "Prototyping", "Design"], sessions: 85, completionRate: 90, growth: 8 },
+//   { id: "3", skill: "React Development", category: "Development", status: "approved", demand: "high", request: 56, rating: 4.9, description: "Building interactive user interfaces using React.", tags: ["React", "JavaScript", "Frontend"], sessions: 150, completionRate: 98, growth: 22 },
+//   { id: "4", skill: "Node.js API", category: "Development", status: "pending", demand: "medium", request: 21, rating: 4.2, description: "Creating scalable APIs with Node.js and Express.", tags: ["Node.js", "Backend", "API"], sessions: 45, completionRate: 88, growth: 5 },
+//   { id: "5", skill: "Agile Coaching", category: "Management", status: "pending", demand: "low", request: 8, rating: 3.8, description: "Guiding teams in Agile practices and frameworks.", tags: ["Agile", "Scrum", "Management"], sessions: 12, completionRate: 80, growth: -2 },
+//   { id: "6", skill: "Brand Strategy", category: "Design", status: "failed", demand: "low", request: 5, rating: 3.2, description: "Developing brand identities and strategies.", tags: ["Branding", "Strategy", "Marketing"], sessions: 8, completionRate: 75, growth: -5 },
+//   { id: "7", skill: "Python Scripting", category: "Development", status: "approved", demand: "high", request: 44, rating: 4.7, description: "Automating tasks and building scripts with Python.", tags: ["Python", "Automation", "Scripting"], sessions: 110, completionRate: 92, growth: 18 },
+//   { id: "8", skill: "Scrum Master", category: "Management", status: "approved", demand: "medium", request: 27, rating: 4.4, description: "Facilitating Scrum teams to deliver value.", tags: ["Scrum", "Management", "Agile"], sessions: 60, completionRate: 94, growth: 10 },
+//   { id: "9", skill: "Product Roadmap", category: "Management", status: "pending", demand: "high", request: 19, rating: 4.1, description: "Planning and creating product roadmaps.", tags: ["Product", "Roadmap", "Management"], sessions: 35, completionRate: 85, growth: 12 },
+//   { id: "10", skill: "Motion Design", category: "Design", status: "approved", demand: "medium", request: 15, rating: 4.3, description: "Creating motion graphics and animations.", tags: ["Motion", "Animation", "After Effects"], sessions: 40, completionRate: 89, growth: 7 },
+// ];
+
+const mapToUI = (listing: SkillListing): UISkillListing => ({
+  id: listing.id,
+  skill: listing.title || "Untitled",
+  category: listing.category || "Other",
+  status: listing.isActive !== false ? "approved" : "pending",
+  demand: "medium", // Defaulting as demand isn't tracked in backend yet
+  request: 0,
+  rating: 0,
+  description: listing.description,
+  tags: [listing.category || "Other"],
+  sessions: 0,
+  completionRate: 0,
+  growth: 0,
+});
 
 export default function AdminSkillsPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
+  const { skills, fetchSkills, deleteSkill } = useAdminSkillsStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [demandFilter, setDemandFilter] = useState<string>("all");
-  const [listings] = useState<SkillListing[]>(SAMPLE_LISTINGS);
-  const [selectedSkill, setSelectedSkill] = useState<SkillListing | null>(null);
+  const [selectedSkill, setSelectedSkill] = useState<UISkillListing | null>(null);
 
   useEffect(() => {
     if (hydrated && token) {
       fetchMetrics(token);
+      fetchSkills(token, { limit: 100 }); // Increase limit for simple frontend filtering
     }
-  }, [hydrated, token, fetchMetrics]);
-
-  useEffect(() => {
-    if (hydrated && token) {
-      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
-      fetch(`${apiBase}admin/skills`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then((body) => {
-          console.log("ADMIN SKILLS RESPONSE:", JSON.stringify(body, null, 2));
-        })
-        .catch((err) => console.error("ADMIN SKILLS ERROR:", err));
-    }
-  }, [hydrated, token]);
+  }, [hydrated, token, fetchMetrics, fetchSkills]);
 
   useEffect(() => {
     if (hydrated && !token) {
@@ -119,15 +123,17 @@ export default function AdminSkillsPage() {
   const categories = useMemo(() => metrics?.topCategories ?? [], [metrics?.topCategories]);
   const totalListings = categories.reduce((a, c) => a + c.count, 0);
 
+  const uiListings = useMemo(() => skills.map(mapToUI), [skills]);
+
   const filtered = useMemo(() => {
-    return listings.filter((l) => {
+    return uiListings.filter((l) => {
       const matchesSearch = l.skill.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || l.status === statusFilter;
       const matchesCategory = categoryFilter === "all" || l.category === categoryFilter;
       const matchesDemand = demandFilter === "all" || l.demand === demandFilter;
       return matchesSearch && matchesStatus && matchesCategory && matchesDemand;
     });
-  }, [listings, search, statusFilter, categoryFilter, demandFilter]);
+  }, [uiListings, search, statusFilter, categoryFilter, demandFilter]);
 
   if (!hydrated || authLoading) {
     return (
@@ -161,10 +167,10 @@ export default function AdminSkillsPage() {
           {/* Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             {[
-              { label: "Total Skills", value: metrics?.overview?.totalSkillListings, icon: ChartColumnBig, color: "text-purple-500", bg: "bg-purple-50" },
-              { label: "Pending Approval", value: listings.filter((l) => l.status === "pending").length, icon: Hourglass, color: "text-amber-500", bg: "bg-amber-50" },
-              { label: "Approved", value: listings.filter((l) => l.status === "approved").length, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50" },
-              { label: "High Demand", value: listings.filter((l) => l.demand === "high").length, icon: TrendingUp, color: "text-sky-500", bg: "bg-sky-50" },
+              { label: "Total Skills", value: totalListings, icon: ChartColumnBig, color: "text-purple-500", bg: "bg-purple-50" },
+              { label: "Pending Approval", value: uiListings.filter((l) => l.status === "pending").length, icon: Hourglass, color: "text-amber-500", bg: "bg-amber-50" },
+              { label: "Approved", value: uiListings.filter((l) => l.status === "approved").length, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50" },
+              { label: "High Demand", value: uiListings.filter((l) => l.demand === "high").length, icon: TrendingUp, color: "text-sky-500", bg: "bg-sky-50" },
             ].map((card) => (
               <div key={card.label} className="bg-white border rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -254,13 +260,27 @@ export default function AdminSkillsPage() {
                             <p className="text-xs text-gray-500">{listing.category}</p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSkill(listing)}
-                          className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
-                        >
-                          View
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSkill(listing)}
+                            className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm("Are you sure you want to delete this skill listing?")) {
+                                await deleteSkill(token!, listing.id);
+                                fetchSkills(token!, { limit: 100 });
+                              }
+                            }}
+                            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 pt-1">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${sc.colors}`}>
@@ -345,13 +365,27 @@ export default function AdminSkillsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedSkill(listing)}
-                              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
-                            >
-                              View
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSkill(listing)}
+                                className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to delete this skill listing?")) {
+                                    await deleteSkill(token!, listing.id);
+                                    fetchSkills(token!, { limit: 100 });
+                                  }
+                                }}
+                                className="px-4 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -363,7 +397,7 @@ export default function AdminSkillsPage() {
 
             {!metricsLoading && filtered.length > 0 && (
               <div className="px-5 py-3 border-t text-sm text-gray-500">
-                Showing {filtered.length} of {listings.length} skills
+                Showing {filtered.length} of {uiListings.length} skills
               </div>
             )}
           </div>

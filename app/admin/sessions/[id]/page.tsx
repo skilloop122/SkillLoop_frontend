@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Copy,
@@ -11,25 +11,78 @@ import {
   CheckCircle,
   Plus,
   Users,
-  Star,
   Zap,
-  MessageCircle,
-  HistoryIcon,
   Trash2,
-  Link2,
+  Loader2,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
+import { useAdminSessionStore } from "@/lib/adminSessionStore";
 
 export default function SessionDetailsPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params?.id as string;
   const { hydrated, token } = useAdminAuthStore();
+  const { sessions, fetchSessions, loading } = useAdminSessionStore();
 
-  if (!hydrated) return null;
+  // Fetch sessions on mount if not already loaded
+  useEffect(() => {
+    if (hydrated && token && sessions.length === 0) {
+      fetchSessions(token);
+    }
+  }, [hydrated, token, sessions.length, fetchSessions]);
+
+  // Derive loading state — no setState needed
+  const localLoading = !hydrated || (!!token && sessions.length === 0 && loading);
+
+  if (!hydrated || localLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
+      </div>
+    );
+  }
+
   if (!token) {
     router.push("/admin/login");
     return null;
   }
+
+  const session = sessions.find((s) => s.id === id);
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Session Not Found</h2>
+          <button onClick={() => router.back()} className="text-sky-500 hover:underline">
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const req = session.request;
+  const title = req?.skillListing?.title || "Untitled Session";
+  const category = req?.skillListing?.category || "Unknown Category";
+  const status = session.completedAt ? "Completed" : "Upcoming";
+  const isCompleted = status === "Completed";
+  
+  const createdDate = session.createdAt ? new Date(session.createdAt) : null;
+  const dateStr = createdDate ? createdDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
+  const timeStr = createdDate ? createdDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+
+  const requester = session.requester;
+  const reqName = requester?.profile ? `${requester.profile.firstName} ${requester.profile.lastName}` : "Unknown Requester";
+  const reqEmail = requester?.email || "";
+  const reqInitials = requester?.profile ? `${requester.profile.firstName?.[0] || ""}${requester.profile.lastName?.[0] || ""}` : "?";
+
+  const provider = session.provider;
+  const provName = provider?.profile ? `${provider.profile.firstName} ${provider.profile.lastName}` : "Unknown Provider";
+  const provEmail = provider?.email || "";
+  const provInitials = provider?.profile ? `${provider.profile.firstName?.[0] || ""}${provider.profile.lastName?.[0] || ""}` : "?";
 
   return (
     <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
@@ -48,14 +101,14 @@ export default function SessionDetailsPage() {
 
           {/* Title + badges */}
           <div className="mb-1">
-            <h1 className="text-3xl font-bold text-gray-900">UI Design Fundamentals</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
             <div className="flex items-center gap-3 mt-2">
               <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
                 <Users size={13} /> 1-on-1
               </span>
               <span className="text-gray-300">•</span>
               <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                <Calendar size={13} /> Session
+                <Calendar size={13} /> {category}
               </span>
             </div>
           </div>
@@ -64,16 +117,18 @@ export default function SessionDetailsPage() {
           <div className="flex flex-wrap items-center gap-3 mt-3 mb-6">
             <p className="text-xs text-gray-400 font-medium">Session ID</p>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-gray-900">SSE-2026-0124</span>
-              <button className="text-gray-400 hover:text-gray-600 transition">
+              <span className="text-lg font-bold text-gray-900">{session.id}</span>
+              <button className="text-gray-400 hover:text-gray-600 transition" onClick={() => navigator.clipboard.writeText(session.id)}>
                 <Copy size={15} />
               </button>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-700 border-green-200">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${isCompleted ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
               <CheckCircle size={12} />
-              Completed
+              {status}
             </span>
-            <span className="text-xs text-gray-500">This session has been completed.</span>
+            <span className="text-xs text-gray-500">
+              {isCompleted ? "This session has been completed." : "This session is upcoming."}
+            </span>
           </div>
 
           {/* Info bar */}
@@ -85,8 +140,8 @@ export default function SessionDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Date and Time</p>
-                  <p className="text-sm font-bold text-gray-900">June 20, 2026</p>
-                  <p className="text-xs text-gray-500">10:30 AM – 11:30 AM</p>
+                  <p className="text-sm font-bold text-gray-900">{dateStr}</p>
+                  <p className="text-xs text-gray-500">{timeStr}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 py-4 sm:py-0 sm:px-6">
@@ -95,7 +150,7 @@ export default function SessionDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Duration</p>
-                  <p className="text-sm font-bold text-gray-900">1 hours session.</p>
+                  <p className="text-sm font-bold text-gray-900">1 hour session.</p>
                   <p className="text-xs text-gray-500">(60 minutes)</p>
                 </div>
               </div>
@@ -105,7 +160,7 @@ export default function SessionDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Session Type</p>
-                  <p className="text-sm font-bold text-gray-900">Zoom Meeting</p>
+                  <p className="text-sm font-bold text-gray-900">Virtual Meeting</p>
                 </div>
               </div>
             </div>
@@ -115,22 +170,8 @@ export default function SessionDetailsPage() {
           <div className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">Session Overview</h2>
             <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-              An interactive session covering the core principles of UI/UX Design. We discussed layouts, typography, color theory and real world examples.
+              An interactive session covering {title}. Users {reqName} and {provName} will participate.
             </p>
-            <h3 className="text-sm font-bold text-gray-800 mb-3">Session Pointers</h3>
-            <ul className="space-y-2">
-              {[
-                "Introduction to UI Design Principles",
-                "Layouts and Grid systems",
-                "Typography and Color theory",
-                "Feedback and Q&A",
-              ].map((point) => (
-                <li key={point} className="flex items-center gap-2.5 text-sm text-gray-600">
-                  <CheckCircle size={15} className="text-sky-400 shrink-0" />
-                  {point}
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Timeline + Right Panel */}
@@ -145,43 +186,19 @@ export default function SessionDetailsPage() {
                   {
                     icon: Plus,
                     bg: "bg-sky-500",
-                    title: "Request Created",
-                    date: "June 15,2026",
-                    time: "12:30 PM",
-                    desc: "Sarah created this request.",
-                  },
-                  {
-                    icon: Users,
-                    bg: "bg-sky-400",
                     title: "Session Created",
-                    date: "June 15,2026",
-                    time: "12:30 PM",
-                    desc: "Session between Sarah and Jamie has been created.",
+                    date: dateStr,
+                    time: timeStr,
+                    desc: `Session was created on the platform.`,
                   },
-                  {
-                    icon: Video,
-                    bg: "bg-sky-500",
-                    title: "Session Started",
-                    date: "June 17,2026",
-                    time: "12:30 PM",
-                    desc: "Session between Sarah and Jamie is currently ongoing.",
-                  },
-                  {
+                  ...(isCompleted ? [{
                     icon: CheckCircle,
                     bg: "bg-green-500",
                     title: "Session Completed",
-                    date: "June 18,2026",
-                    time: "11:30 AM",
-                    desc: "Session between Sarah and Jamie have been completed.",
-                  },
-                  {
-                    icon: Star,
-                    bg: "bg-amber-400",
-                    title: "Feedback Submitted",
-                    date: "June 20,2026",
-                    time: "10:30 AM",
-                    desc: "Sarah has given her feedback on her session with Jamie.",
-                  },
+                    date: session.completedAt ? new Date(session.completedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : dateStr,
+                    time: session.completedAt ? new Date(session.completedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : timeStr,
+                    desc: `Session has been completed.`,
+                  }] : [])
                 ].map((step) => (
                   <div key={step.title} className="relative flex gap-4">
                     <div className={`absolute -left-12 w-9 h-9 rounded-full ${step.bg} text-white flex items-center justify-center shadow z-10 shrink-0`}>
@@ -200,90 +217,33 @@ export default function SessionDetailsPage() {
               </div>
             </div>
 
-            {/* Right panel: Goals + Users + Quick Actions */}
+            {/* Right panel: Users + Quick Actions */}
             <div className="lg:col-span-2 flex flex-col gap-5">
-
-              {/* Goals */}
-              <div className="bg-white border rounded-2xl p-5 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <CheckCircle size={16} className="text-sky-400" /> Goals
-                </h3>
-                <ul className="space-y-2">
-                  {[
-                    "Introduction to UI Design Principles",
-                    "Layouts and Grid systems",
-                    "Typography and Color theory",
-                    "Feedback and Q&A",
-                  ].map((g) => (
-                    <li key={g} className="flex items-start gap-2 text-xs text-gray-600">
-                      <CheckCircle size={13} className="text-sky-400 shrink-0 mt-0.5" />
-                      {g}
-                    </li>
-                  ))}
-                </ul>
-              </div>
 
               {/* Requester */}
               <div className="bg-white border rounded-2xl p-5 shadow-sm">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Requester</p>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">HS</div>
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0 uppercase">{reqInitials}</div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">Hannah Stevenson</p>
-                      <p className="text-xs text-gray-500">stevensonhannah01@gmail.com</p>
+                      <p className="font-bold text-sm text-gray-900">{reqName}</p>
+                      <p className="text-xs text-gray-500">{reqEmail}</p>
                     </div>
                   </div>
-                </div>
-                <button className="w-full mb-4 py-1.5 rounded-full border border-sky-200 text-sky-500 text-xs font-semibold hover:bg-sky-50 transition">
-                  View Profile
-                </button>
-                <div className="flex items-center justify-between text-center pt-3 border-t border-gray-100">
-                  <div>
-                    <p className="text-xs font-bold flex items-center justify-center gap-1"><span className="text-amber-400">★</span> 4.8</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Avg. Rating</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold">12</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Completed Sessions</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold">10</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Reviews</p>
-                  </div>
-                </div>
-                <div className="flex justify-center mt-3">
-                  <Link2 size={18} className="text-gray-300" />
                 </div>
               </div>
 
-              {/* Receiver */}
+              {/* Provider */}
               <div className="bg-white border rounded-2xl p-5 shadow-sm">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Receiver</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Provider</p>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-sm shrink-0">JL</div>
+                    <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-sm shrink-0 uppercase">{provInitials}</div>
                     <div>
-                      <p className="font-bold text-sm text-gray-900">Jamie Lecthin</p>
-                      <p className="text-xs text-gray-500">lecthinjamie01@gmail.com</p>
+                      <p className="font-bold text-sm text-gray-900">{provName}</p>
+                      <p className="text-xs text-gray-500">{provEmail}</p>
                     </div>
-                  </div>
-                </div>
-                <button className="w-full mb-4 py-1.5 rounded-full border border-sky-200 text-sky-500 text-xs font-semibold hover:bg-sky-50 transition">
-                  View Profile
-                </button>
-                <div className="flex items-center justify-between text-center pt-3 border-t border-gray-100">
-                  <div>
-                    <p className="text-xs font-bold flex items-center justify-center gap-1"><span className="text-amber-400">★</span> 4.7</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Avg. Rating</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold">15</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Completed Sessions</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold">12</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Reviews</p>
                   </div>
                 </div>
               </div>
@@ -294,18 +254,6 @@ export default function SessionDetailsPage() {
                   <Zap size={18} className="text-amber-400 fill-amber-400" /> Quick Action
                 </h3>
                 <div className="space-y-4 text-sm">
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left font-medium">
-                    <MessageCircle size={16} className="text-sky-400" />
-                    Message Users.
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left font-medium">
-                    <HistoryIcon size={16} className="text-amber-400" />
-                    View Session History.
-                  </button>
-                  <button className="flex items-center gap-3 text-gray-700 hover:text-black transition w-full text-left font-medium">
-                    <Users size={16} className="text-sky-400" />
-                    View users profile.
-                  </button>
                   <button className="flex items-center gap-3 text-red-600 hover:text-red-700 transition w-full text-left font-medium">
                     <Trash2 size={16} />
                     Delete session history.
@@ -321,10 +269,10 @@ export default function SessionDetailsPage() {
             <h2 className="text-lg font-bold text-gray-900 mb-5">Session Details</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-12 text-sm">
               {[
-                { label: "Skill", value: "UI/UX Design" },
-                { label: "Session Type", value: "1-on-1  Session" },
-                { label: "Created on", value: "June 20, 2026 at 11:15 AM" },
-                { label: "Session ID", value: "SSE-2026-0124" },
+                { label: "Skill", value: title },
+                { label: "Session Type", value: "1-on-1 Session" },
+                { label: "Created on", value: `${dateStr} at ${timeStr}` },
+                { label: "Session ID", value: session.id },
               ].map((row) => (
                 <div key={row.label} className="flex items-center justify-between border-b border-gray-50 pb-3">
                   <span className="text-gray-500">{row.label}</span>
@@ -333,19 +281,12 @@ export default function SessionDetailsPage() {
               ))}
               <div className="flex items-center justify-between border-b border-gray-50 pb-3">
                 <span className="text-gray-500">Status</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-green-50 text-green-700 border-green-200">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${isCompleted ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                   <CheckCircle size={11} />
-                  Completed
+                  {status}
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Bottom Action */}
-          <div className="flex justify-center mb-6">
-            <button className="px-10 py-3 rounded-xl bg-[#0ea5e9] text-white font-semibold text-sm hover:bg-sky-600 transition shadow">
-              Mark as Completed
-            </button>
           </div>
 
         </div>

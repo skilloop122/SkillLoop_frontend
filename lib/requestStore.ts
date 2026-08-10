@@ -108,6 +108,11 @@ interface RequestState {
     meetingNumber: string,
     role?: number,
   ) => Promise<{ success: boolean; data?: ZoomSignature; message?: string }>;
+  fetchZoomZak: () => Promise<{
+    success: boolean;
+    data?: { zak: string };
+    message?: string;
+  }>;
   updateRequestStatus: (
     id: string,
     status: "accepted" | "rejected" | "cancelled",
@@ -240,6 +245,32 @@ export const useRequestStore = create<RequestState>((set) => ({
       const data: ZoomSignature = raw;
 
       return { success: true, data };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      return { success: false, message };
+    }
+  },
+
+  fetchZoomZak: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(API_BASE + "zoom/zak", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const raw = await response.json();
+      console.log("ZOOM ZAK:", raw);
+      if (!response.ok)
+        throw new Error(raw.message || "Failed to get Zoom host token");
+
+      return { success: true, data: raw };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
