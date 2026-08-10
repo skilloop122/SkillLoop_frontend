@@ -8,7 +8,7 @@ import { useAuthStore } from "../../../lib/authStore";
 
 function ZoomMeeting() {
   const searchParams = useSearchParams();
-  const { fetchZoomSignature } = useRequestStore();
+  const { fetchZoomSignature, fetchZoomZak } = useRequestStore();
   const { user } = useAuthStore();
 
   const meetingNumber = searchParams.get("meetingId") || "";
@@ -40,6 +40,14 @@ function ZoomMeeting() {
           throw new Error(result.message || "Failed to get meeting signature");
         }
 
+        let hostZak = zak;
+        if (role === 1) {
+          const zakResult = await fetchZoomZak();
+          if (zakResult.success && zakResult.data?.zak) {
+            hostZak = zakResult.data.zak;
+          }
+        }
+
         if (cancelled) return;
 
         const { sdkKey, signature } = result.data;
@@ -57,13 +65,20 @@ function ZoomMeeting() {
               meetingNumber,
               passWord: zoomPassword,
               userName,
-              ...(zak ? { zak } : {}),
+              ...(hostZak ? { zak: hostZak } : {}),
               success: () => {
                 if (!cancelled) setLoading(false);
               },
               error: (err: unknown) => {
                 console.error("Zoom Join Error:", err);
-                if (!cancelled) setError("Failed to join the meeting. Please try again.");
+                if (!cancelled) {
+                  setError(
+                    typeof err === "object" && err && "message" in err && (err as { message?: string }).message
+                      ? (err as { message: string }).message
+                      : "Failed to join the meeting. Please try again.",
+                  );
+                  setLoading(false);
+                }
               },
             });
           },
@@ -89,7 +104,7 @@ function ZoomMeeting() {
     return () => {
       cancelled = true;
     };
-  }, [meetingNumber, zoomPassword, zak, role, fetchZoomSignature, user, noMeeting]);
+  }, [meetingNumber, zoomPassword, zak, role, fetchZoomSignature, fetchZoomZak, user, noMeeting]);
 
   return (
     <div className="w-full">
