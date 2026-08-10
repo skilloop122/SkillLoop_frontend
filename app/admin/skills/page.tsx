@@ -57,8 +57,8 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; co
 };
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Design: Palette,
-  Development: Code2,
+  "Design & PM": Palette,
+  Frontend: Code2,
   Management: Briefcase,
 };
 
