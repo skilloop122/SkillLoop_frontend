@@ -17,12 +17,17 @@ import {
   Code2,
   Briefcase,
   X,
+  ListChecks,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminSkillsStore } from "@/lib/adminSkillsStore";
+import { useAdminTechnicalSkillsStore, TechnicalSkill } from "@/lib/adminTechnicalSkillsStore";
 import { SkillListing } from "@/lib/skillsStore";
 
 interface UISkillListing {
@@ -59,6 +64,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; co
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "Design & PM": Palette,
   Frontend: Code2,
+  Backend: Code2,
   Management: Briefcase,
 };
 
@@ -101,11 +107,19 @@ export default function AdminSkillsPage() {
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
   const { skills, fetchSkills, deleteSkill } = useAdminSkillsStore();
+  const tech = useAdminTechnicalSkillsStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [demandFilter, setDemandFilter] = useState<string>("all");
   const [selectedSkill, setSelectedSkill] = useState<UISkillListing | null>(null);
+  const [showTechSkills, setShowTechSkills] = useState(false);
+  const [showSkillForm, setShowSkillForm] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<TechnicalSkill | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [techSearch, setTechSearch] = useState("");
 
   useEffect(() => {
     if (hydrated && token) {
@@ -162,6 +176,31 @@ export default function AdminSkillsPage() {
                 {metrics?.overview?.totalSkillListings ?? totalListings} Listings
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowTechSkills(true);
+                tech.fetchTechnicalSkills();
+              }}
+              className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
+              <ListChecks size={18} className="text-sky-500" />
+              Technical Skills
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingSkill(null);
+                setFormName("");
+                setFormCategory("");
+                setFormError(null);
+                setShowSkillForm(true);
+              }}
+              className="flex items-center gap-2 bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors"
+            >
+              <Plus size={18} />
+              Add New Skill
+            </button>
           </AdminHeader>
 
           {/* Stat Cards */}
@@ -483,6 +522,206 @@ export default function AdminSkillsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Technical Skills Modal */}
+      {showTechSkills && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowTechSkills(false)}>
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-xl font-bold">Technical Skills</h2>
+                <p className="text-sm text-gray-500">Skills available on the technical skill endpoint</p>
+              </div>
+              <button onClick={() => setShowTechSkills(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 px-6 py-3 border-b">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Filter by name or category…"
+                  value={techSearch}
+                  onChange={(e) => setTechSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => tech.fetchTechnicalSkills()}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {tech.error && (
+              <div className="px-6 py-3 bg-red-50 border-b border-red-100">
+                <p className="text-sm text-red-600">{tech.error}</p>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {tech.loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#0ea5e9]" />
+                </div>
+              ) : tech.skills.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <ListChecks size={40} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">No technical skills found</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tech.skills
+                    .filter((s) => {
+                      const q = techSearch.toLowerCase();
+                      return !q || s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q);
+                    })
+                    .map((s) => (
+                      <div key={s.id} className="flex items-center justify-between gap-3 border rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-gray-900 truncate">{s.name}</p>
+                          <p className="text-xs text-gray-500">{s.category}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSkill(s);
+                              setFormName(s.name);
+                              setFormCategory(s.category);
+                              setFormError(null);
+                              setShowSkillForm(true);
+                            }}
+                            className="p-2 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                            aria-label={`Edit ${s.name}`}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm(`Are you sure you want to delete the technical skill "${s.name}"?`)) {
+                                const res = await tech.deleteTechnicalSkill(token!, s.id);
+                                if (!res.success) alert(res.message || "Failed to delete skill");
+                              }
+                            }}
+                            className="p-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                            aria-label={`Delete ${s.name}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-3 border-t">
+              <p className="text-sm text-gray-500">{tech.skills.length} skill(s)</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSkill(null);
+                  setFormName("");
+                  setFormCategory("");
+                  setFormError(null);
+                  setShowSkillForm(true);
+                }}
+                className="flex items-center gap-2 bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors"
+              >
+                <Plus size={16} />
+                Add New Skill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Technical Skill Modal */}
+      {showSkillForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowSkillForm(false)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold">{editingSkill ? "Edit Skill" : "Add New Skill"}</h2>
+              <button onClick={() => setShowSkillForm(false)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <form
+              className="p-6 space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!formName.trim() || !formCategory.trim()) {
+                  setFormError("Name and category are required");
+                  return;
+                }
+                const payload = { name: formName.trim(), category: formCategory.trim() };
+                const res = editingSkill
+                  ? await tech.updateTechnicalSkill(token!, editingSkill.id, payload)
+                  : await tech.createTechnicalSkill(token!, payload);
+                if (!res.success) {
+                  setFormError(res.message || "Failed to save skill");
+                  return;
+                }
+                setShowSkillForm(false);
+                setFormError(null);
+              }}
+            >
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Skill Name</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="e.g. TypeScript"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                <input
+                  type="text"
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                  placeholder="e.g. Frontend"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                />
+              </div>
+
+              {formError && (
+                <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">
+                  <p className="text-sm text-red-600">{formError}</p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSkillForm(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={tech.saving}
+                  className="flex items-center gap-2 bg-sky-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors disabled:opacity-60"
+                >
+                  {tech.saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {editingSkill ? "Save Changes" : "Add Skill"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
