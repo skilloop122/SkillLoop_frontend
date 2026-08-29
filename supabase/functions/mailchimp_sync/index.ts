@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
                   
                   <p>I could have let an automated email welcome you, but I wanted this one to come from me.</p>
 
-                  <p>Welcome to SkilLoop <strong>Fellow Builders!</strong></p>
+                  <p>Welcome to SkilLoop <strong>Fellow Builder!</strong></p>
 
                   <p>You're now part of a community built around one simple idea: we all know something and we all have something left to learn.</p>
 
