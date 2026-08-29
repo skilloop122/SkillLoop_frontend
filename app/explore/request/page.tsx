@@ -187,7 +187,7 @@ function RequestSessionContent() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="w-10 h-10 border border-[#0ea5e9] rounded-[4px] flex items-center justify-center mb-6 hover:bg-sky-50 transition-colors"
+          className="w-10 h-10 border border-[#0ea5e9] rounded-lg flex items-center justify-center mb-6 hover:bg-sky-50 transition-colors"
         >
           <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
         </button>
@@ -199,7 +199,7 @@ function RequestSessionContent() {
         ) : (
           <>
             <div className="flex items-center gap-4 mb-8">
-              <div className="relative w-[80px] h-[80px] rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
                 {profile?.avatarUrl ? (
                   <Image
                     src={profile.avatarUrl}
@@ -217,7 +217,7 @@ function RequestSessionContent() {
                 <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
                   {fullName}
                 </h1>
-                <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-[4px]">
+                <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-lg">
                   Teaching
                 </span>
               </div>
@@ -492,7 +492,7 @@ function RequestSessionContent() {
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.45, duration: 0.4 }}
-                className="relative z-10 w-full max-w-[430px] mx-auto px-6 pb-10"
+                className="relative z-10 w-full max-w-107.5 mx-auto px-6 pb-10"
               >
                 <button
                   type="button"

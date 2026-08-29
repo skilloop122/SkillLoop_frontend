@@ -163,14 +163,14 @@ export default function LearnSkills() {
       </div>
 
       {/* ── Header ── */}
-      <div className="relative z-10 w-full max-w-[600px] mx-auto text-center mb-6">
+      <div className="relative z-10 w-full max-w-150 mx-auto text-center mb-6">
         <h1 className="text-4xl font-extrabold text-sky-500 tracking-tight">
           Set up your Profile
         </h1>
       </div>
 
       {/* ── Body ── */}
-      <div className="relative z-10 w-full max-w-[600px] mx-auto flex-1 flex flex-col gap-6">
+      <div className="relative z-10 w-full max-w-150 mx-auto flex-1 flex flex-col gap-6">
 
         {/* Section heading */}
         <div className="space-y-1.5">
@@ -246,7 +246,7 @@ export default function LearnSkills() {
       </div>
 
       {/* ── Find Matches Button — pill shape ── */}
-      <div className="relative z-10 w-full max-w-[430px] mx-auto mt-8 flex flex-col gap-3">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto mt-8 flex flex-col gap-3">
         {errorMsg && (
           <p className="text-center text-sm font-medium text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
             {errorMsg}
@@ -344,7 +344,7 @@ export default function LearnSkills() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45, duration: 0.4 }}
-              className="relative z-10 w-full max-w-[430px] mx-auto px-6 pb-10"
+              className="relative z-10 w-full max-w-107.5 mx-auto px-6 pb-10"
             >
               <button
                 onClick={() => router.push("/explore")}

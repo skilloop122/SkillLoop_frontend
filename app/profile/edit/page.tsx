@@ -224,7 +224,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
     <div className="min-h-screen bg-white px-5 pt-24 pb-10 font-sans text-black">
       <div className="mx-auto w-full max-w-md md:max-w-6xl">
         <section className="mb-10 flex justify-center">
-          <div className="relative h-[168px] w-[168px]">
+          <div className="relative h-42 w-42">
             {draft.avatarUrl ? (
               <div className="relative h-full w-full overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
                 <Image
@@ -265,7 +265,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
             <textarea
               value={draft.bio ?? ""}
               onChange={(e) => handleUpdate("bio", e.target.value)}
-              className="w-full rounded-[18px] bg-white px-4 py-4 text-[16px] shadow-[0_10px_24px_rgba(0,0,0,0.16)] outline-none min-h-[120px]"
+              className="w-full rounded-[18px] bg-white px-4 py-4 text-[16px] shadow-[0_10px_24px_rgba(0,0,0,0.16)] outline-none min-h-30"
             />
           </div>
           <Input

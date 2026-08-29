@@ -97,7 +97,7 @@ export default function HomePage() {
 
           <div className="bg-linear-to-br from-[#2dbcf8] to-[#60cbf9] rounded-[16px] p-5 shadow-sm text-white mb-10">
             <div className="flex items-start justify-between mb-6">
-              <h2 className="text-lg font-medium leading-snug max-w-[190px]">
+              <h2 className="text-lg font-medium leading-snug max-w-47.5">
                 What are you learning or teaching today?
               </h2>
               <div className="flex flex-col items-end">
@@ -158,7 +158,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[11px] font-semibold px-2 py-0.5 rounded-[4px]">
+                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[11px] font-semibold px-2 py-0.5 rounded-lg">
                           Confirmed
                         </span>
                         <div className="flex items-center gap-1">
@@ -239,7 +239,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex justify-between items-start mb-1">
-                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[11px] font-semibold px-2 py-0.5 rounded-[4px]">
+                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[11px] font-semibold px-2 py-0.5 rounded-lg">
                           Received
                         </span>
                         <div className="flex items-center gap-1">

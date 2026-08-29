@@ -63,7 +63,7 @@ export default function ProfilePage() {
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={() => fetchProfile()}
-          className="rounded-[4px] bg-[#0ea5e9] px-4 py-2 text-white"
+          className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white"
         >
           Retry
         </button>
@@ -114,7 +114,7 @@ export default function ProfilePage() {
           </div>
 
           <section className="mb-8 flex justify-center">
-            <div className="relative h-[168px] w-[168px]">
+            <div className="relative h-42 w-42">
               {profile?.avatarUrl ? (
                 <div className="relative h-full w-full overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
                   <Image
@@ -145,7 +145,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push("/profile/edit")}
-                className="rounded-[4px] bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
+                className="rounded-lg bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
               >
                 Edit Profile
               </button>
@@ -155,7 +155,7 @@ export default function ProfilePage() {
                   await logout();
                   router.push("/signin");
                 }}
-                className="rounded-[4px] border border-red-200 px-3 py-2 text-[16px] font-medium text-red-400 hover:bg-red-50"
+                className="rounded-lg border border-red-200 px-3 py-2 text-[16px] font-medium text-red-400 hover:bg-red-50"
               >
                 <LogOut className="inline h-4 w-4 mr-1" />
                 Logout
@@ -164,7 +164,7 @@ export default function ProfilePage() {
           </section>
 
           <ProfileSection title="About">
-            <p className="max-w-[360px] text-[18px] leading-snug">{bio}</p>
+            <p className="max-w-90 text-[18px] leading-snug">{bio}</p>
           </ProfileSection>
 
           <ProfileSection title="Your Skills">
@@ -230,7 +230,7 @@ function ChipList({ items }: { items: string[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item, index) => (
-        <span key={index} className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#11688b] px-3 py-2 text-[16px] text-white">
+        <span key={index} className="rounded-lg bg-linear-to-b from-[#0ea5e9] to-[#11688b] px-3 py-2 text-[16px] text-white">
           {item}
         </span>
       ))}

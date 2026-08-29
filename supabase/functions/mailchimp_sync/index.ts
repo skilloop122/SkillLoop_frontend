@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       from: "SkilLoop <hello@mail.skil-loop.com>",
       replyTo: "hello@skil-loop.com",
       to: email,
-      subject: "🎉 You're on the SkilLoop waitlist!",
+      subject: "Hey, Our Founder has a message for you...",
       html: `
               <div style="
                 font-family: Arial, Helvetica, sans-serif;
@@ -175,18 +175,18 @@ Deno.serve(async (req) => {
                   padding:30px 20px;
                 ">
 
-                  <h1 style="
-                    text-align:center;
-                    color:#0f172a;
-                    margin-bottom:25px;
-                  ">
-                    Welcome to SkilLoop, ${fullName}🚀
-                  </h1>
+                  <p>Hi ${fullName},</p>
+                  
+                  <p>I could have let an automated email welcome you, but I wanted this one to come from me.</p>
 
+                  <p>Welcome to SkilLoop <strong>Fellow Builders!</strong></p>
 
-                 <p>Thanks for joining our waitlist.</p> 
-                 <p> You’re now part of a growing community built around exchanging skills, learning from others, and creating meaningful connections.</p> 
-                 <p> We’re excited to have you with us as we build a new way for people to share knowledge, discover opportunities, and grow together. </p> 
+                  <p>You're now part of a community built around one simple idea: we all know something and we all have something left to learn.</p>
+
+                  <p>Thank you for choosing to be early. We're building this with people like you in mind and I can't wait to show you what we're creating.</p>
+
+                  <p>Before we launch, come meet the community:</p>
+
                   <div style="text-align:center; margin:25px 0;">
                     <a
                       href="https://chat.whatsapp.com/J4zhoYLwqOUGXzVG8fujRV"
@@ -200,10 +200,12 @@ Deno.serve(async (req) => {
                           display:inline-block;
                         "
                     >
-                      Join Our WhatsApp Community
+                      Join the SkilLoop Community
                     </a>
                   </div>                 
-                  <p> See you inside🚀,<br /> The SkilLoop Team </p>
+                  
+                  <p>We’re just getting started.</p>
+                  <p>Dairo Oladotun<br />Founder, SkilLoop</p>
                  </div>
 
 
