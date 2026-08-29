@@ -363,7 +363,7 @@ export default function Home() {
                                 className="bg-sky-50 border border-slate-200 rounded-[8px] p-2 shadow-sm"
                             >
                                 <div className="flex gap-3">
-                                    <div className="relative w-[112px] h-[132px] shrink-0 overflow-hidden rounded-[8px] bg-slate-200">
+                                    <div className="relative w-28 h-33 shrink-0 overflow-hidden rounded-[8px] bg-slate-200">
                                         <Image src={sessionCards[activeSlide].image} alt={sessionCards[activeSlide].name} fill className="object-cover" />
                                     </div>
                                     <div className="flex-1 min-w-0 py-1">
@@ -374,11 +374,11 @@ export default function Home() {
                                                 {sessionCards[activeSlide].rating}
                                             </span>
                                         </div>
-                                        <span className="inline-flex rounded-[4px] bg-sky-200 px-2 py-1 text-base text-slate-950 mb-3">{sessionCards[activeSlide].role}</span>
+                                        <span className="inline-flex rounded-lg bg-sky-200 px-2 py-1 text-base text-slate-950 mb-3">{sessionCards[activeSlide].role}</span>
                                         <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3">
                                             {sessionCards[activeSlide].skills.map((skill) => (<span key={skill} className="text-base text-slate-950">{skill}</span>))}
                                         </div>
-                                        <button className="w-full rounded-[4px] bg-sky-500 hover:bg-sky-400 text-white text-base font-medium py-1.5 transition-colors">Join Session</button>
+                                        <button className="w-full rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-base font-medium py-1.5 transition-colors">Join Session</button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -400,7 +400,7 @@ export default function Home() {
                                             {card.rating}
                                         </span>
                                     </div>
-                                    <span className="inline-flex rounded-[4px] bg-sky-200 px-2 py-1 text-sm text-slate-800 mb-3">{card.role}</span>
+                                    <span className="inline-flex rounded-lg bg-sky-200 px-2 py-1 text-sm text-slate-800 mb-3">{card.role}</span>
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {card.skills.map((skill) => (<span key={skill} className="text-sm text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-full">{skill}</span>))}
                                     </div>
@@ -703,7 +703,7 @@ export default function Home() {
                                 {exploreSkillSlides[exploreSlide].map((skill) => {
                                     const Icon = skill.icon;
                                     return (
-                                        <div key={skill.label} className={`${skill.className} rounded-[8px] min-h-[72px] px-6 py-4 flex items-center gap-6`}>
+                                        <div key={skill.label} className={`${skill.className} rounded-[8px] min-h-18 px-6 py-4 flex items-center gap-6`}>
                                             <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">
                                                 <Icon className={`w-5 h-5 ${skill.iconClassName}`} />
                                             </div>

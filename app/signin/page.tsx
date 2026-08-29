@@ -88,17 +88,16 @@ export default function SignIn() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`max-w-xs px-4 py-2 rounded-lg shadow-md text-sm font-medium ${
-              t.type === "success"
+            className={`max-w-xs px-4 py-2 rounded-lg shadow-md text-sm font-medium ${t.type === "success"
                 ? "bg-green-50 border border-green-200 text-green-800"
                 : "bg-red-50 border border-red-200 text-red-800"
-            }`}
+              }`}
           >
             {t.message}
           </div>
         ))}
       </div>
-      
+
       {/* Scattered Tech Icons Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {bgIcons.map((item, idx) => {
@@ -145,7 +144,7 @@ export default function SignIn() {
 
         {/* Credentials Form */}
         <form onSubmit={handleSignIn} className="w-full space-y-6">
-          
+
           {/* Email input */}
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-400">
@@ -237,7 +236,7 @@ export default function SignIn() {
 
         {/* Social logins */}
         <div className="w-full grid grid-cols-2 gap-4">
-          
+
           <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path

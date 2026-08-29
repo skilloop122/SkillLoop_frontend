@@ -221,13 +221,13 @@ export default function ProfileSetup() {
         })}
       </div>
 
-      <div className="w-full max-w-[430px] mx-auto pt-6 text-center z-10">
+      <div className="w-full max-w-107.5 mx-auto pt-6 text-center z-10">
         <h1 className="text-4xl font-extrabold text-sky-500 tracking-tight mb-2">
           Set up your Profile
         </h1>
       </div>
 
-      <div className="relative z-10 w-full max-w-[430px] mx-auto flex-1 flex flex-col justify-center my-8">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto flex-1 flex flex-col justify-center my-8">
         <div className="w-full space-y-8">
           <div className="space-y-2 text-center sm:text-left">
             <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
@@ -256,13 +256,13 @@ export default function ProfileSetup() {
                   {skill.proofs && skill.proofs.length > 0 && (
                     <div className="mt-3 text-sm text-slate-600 flex flex-col gap-2">
                       {skill.proofs.includes("portfolio") && skill.portfolio && (
-                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">Portfolio:</span> <a href={skill.portfolio} target="_blank" rel="noreferrer" className="text-sky-500 hover:text-sky-600 underline truncate max-w-[200px]">{skill.portfolio}</a></span>
+                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">Portfolio:</span> <a href={skill.portfolio} target="_blank" rel="noreferrer" className="text-sky-500 hover:text-sky-600 underline truncate max-w-50">{skill.portfolio}</a></span>
                       )}
                       {skill.proofs.includes("linkedin") && skill.linkedin && (
-                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">LinkedIn:</span> <a href={skill.linkedin} target="_blank" rel="noreferrer" className="text-sky-500 hover:text-sky-600 underline truncate max-w-[200px]">{skill.linkedin}</a></span>
+                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">LinkedIn:</span> <a href={skill.linkedin} target="_blank" rel="noreferrer" className="text-sky-500 hover:text-sky-600 underline truncate max-w-50">{skill.linkedin}</a></span>
                       )}
                       {skill.proofs.includes("certification") && skill.certification && (
-                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">Cert:</span> <span className="text-slate-700 truncate max-w-[200px]">{skill.certification}</span></span>
+                         <span className="flex items-center gap-1.5"><span className="font-semibold text-slate-400">Cert:</span> <span className="text-slate-700 truncate max-w-50">{skill.certification}</span></span>
                       )}
                     </div>
                   )}
@@ -279,7 +279,7 @@ export default function ProfileSetup() {
             ))}
           </AnimatePresence>
 
-          <div className="space-y-4 relative rounded-[4px] bg-white px-3 py-2">
+          <div className="space-y-4 relative rounded-lg bg-white px-3 py-2">
             <div className="relative flex items-center w-full">
               <input
                 type="text"
@@ -541,7 +541,7 @@ export default function ProfileSetup() {
         </div>
       </div>
 
-      <div className="w-full max-w-[430px] mx-auto z-10">
+      <div className="w-full max-w-107.5 mx-auto z-10">
         <button
           type="button"
           onClick={handleContinue}

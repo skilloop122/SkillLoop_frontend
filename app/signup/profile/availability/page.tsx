@@ -171,13 +171,13 @@ export default function SetAvailability() {
         })}
       </div>
 
-      <div className="relative z-10 w-full max-w-[430px] mx-auto text-center mb-5 pt-12">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto text-center mb-5 pt-12">
         <h1 className="text-4xl font-normal text-sky-500 tracking-tight">
           Set your Availability
         </h1>
       </div>
 
-      <div className="relative z-10 w-full max-w-[430px] mx-auto flex-1 flex flex-col gap-7">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto flex-1 flex flex-col gap-7">
         <p className="text-base font-normal text-black leading-snug">
           Select the days and times that work best for you.
         </p>
@@ -294,7 +294,7 @@ export default function SetAvailability() {
         </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-[430px] mx-auto mt-8">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto mt-8">
         <button
           id="finish-setup-btn"
           type="button"

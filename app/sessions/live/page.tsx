@@ -109,7 +109,7 @@ function ZoomMeeting() {
   return (
     <div className="w-full">
       {noMeeting && (
-        <div className="flex flex-col items-center justify-center h-[500px] bg-slate-50 rounded-[10px] border border-slate-200 px-4">
+        <div className="flex flex-col items-center justify-center h-125 bg-slate-50 rounded-[10px] border border-slate-200 px-4">
           <AlertCircle className="w-10 h-10 text-slate-400 mb-3" />
           <p className="text-[15px] text-slate-500 text-center mb-4">
             No meeting ID provided. Please return to the session page.
@@ -118,14 +118,14 @@ function ZoomMeeting() {
       )}
 
       {!noMeeting && loading && (
-        <div className="flex flex-col items-center justify-center h-[500px] bg-slate-50 rounded-[10px] border border-slate-200">
+        <div className="flex flex-col items-center justify-center h-125 bg-slate-50 rounded-[10px] border border-slate-200">
           <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-3" />
           <p className="text-[15px] text-slate-500">Joining meeting...</p>
         </div>
       )}
 
       {error && (
-        <div className="flex flex-col items-center justify-center h-[500px] bg-red-50 rounded-[10px] border border-red-200 px-4">
+        <div className="flex flex-col items-center justify-center h-125 bg-red-50 rounded-[10px] border border-red-200 px-4">
           <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
           <p className="text-[15px] text-red-600 text-center mb-4">{error}</p>
           <button
@@ -140,7 +140,7 @@ function ZoomMeeting() {
       <div
         ref={containerRef}
         id="zmmtg-root"
-        className={`w-full h-[650px] rounded-[10px] border border-slate-200 ${noMeeting || loading || error ? "hidden" : ""}`}
+        className={`w-full h-162.5 rounded-[10px] border border-slate-200 ${noMeeting || loading || error ? "hidden" : ""}`}
       />
     </div>
   );
@@ -161,7 +161,7 @@ export default function OngoingSessionPage() {
 
         <Suspense
           fallback={
-            <div className="flex flex-col items-center justify-center h-[500px] bg-slate-50 rounded-[10px] border border-slate-200">
+            <div className="flex flex-col items-center justify-center h-125 bg-slate-50 rounded-[10px] border border-slate-200">
               <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-3" />
               <p className="text-[15px] text-slate-500">Loading meeting...</p>
             </div>

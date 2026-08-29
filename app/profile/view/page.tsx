@@ -117,7 +117,7 @@ function ProfileContent() {
         <p className="text-red-400 mb-4">{error}</p>
         <button
           onClick={() => userId && fetchPublicProfile(userId)}
-          className="rounded-[4px] bg-[#0ea5e9] px-4 py-2 text-white"
+          className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white"
         >
           Retry
         </button>
@@ -153,7 +153,7 @@ function ProfileContent() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="absolute left-4 top-6 z-20 flex h-9 w-11 items-center justify-center rounded-[4px] border border-white/60 bg-white/20 text-white backdrop-blur-sm"
+            className="absolute left-4 top-6 z-20 flex h-9 w-11 items-center justify-center rounded-lg border border-white/60 bg-white/20 text-white backdrop-blur-sm"
             aria-label="Go back"
           >
             <ArrowLeft className="h-6 w-6" strokeWidth={1.8} />
@@ -165,7 +165,7 @@ function ProfileContent() {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-[80px] h-[80px] rounded-full bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
+              <div className="relative w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
                 <span className="text-3xl font-bold text-sky-600">
                   {initials}
                 </span>
@@ -180,7 +180,7 @@ function ProfileContent() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1 rounded-[4px] border border-slate-200 bg-white px-2.5 py-1 text-[14px]">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[14px]">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                 <span className="font-medium text-slate-700">4.7 Rating</span>
               </div>
@@ -476,8 +476,8 @@ function ProfileContent() {
 
       {requestSent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-8">
-          <div className="w-full max-w-[236px] rounded-[4px] bg-white px-5 py-7 text-center text-black shadow-2xl">
-            <div className="mx-auto mb-5 flex h-[80px] w-[80px] items-center justify-center rounded-full bg-[#0ea5e9] text-white">
+          <div className="w-full max-w-59 rounded-lg bg-white px-5 py-7 text-center text-black shadow-2xl">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#0ea5e9] text-white">
               <Check className="h-12 w-12" strokeWidth={4} />
             </div>
             <h2 className="text-[18px] font-semibold">Request Sent!</h2>
@@ -489,7 +489,7 @@ function ProfileContent() {
               onClick={() => {
                 setRequestSent(false);
               }}
-              className="rounded-[4px] bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
+              className="rounded-lg bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
             >
               Close
             </button>
@@ -523,7 +523,7 @@ function ChipList({ items }: { items: string[] }) {
       {items.map((item, index) => (
         <span
           key={index}
-          className="rounded-[4px] bg-linear-to-b from-[#0ea5e9] to-[#0c7aa5] px-3 py-1.5 text-[14px] text-white"
+          className="rounded-lg bg-linear-to-b from-[#0ea5e9] to-[#0c7aa5] px-3 py-1.5 text-[14px] text-white"
         >
           {item}
         </span>
