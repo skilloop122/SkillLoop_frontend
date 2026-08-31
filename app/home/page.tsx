@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
-import Image from "next/image";
 import { Bell, Settings, Calendar, FileText, Star, Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "../../components/BottomNav";
@@ -9,6 +8,8 @@ import { SideNav } from "../../components/SideNav";
 import { useAuthStore } from "../../lib/authStore";
 import { useProfileStore } from "../../lib/profileStore";
 import { useRequestStore } from "../../lib/requestStore";
+import { usePointsStore } from "../../lib/pointsStore";
+import { UserAvatar } from "../../components/UserAvatar";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
@@ -16,14 +17,16 @@ export default function HomePage() {
   const { user, hydrated, token } = useAuthStore();
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
   const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
+  const { data: pointsData, fetchPointsHistory } = usePointsStore();
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
       fetchProfile();
       fetchRequests();
       fetchSessions();
+      fetchPointsHistory();
     }
-  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions]);
+  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory]);
 
   useEffect(() => {
     loadData();
@@ -132,7 +135,9 @@ export default function HomePage() {
 
               <div className="bg-white rounded-[12px] p-3 flex flex-col items-center justify-center text-center shadow-sm">
                 <div className="flex items-center gap-1 mb-1">
-                  <span className="text-2xl font-bold text-slate-800">150</span>
+                  <span className="text-2xl font-bold text-slate-800">
+                    {pointsData?.availablePoints ?? "—"}
+                  </span>
                   <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
                 </div>
                 <span className="text-xs font-semibold text-slate-800 mb-1.5">
@@ -153,8 +158,13 @@ export default function HomePage() {
               {upcomingSessions.length > 0 ? upcomingSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0 bg-slate-100">
-                      <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+                    <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0">
+                      <UserAvatar
+                        avatarUrl={session.type === "sent" ? session.provider?.profile?.avatarUrl : session.requester?.profile?.avatarUrl}
+                        firstName={session.type === "sent" ? session.provider?.profile?.firstName : session.requester?.profile?.firstName}
+                        lastName={session.type === "sent" ? session.provider?.profile?.lastName : session.requester?.profile?.lastName}
+                        className="w-full h-full"
+                      />
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex justify-between items-start mb-1">
@@ -234,8 +244,13 @@ export default function HomePage() {
               {pendingReceived.length > 0 ? pendingReceived.slice(0, 4).map((request) => (
                 <div key={request.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0 bg-slate-100">
-                      <Image src="/james_klin.png" alt="Profile" fill className="object-cover" />
+                    <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0">
+                      <UserAvatar
+                        avatarUrl={request.requester?.profile?.avatarUrl}
+                        firstName={request.requester?.profile?.firstName}
+                        lastName={request.requester?.profile?.lastName}
+                        className="w-full h-full"
+                      />
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex justify-between items-start mb-1">

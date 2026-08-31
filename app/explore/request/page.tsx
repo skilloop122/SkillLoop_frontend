@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
+import { useToast } from "../../../hooks/useToast";
 import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
 import { Suspense } from "react";
@@ -49,6 +50,7 @@ function RequestSessionContent() {
   const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus, fetchSkillSlots } = useRequestStore();
   const { fetchSkillListings } = useSkillsStore();
+  const { toastElement, showToast } = useToast();
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
@@ -160,7 +162,7 @@ function RequestSessionContent() {
   const handleConfirmSession = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!proposedDate || !proposedTime || !effectiveSkillListingId || !message) {
-      alert("Please select a time slot and fill in all required fields.");
+      showToast("Please select a time slot and fill in all required fields.");
       return;
     }
     console.log("CREATING REQUEST WITH:", { skillListingId: effectiveSkillListingId, schedulingLink: sessionLink, message, proposedDate, proposedTime });
@@ -506,6 +508,8 @@ function RequestSessionContent() {
           )}
         </AnimatePresence>
       </div>
+
+      {toastElement}
     </div>
   );
 }
