@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { Star, Clock, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
+import { UserAvatar } from "../../components/UserAvatar";
 import { useRouter } from "next/navigation";
 import { useRequestStore } from "../../lib/requestStore";
 import { useAuthStore } from "../../lib/authStore";
@@ -80,12 +80,14 @@ export default function SessionsPage() {
 
   const getOtherParty = (item: {
     type?: string;
-    provider?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string } };
-    requester?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string } };
+    provider?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string; avatarUrl?: string } };
+    requester?: { id: string; email?: string; profile?: { firstName?: string; lastName?: string; avatarUrl?: string } };
   }) => {
     const other = item.type === "sent" ? item.provider : item.requester;
-    const name = [other?.profile?.firstName, other?.profile?.lastName].filter(Boolean).join(" ") || other?.email || "User";
-    return { name, email: other?.email || "" };
+    const firstName = other?.profile?.firstName || "";
+    const lastName = other?.profile?.lastName || "";
+    const name = [firstName, lastName].filter(Boolean).join(" ") || other?.email || "User";
+    return { name, email: other?.email || "", firstName, lastName, avatarUrl: other?.profile?.avatarUrl || "" };
   };
 
   const pendingRequests = [
@@ -162,9 +164,12 @@ export default function SessionsPage() {
               {upcomingSessions.map((session) => (
                 <div key={session.id} className="rounded-lg border border-[#bae6fd] bg-white p-4">
                   <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:h-20 sm:w-20">
-                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
-                    </div>
+                    <UserAvatar
+                      avatarUrl={getOtherParty(session).avatarUrl}
+                      firstName={getOtherParty(session).firstName}
+                      lastName={getOtherParty(session).lastName}
+                      className="h-14 w-14 rounded-lg sm:h-20 sm:w-20"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-sky-50 text-sky-500 text-xs font-bold px-2 py-1 rounded">Confirmed</span>
@@ -188,7 +193,7 @@ export default function SessionsPage() {
                             {session.session?.zoomJoinUrl ? (
                               <button
                                 onClick={() => window.open(session.isProvider && session.session?.zoomStartUrl ? session.session.zoomStartUrl : session.session!.zoomJoinUrl, "_blank")}
-                                className="flex-1 min-w-[130px] py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                                className="flex-1 min-w-32.5 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
                               >
                                 <ExternalLink size={14} />
                                 {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
@@ -208,7 +213,7 @@ export default function SessionsPage() {
                                   }
                                   router.push("/sessions/live?" + params.toString());
                                 }}
-                                className="flex-1 min-w-[130px] py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
+                                className="flex-1 min-w-32.5 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
                               >
                                 {session.isProvider ? "Start in App" : "Join in App"}
                               </button>
@@ -218,14 +223,14 @@ export default function SessionsPage() {
                         <button
                           onClick={() => handleCompleteSession(session.session?.id || session.id, "completed")}
                           disabled={completingId === (session.session?.id || session.id)}
-                          className="flex-1 min-w-[130px] py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          className="flex-1 min-w-32.5 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
                           {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                           Mark Complete
                         </button>
                         <button
                           onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
-                          className="flex-1 min-w-[130px] py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
+                          className="flex-1 min-w-32.5 py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
                         >
                           Leave Feedback
                         </button>
@@ -243,9 +248,12 @@ export default function SessionsPage() {
               {pendingRequests.map((request) => (
                 <div key={request.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                      <Image src={request.type === "sent" ? (request.provider?.profile?.avatarUrl || "/james_klin.png") : (request.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
-                    </div>
+                    <UserAvatar
+                      avatarUrl={getOtherParty(request).avatarUrl}
+                      firstName={getOtherParty(request).firstName}
+                      lastName={getOtherParty(request).lastName}
+                      className="w-16 h-16 rounded-xl"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-2">
                         <span className={request.type === "sent" ? "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-amber-50 text-amber-600 tracking-wider" : "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-sky-50 text-sky-600 tracking-wider"}>
@@ -288,9 +296,12 @@ export default function SessionsPage() {
               {canceledSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm opacity-60">
                    <div className="flex items-start gap-4">
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 grayscale">
-                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
-                    </div>
+                    <UserAvatar
+                      avatarUrl={getOtherParty(session).avatarUrl}
+                      firstName={getOtherParty(session).firstName}
+                      lastName={getOtherParty(session).lastName}
+                      className="w-16 h-16 rounded-xl grayscale shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">{session.status}</span>
                       <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
@@ -310,9 +321,12 @@ export default function SessionsPage() {
               {completedSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
                    <div className="flex items-start gap-4">
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                      <Image src={session.type === "sent" ? (session.provider?.profile?.avatarUrl || "/james_klin.png") : (session.requester?.profile?.avatarUrl || "/james_klin.png")} alt="Profile" fill className="object-cover" />
-                    </div>
+                    <UserAvatar
+                      avatarUrl={getOtherParty(session).avatarUrl}
+                      firstName={getOtherParty(session).firstName}
+                      lastName={getOtherParty(session).lastName}
+                      className="w-16 h-16 rounded-xl shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">Completed</span>
                       <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>

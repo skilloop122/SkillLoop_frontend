@@ -19,12 +19,14 @@ import { useAuthStore } from "../../../../lib/authStore";
 import { useProfileStore } from "../../../../lib/profileStore";
 import type { Schedule } from "../../../../lib/profileStore";
 import { useSkillsStore } from "../../../../lib/skillsStore";
+import { useToast } from "../../../../hooks/useToast";
 
 // PRESET_SKILLS replaced by live API — see useSkillsStore below
 
 export default function LearnSkills() {
   const router = useRouter();
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const { toastElement, showToast } = useToast();
   const [customInput, setCustomInput] = useState("");
   const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -79,7 +81,7 @@ export default function LearnSkills() {
 
   const handleFindMatches = async () => {
     if (selectedSkills.length === 0) {
-      alert("Please select at least one skill you want to learn.");
+      showToast("Please select at least one skill you want to learn.");
       return;
     }
 
@@ -357,6 +359,7 @@ export default function LearnSkills() {
         )}
       </AnimatePresence>
 
+      {toastElement}
     </div>
   );
 }

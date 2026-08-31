@@ -29,6 +29,7 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminUserStore, AdminUserDetailsResponse } from "@/lib/adminUserStore";
 import { scheduleTime } from "@/lib/profileStore";
+import { useToast } from "@/hooks/useToast";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
@@ -43,6 +44,7 @@ export default function UserDetailsPage() {
   const { details, loading, error, fetchUserDetails, deleteUser, changeUserRole } = useAdminUserStore();
   const [activeTab, setActiveTab] = useState("overview");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { toastElement, showToast } = useToast();
 
   useEffect(() => {
     if (hydrated && token && id) {
@@ -123,11 +125,11 @@ export default function UserDetailsPage() {
             <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
               <div className="flex flex-col sm:flex-row gap-6">
                 {profile ? (
-                  <div className="w-[130px] h-[130px] rounded-full bg-sky-100 flex items-center justify-center shrink-0 text-black">
+                  <div className="w-32.5 h-32.5 rounded-full bg-sky-100 flex items-center justify-center shrink-0 text-black">
                     <span className="text-5xl font-bold text-sky-600">{initials}</span>
                   </div>
                 ) : (
-                  <div className="w-[130px] h-[130px] rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <div className="w-32.5 h-32.5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                     <span className="text-5xl font-bold text-slate-400">?</span>
                   </div>
                 )}
@@ -165,7 +167,7 @@ export default function UserDetailsPage() {
                     if (result.success) {
                       fetchUserDetails(token, user.id);
                     } else {
-                      alert(result.message || "Failed to update role");
+                      showToast(result.message || "Failed to update role");
                     }
                   }}
                   className="border rounded-xl px-6 py-3 flex items-center justify-center gap-2 hover:bg-gray-50 transition text-black"
@@ -256,7 +258,7 @@ export default function UserDetailsPage() {
                     if (result.success) {
                       router.push("/admin/users");
                     } else {
-                      alert(result.message || "Failed to delete user");
+                      showToast(result.message || "Failed to delete user");
                       setShowDeleteConfirm(false);
                     }
                   }}
@@ -269,6 +271,8 @@ export default function UserDetailsPage() {
           </div>
         )}
       </main>
+
+      {toastElement}
     </div>
   );
 }

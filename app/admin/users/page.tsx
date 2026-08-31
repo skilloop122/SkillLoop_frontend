@@ -23,12 +23,14 @@ import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { useAdminUserStore } from "@/lib/adminUserStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { useToast } from "@/hooks/useToast";
 
 export default function AdminUsersPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
   const { createUser } = useAdminUserStore();
+  const { toastElement, showToast } = useToast();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -237,7 +239,7 @@ export default function AdminUsersPage() {
 
             {/* Desktop Table */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full min-w-[700px]">
+              <table className="w-full min-w-175">
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
@@ -380,7 +382,7 @@ export default function AdminUsersPage() {
                   setShowCreateModal(false);
                   setNewUser({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
                 } else {
-                  alert(result.message || "Failed to create user");
+                  showToast(result.message || "Failed to create user");
                 }
               }}
               className="space-y-4"
@@ -466,6 +468,8 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {toastElement}
     </div>
   );
 }

@@ -117,6 +117,23 @@ interface ProfileState {
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function profileUpdateErrorMessage(data: any): string | null {
+  if (!data) return null;
+  if (data.error === "VALIDATION_ERROR" && Array.isArray(data.details)) {
+    const parts = data.details.map((d: { path?: (string | number)[]; message?: string }) => {
+      const field = Array.isArray(d.path) ? String(d.path[d.path.length - 1] ?? "") : "";
+      const label = field
+        ? field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, " $1")
+        : "Field";
+      const msg = d.message ? d.message.replace(/\bString\b/g, "text") : "is invalid";
+      return `${label}: ${msg}`;
+    });
+    return parts.join(". ");
+  }
+  return data.message || data.error || null;
+}
+
 export const useProfileStore = create<ProfileState>((set) => ({
   loading: false,
   error: null,
@@ -259,8 +276,10 @@ export const useProfileStore = create<ProfileState>((set) => ({
 
       const data = await response.json();
       console.log("UPDATE PROFILE RESPONSE:", data);
-      if (!response.ok)
-        throw new Error(data.message || "Failed to update profile");
+      if (!response.ok) {
+        const message = profileUpdateErrorMessage(data) || "Failed to update profile";
+        throw new Error(message);
+      }
 
       set({ profile: data, loading: false });
       return { success: true, profile: data };

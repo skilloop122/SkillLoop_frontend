@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useSkillsStore } from "../../../lib/skillsStore";
+import { useToast } from "../../../hooks/useToast";
 
 type AddedSkill = {
   name: string;
@@ -39,6 +40,7 @@ const proofOptions = [
 export default function ProfileSetup() {
   const router = useRouter();
   const { skills: apiSkills, loading: skillsLoading, fetchSkills } = useSkillsStore();
+  const { toastElement, showToast } = useToast();
 
   const [customSkills, setCustomSkills] = useState<AddedSkill[]>([]);
 
@@ -181,7 +183,7 @@ export default function ProfileSetup() {
 
   const handleContinue = () => {
     if (totalSelected === 0) {
-      alert("Please add at least one skill to set up your profile.");
+      showToast("Please add at least one skill to set up your profile.");
       return;
     }
 
@@ -592,6 +594,8 @@ export default function ProfileSetup() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {toastElement}
     </div>
   );
 }

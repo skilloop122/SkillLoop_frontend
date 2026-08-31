@@ -44,6 +44,13 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   const router = useRouter();
   const { user } = useAuthStore();
 
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 3500);
+  };
+
   const { days: initialDays, ranges: initialRanges } = parseScheduleToState(profile.schedule);
 
   const [draft, setDraft] = useState<UpdateProfilePayload>({
@@ -216,7 +223,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       }
       router.push("/profile");
     } else {
-      alert(result.message || "Failed to update profile");
+      showToast(result.message || "Failed to update profile");
     }
   };
 
@@ -511,6 +518,12 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
           {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Save Changes"}
         </button>
       </div>
+
+      {toast && (
+        <div className="fixed left-1/2 z-50 -translate-x-1/2 bottom-24 rounded-2xl bg-red-500 px-5 py-3 text-sm font-semibold text-white shadow-2xl">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

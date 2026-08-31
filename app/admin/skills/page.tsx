@@ -29,6 +29,7 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminSkillsStore } from "@/lib/adminSkillsStore";
 import { useAdminTechnicalSkillsStore, TechnicalSkill } from "@/lib/adminTechnicalSkillsStore";
 import { SkillListing } from "@/lib/skillsStore";
+import { useToast } from "@/hooks/useToast";
 
 interface UISkillListing {
   id: string;
@@ -108,6 +109,7 @@ export default function AdminSkillsPage() {
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
   const { skills, fetchSkills, deleteSkill } = useAdminSkillsStore();
   const tech = useAdminTechnicalSkillsStore();
+  const { toastElement, showToast } = useToast();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -609,7 +611,7 @@ export default function AdminSkillsPage() {
                             onClick={async () => {
                               if (confirm(`Are you sure you want to delete the technical skill "${s.name}"?`)) {
                                 const res = await tech.deleteTechnicalSkill(token!, s.id);
-                                if (!res.success) alert(res.message || "Failed to delete skill");
+                                if (!res.success) showToast(res.message || "Failed to delete skill");
                               }
                             }}
                             className="p-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
@@ -725,6 +727,8 @@ export default function AdminSkillsPage() {
           </div>
         </div>
       )}
+
+      {toastElement}
     </div>
   );
 }
