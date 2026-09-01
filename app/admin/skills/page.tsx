@@ -122,6 +122,8 @@ export default function AdminSkillsPage() {
   const [formCategory, setFormCategory] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [techSearch, setTechSearch] = useState("");
+  const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
+  const [deletingTechId, setDeletingTechId] = useState<string | null>(null);
 
   useEffect(() => {
     if (hydrated && token) {
@@ -313,12 +315,16 @@ export default function AdminSkillsPage() {
                             type="button"
                             onClick={async () => {
                               if (confirm("Are you sure you want to delete this skill listing?")) {
+                                setDeletingListingId(listing.id);
                                 await deleteSkill(token!, listing.id);
+                                setDeletingListingId(null);
                                 fetchSkills(token!, { limit: 100 });
                               }
                             }}
-                            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-red-600 transition-colors"
+                            disabled={deletingListingId === listing.id}
+                            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
                           >
+                            {deletingListingId === listing.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                             Delete
                           </button>
                         </div>
@@ -418,12 +424,16 @@ export default function AdminSkillsPage() {
                                 type="button"
                                 onClick={async () => {
                                   if (confirm("Are you sure you want to delete this skill listing?")) {
+                                    setDeletingListingId(listing.id);
                                     await deleteSkill(token!, listing.id);
+                                    setDeletingListingId(null);
                                     fetchSkills(token!, { limit: 100 });
                                   }
                                 }}
-                                className="px-4 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                                disabled={deletingListingId === listing.id}
+                                className="px-4 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
                               >
+                                {deletingListingId === listing.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                                 Delete
                               </button>
                             </div>
@@ -610,14 +620,17 @@ export default function AdminSkillsPage() {
                             type="button"
                             onClick={async () => {
                               if (confirm(`Are you sure you want to delete the technical skill "${s.name}"?`)) {
+                                setDeletingTechId(s.id);
                                 const res = await tech.deleteTechnicalSkill(token!, s.id);
+                                setDeletingTechId(null);
                                 if (!res.success) showToast(res.message || "Failed to delete skill");
                               }
                             }}
-                            className="p-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                            disabled={deletingTechId === s.id}
+                            className="p-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             aria-label={`Delete ${s.name}`}
                           >
-                            <Trash2 size={14} />
+                            {deletingTechId === s.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
                         </div>
                       </div>
