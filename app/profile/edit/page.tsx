@@ -73,12 +73,34 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   const [learnCustomInput, setLearnCustomInput] = useState("");
   const [customTeachSkills, setCustomTeachSkills] = useState<string[]>([]);
   const [customLearnSkills, setCustomLearnSkills] = useState<string[]>([]);
+  const [teachCategory, setTeachCategory] = useState("all");
+  const [learnCategory, setLearnCategory] = useState("all");
   const [selectedDays, setSelectedDays] = useState<string[]>(initialDays);
   const [timeRanges, setTimeRanges] = useState<Record<string, TimeRange>>(initialRanges);
   const [activeDay, setActiveDay] = useState(initialDays.length > 0 ? initialDays[0] : "");
 
   const allTeachSkills = [...apiSkills, ...customTeachSkills.map((s) => ({ id: `custom-${s}`, name: s }))];
   const allLearnSkills = [...apiSkills, ...customLearnSkills.map((s) => ({ id: `custom-${s}`, name: s }))];
+
+  const skillCategories = [...new Set(apiSkills.map((s) => s.category).filter(Boolean))].sort();
+
+  const visibleTeachSkills =
+    teachCategory === "all"
+      ? allTeachSkills
+      : teachCategory === "custom"
+        ? customTeachSkills.map((s) => ({ id: `custom-${s}`, name: s }))
+        : allTeachSkills.filter(
+            (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === teachCategory
+          );
+
+  const visibleLearnSkills =
+    learnCategory === "all"
+      ? allLearnSkills
+      : learnCategory === "custom"
+        ? customLearnSkills.map((s) => ({ id: `custom-${s}`, name: s }))
+        : allLearnSkills.filter(
+            (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === learnCategory
+          );
 
   const handleUpdate = (field: keyof UpdateProfilePayload, value: string | (string | Skill)[] | undefined) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -312,30 +334,47 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
               <Loader2 size={24} className="animate-spin text-sky-500" />
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2.5">
-              <AnimatePresence>
-                {allTeachSkills.filter((s) => s.name).map((skill) => {
-                  const isSelected = teachSkills.includes(skill.name);
-                  return (
-                    <motion.button
-                      key={skill.id}
-                      type="button"
-                      onClick={() => toggleTeach(skill.name)}
-                      initial={{ opacity: 0, scale: 0.85 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.85 }}
-                      transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                      className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
-                        ? "bg-sky-500 text-white shadow-sky-200"
-                        : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
-                        }`}
-                    >
-                      {skill.name}
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+            <>
+              <label className="block mb-3 max-w-md">
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Filter by Category</span>
+                <select
+                  value={teachCategory}
+                  onChange={(e) => setTeachCategory(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="all">All Categories</option>
+                  {skillCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  {customTeachSkills.length > 0 && <option value="custom">My Custom Skills</option>}
+                </select>
+              </label>
+
+              <div className="flex flex-wrap gap-2.5">
+                <AnimatePresence>
+                  {visibleTeachSkills.filter((s) => s.name).map((skill) => {
+                    const isSelected = teachSkills.includes(skill.name);
+                    return (
+                      <motion.button
+                        key={skill.id}
+                        type="button"
+                        onClick={() => toggleTeach(skill.name)}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                        className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
+                          ? "bg-sky-500 text-white shadow-sky-200"
+                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                          }`}
+                      >
+                        {skill.name}
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </>
           )}
 
           <div className="mt-3 flex items-center gap-3">
@@ -369,30 +408,47 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
               <Loader2 size={24} className="animate-spin text-sky-500" />
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2.5">
-              <AnimatePresence>
-                {allLearnSkills.filter((s) => s.name).map((skill) => {
-                  const isSelected = learnSkills.includes(skill.name);
-                  return (
-                    <motion.button
-                      key={skill.id}
-                      type="button"
-                      onClick={() => toggleLearn(skill.name)}
-                      initial={{ opacity: 0, scale: 0.85 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.85 }}
-                      transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                      className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
-                        ? "bg-sky-500 text-white shadow-sky-200"
-                        : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
-                        }`}
-                    >
-                      {skill.name}
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+            <>
+              <label className="block mb-3 max-w-md">
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Filter by Category</span>
+                <select
+                  value={learnCategory}
+                  onChange={(e) => setLearnCategory(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="all">All Categories</option>
+                  {skillCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  {customLearnSkills.length > 0 && <option value="custom">My Custom Skills</option>}
+                </select>
+              </label>
+
+              <div className="flex flex-wrap gap-2.5">
+                <AnimatePresence>
+                  {visibleLearnSkills.filter((s) => s.name).map((skill) => {
+                    const isSelected = learnSkills.includes(skill.name);
+                    return (
+                      <motion.button
+                        key={skill.id}
+                        type="button"
+                        onClick={() => toggleLearn(skill.name)}
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                        className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
+                          ? "bg-sky-500 text-white shadow-sky-200"
+                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                          }`}
+                      >
+                        {skill.name}
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </>
           )}
 
           <div className="mt-3 flex items-center gap-3">

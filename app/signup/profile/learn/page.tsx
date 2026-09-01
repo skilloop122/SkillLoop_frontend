@@ -42,6 +42,18 @@ export default function LearnSkills() {
 
   const allSkills = [...apiSkills, ...customSkills.map((s) => ({ id: `custom-${s}`, name: s }))];
 
+  const categories = [...new Set(apiSkills.map((s) => s.category).filter(Boolean))].sort();
+  const [skillCategory, setSkillCategory] = useState("all");
+
+  const visibleSkills =
+    skillCategory === "all"
+      ? allSkills
+      : skillCategory === "custom"
+        ? customSkills.map((s) => ({ id: `custom-${s}`, name: s }))
+        : allSkills.filter(
+            (s) => "category" in s && (s as { category?: string }).category === skillCategory && !s.id.startsWith("custom-")
+          );
+
   const getSkillKey = (s: { id: string; name: string }) => s.id;
   const getSkillName = (s: { id: string; name: string }) => s.name;
 
@@ -190,13 +202,33 @@ export default function LearnSkills() {
             <Loader2 size={28} className="animate-spin text-sky-500" />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2.5">
-            <AnimatePresence>
-              {allSkills.filter((s) => s.name).map((skill) => {
-                const key = getSkillKey(skill);
-                const name = getSkillName(skill);
-                const isSelected = selectedSkills.includes(name);
-                return (
+          <>
+            <div className="flex items-center gap-3">
+              <label className="block flex-1">
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">
+                  Filter by Category
+                </span>
+                <select
+                  value={skillCategory}
+                  onChange={(e) => setSkillCategory(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  {customSkills.length > 0 && <option value="custom">My Custom Skills</option>}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2.5">
+              <AnimatePresence>
+                {visibleSkills.filter((s) => s.name).map((skill) => {
+                  const key = getSkillKey(skill);
+                  const name = getSkillName(skill);
+                  const isSelected = selectedSkills.includes(name);
+                  return (
                   <motion.button
                     key={key}
                     type="button"
@@ -217,6 +249,7 @@ export default function LearnSkills() {
               })}
             </AnimatePresence>
           </div>
+          </>
         )}
 
         {/* Add Custom Skill — mockup-accurate layout */}
