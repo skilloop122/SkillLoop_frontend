@@ -44,6 +44,8 @@ export default function UserDetailsPage() {
   const { details, loading, error, fetchUserDetails, deleteUser, changeUserRole } = useAdminUserStore();
   const [activeTab, setActiveTab] = useState("overview");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
   const { toastElement, showToast } = useToast();
 
   useEffect(() => {
@@ -163,16 +165,19 @@ export default function UserDetailsPage() {
                   onClick={async () => {
                     const newRole = user.role === "ADMIN" ? "USER" : "ADMIN";
                     if (!token) return;
+                    setUpdatingRole(true);
                     const result = await changeUserRole(token, user.id, newRole);
+                    setUpdatingRole(false);
                     if (result.success) {
                       fetchUserDetails(token, user.id);
                     } else {
                       showToast(result.message || "Failed to update role");
                     }
                   }}
-                  className="border rounded-xl px-6 py-3 flex items-center justify-center gap-2 hover:bg-gray-50 transition text-black"
+                  disabled={updatingRole}
+                  className="border rounded-xl px-6 py-3 flex items-center justify-center gap-2 hover:bg-gray-50 transition text-black disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <UserCog size={18} />
+                  {updatingRole ? <Loader2 size={18} className="animate-spin" /> : <UserCog size={18} />}
                   {user.role === "ADMIN" ? "Demote to User" : "Promote to Admin"}
                 </button>
                 <button
@@ -254,7 +259,9 @@ export default function UserDetailsPage() {
                 <button
                   onClick={async () => {
                     if (!token) return;
+                    setDeletingUser(true);
                     const result = await deleteUser(token, user.id);
+                    setDeletingUser(false);
                     if (result.success) {
                       router.push("/admin/users");
                     } else {
@@ -262,8 +269,10 @@ export default function UserDetailsPage() {
                       setShowDeleteConfirm(false);
                     }
                   }}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors"
+                  disabled={deletingUser}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
+                  {deletingUser && <Loader2 size={15} className="animate-spin" />}
                   Delete
                 </button>
               </div>

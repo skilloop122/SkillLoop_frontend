@@ -34,6 +34,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
   const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
 
   useEffect(() => {
@@ -245,8 +246,8 @@ export default function AdminUsersPage() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Joined</th>
+                    {/* <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th> */}
+                    {/* <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Joined</th> */}
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Points</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                   </tr>
@@ -285,7 +286,7 @@ export default function AdminUsersPage() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
+                      {/* <td className="px-5 py-4">
                         {user.status ? (
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             user.status === "active"
@@ -297,12 +298,12 @@ export default function AdminUsersPage() {
                         ) : (
                           <span className="text-gray-400 text-xs">—</span>
                         )}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-500">
+                      </td> */}
+                      {/* <td className="px-5 py-4 text-sm text-gray-500">
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                           : "—"}
-                      </td>
+                      </td> */}
                       <td className="px-5 py-4">
                         <span className="flex items-center gap-1.5 text-amber-600 font-semibold text-sm">
                           <Award size={14} /> {user.points}
@@ -370,6 +371,7 @@ export default function AdminUsersPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!token) return;
+                setCreatingUser(true);
                 const result = await createUser(token, {
                   email: newUser.email,
                   password: newUser.password,
@@ -377,6 +379,7 @@ export default function AdminUsersPage() {
                   lastName: newUser.lastName,
                   role: newUser.role,
                 });
+                setCreatingUser(false);
                 if (result.success) {
                   fetchMetrics(token);
                   setShowCreateModal(false);
@@ -458,8 +461,10 @@ export default function AdminUsersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors flex items-center justify-center gap-2"
+                  disabled={creatingUser}
+                  className="flex-1 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
+                  {creatingUser && <Loader2 size={15} className="animate-spin" />}
                   <UserPlus size={15} />
                   Create User
                 </button>
