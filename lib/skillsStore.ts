@@ -141,11 +141,18 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH LISTINGS RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || data.error || "Failed to fetch listings");
 
       const listings: SkillListing[] = Array.isArray(data) ? data : (data?.data || []);
+      if (listings.length) {
+        console.log("SKILL LISTINGS (" + listings.length + "):");
+        listings.forEach((l, i) => {
+          console.log(`  ${i + 1}. "${l.title}" — category: ${l.category || "N/A"}${l.isActive === false ? " (inactive)" : ""}`);
+        });
+      } else {
+        console.log("SKILL LISTINGS: none");
+      }
       set({ listings, loading: false });
       return { success: true, listings };
     } catch (error: unknown) {

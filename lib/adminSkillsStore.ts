@@ -46,6 +46,17 @@ export const useAdminSkillsStore = create<AdminSkillsState>()((set) => ({
       const skills = Array.isArray(body) ? body : (body?.skills || body?.data || []);
       const total = body?.total || skills.length;
 
+      if (skills.length) {
+        console.log(`ADMIN SKILL LISTINGS (${skills.length}):`);
+        skills.forEach((l: any, i: number) => {
+          const title = l?.title || l?.name || l?.skill || "Untitled";
+          const category = l?.category || l?.categoryName || "N/A";
+          console.log(`  ${i + 1}. "${title}" — category: ${category}`);
+        });
+      } else {
+        console.log("ADMIN SKILL LISTINGS: none");
+      }
+
       set({ skills, total, loading: false });
       return { success: true, data: { skills, total } };
     } catch {

@@ -52,6 +52,7 @@ export default function ProfileSetup() {
   const [showSuccess] = useState(false);
   const [continuing, setContinuing] = useState(false);
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [skillForm, setSkillForm] = useState({
     skill: "",
     experience: "",
@@ -60,6 +61,11 @@ export default function ProfileSetup() {
     linkedin: "",
     certification: "",
   });
+
+  const categories = [...new Set(apiSkills.map((s) => s.category).filter(Boolean))].sort();
+  const skillsInCategory = selectedCategory
+    ? apiSkills.filter((s) => s.category === selectedCategory)
+    : apiSkills;
 
   const totalSelected = customSkills.length;
 
@@ -114,6 +120,11 @@ export default function ProfileSetup() {
 
   const closeSkillDropdown = () => {
     setShowSkillDropdown(false);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setSkillForm((current) => ({ ...current, skill: "" }));
   };
 
   const toggleProof = (proof: string) => {
@@ -340,6 +351,33 @@ export default function ProfileSetup() {
                   <div className="space-y-4">
                     <label className="block">
                       <span className="mb-1 block text-base text-slate-500">
+                        Category
+                      </span>
+                      {skillsLoading ? (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400 border border-slate-500 rounded-[8px]">
+                          <Loader2 size={16} className="animate-spin" />
+                          Loading categories...
+                        </div>
+                      ) : (
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => {
+                            handleCategoryChange(e.target.value);
+                          }}
+                          className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none bg-white"
+                        >
+                          <option value="">Select a category</option>
+                          {categories.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1 block text-base text-slate-500">
                         Skill
                       </span>
                       {skillsLoading ? (
@@ -358,8 +396,10 @@ export default function ProfileSetup() {
                           }
                           className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none bg-white"
                         >
-                          <option value="">Select a skill</option>
-                          {apiSkills.map((skill) => {
+                          <option value="">
+                            {selectedCategory ? "Select a skill in this category" : "Select a category first"}
+                          </option>
+                          {skillsInCategory.map((skill) => {
                             const added = customSkills.some(
                               (c) => c.name.toLowerCase() === skill.name.toLowerCase()
                             );
