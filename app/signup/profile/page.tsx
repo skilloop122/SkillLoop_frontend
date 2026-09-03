@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import {
   FileCode,
@@ -48,7 +49,6 @@ export default function ProfileSetup() {
     fetchSkills({ limit: "50" });
   }, [fetchSkills]);
 
-  const [inputValue, setInputValue] = useState("");
   const [showSuccess] = useState(false);
   const [continuing, setContinuing] = useState(false);
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
@@ -102,7 +102,6 @@ export default function ProfileSetup() {
           certification,
         },
       ]);
-      setInputValue("");
     }
   };
 
@@ -111,10 +110,6 @@ export default function ProfileSetup() {
   };
 
   const openSkillDropdown = () => {
-    setSkillForm((current) => ({
-      ...current,
-      skill: inputValue.trim(),
-    }));
     setShowSkillDropdown(true);
   };
 
@@ -156,13 +151,6 @@ export default function ProfileSetup() {
     setShowSkillDropdown(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      openSkillDropdown();
-    }
-  };
-
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
@@ -182,6 +170,7 @@ export default function ProfileSetup() {
   });
 
   const isSkillFormComplete =
+    !!selectedCategory &&
     skillForm.skill.trim().length > 0 &&
     skillForm.experience.trim().length > 0 &&
     !isNaN(Number(skillForm.experience.trim())) &&
@@ -240,8 +229,22 @@ export default function ProfileSetup() {
         </h1>
       </div>
 
-      <div className="relative z-10 w-full max-w-107.5 mx-auto flex-1 flex flex-col justify-center my-8">
-        <div className="w-full space-y-8">
+      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center my-8">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="hidden lg:flex items-center justify-center order-2 lg:order-1">
+            <div className="relative w-full max-w-md aspect-square overflow-hidden rounded-[40px] shadow-2xl">
+              <Image
+                src="/hero_collaboration.png"
+                alt="SkilLoop Skills Collaboration"
+                fill
+                priority
+                quality={95}
+                className="object-cover object-center select-none"
+              />
+            </div>
+          </div>
+
+          <div className="w-full space-y-8 order-1 lg:order-2">
           <div className="space-y-2 text-center sm:text-left">
             <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
               Add your Skills
@@ -294,14 +297,16 @@ export default function ProfileSetup() {
 
           <div className="space-y-4 relative rounded-lg bg-white px-3 py-2">
             <div className="relative flex items-center w-full">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Add skill"
-                className="w-full bg-transparent pr-12 pl-1 py-2 text-black font-normal text-xl outline-hidden placeholder:text-black transition-all"
-              />
+              <button
+                type="button"
+                onClick={openSkillDropdown}
+                className="w-full bg-transparent pr-12 pl-1 py-2 text-left text-black font-normal text-xl outline-hidden transition-all"
+                aria-label="Add skill"
+              >
+                <span className={skillForm.skill ? "text-black" : "text-black/40"}>
+                  {skillForm.skill || "Add skill"}
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={openSkillDropdown}
@@ -316,8 +321,8 @@ export default function ProfileSetup() {
               {Array.from({ length: 1 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`h-0.75 flex-1 rounded-full transition-all duration-300 ${inputValue.trim().length > 0 &&
-                      i < Math.ceil((inputValue.trim().length / 15) * 8)
+                  className={`h-0.75 flex-1 rounded-full transition-all duration-300 ${skillForm.skill.trim().length > 0 &&
+                      i < Math.ceil((skillForm.skill.trim().length / 15) * 8)
                       ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.4)]"
                       : "bg-sky-500"
                     }`}
@@ -394,7 +399,8 @@ export default function ProfileSetup() {
                               skill: e.target.value,
                             }))
                           }
-                          className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none bg-white"
+                          disabled={!selectedCategory}
+                          className="w-full rounded-[8px] border border-slate-500 px-3 py-2 text-base text-gray-500 outline-none bg-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <option value="">
                             {selectedCategory ? "Select a skill in this category" : "Select a category first"}
@@ -579,6 +585,7 @@ export default function ProfileSetup() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </div>
       </div>

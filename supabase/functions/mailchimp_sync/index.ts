@@ -97,258 +97,849 @@
 //   }
 // });
 
-import { Resend } from "resend";
+// import { Resend } from "resend";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+// const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
-if (!RESEND_API_KEY) {
-  throw new Error("Missing RESEND_API_KEY");
+// if (!RESEND_API_KEY) {
+//   throw new Error("Missing RESEND_API_KEY");
+// }
+
+// const resend = new Resend(RESEND_API_KEY);
+
+// Deno.serve(async (req) => {
+//   try {
+//     const payload = await req.json();
+
+//     console.log("Incoming payload:", payload);
+
+//     // Only process INSERT events
+//     if (payload?.type && payload.type !== "INSERT") {
+//       return Response.json({
+//         success: true,
+//         message: "Ignoring non-insert event",
+//       });
+//     }
+
+//     const email = payload?.record?.email;
+//     const fullName = payload?.record?.full_name;
+
+//     if (!email || !fullName) {
+//       return new Response(
+//         JSON.stringify({
+//           error: "Missing email or full name",
+//         }),
+//         {
+//           status: 400,
+//           headers: {
+//             "Content-Type": "application/json",
+//           },
+//         },
+//       );
+//     }
+
+//     // Welcome email to user
+//     const { data, error } = await resend.emails.send({
+//       from: "SkilLoop <hello@mail.skil-loop.com>",
+//       replyTo: "hello@skil-loop.com",
+//       to: email,
+//       subject: "Hey, Our Founder has a message for you...",
+//       html: `
+//               <div style="
+//                 font-family: Arial, Helvetica, sans-serif;
+//                 max-width: 600px;
+//                 margin: 0 auto;
+//                 color: #1e293b;
+//                 line-height: 1.6;
+//                 background:#ffffff;
+//               ">
+
+//                 <!-- Header -->
+//                 <div style="
+//                   background:#f8fafc;
+//                   padding:25px 20px;
+//                   text-align:center;
+//                   border-bottom:1px solid #e2e8f0;
+//                 ">
+//                   <img
+//                     src="https://www.skil-loop.com/images/SkilLoop.png"
+//                     alt="SkilLoop"
+//                     width="140"
+//                     style="max-width:140px;"
+//                   />
+//                 </div>
+
+
+//                 <!-- Body -->
+//                 <div style="
+//                   padding:30px 20px;
+//                 ">
+
+//                   <p>Hi ${fullName},</p>
+                  
+//                   <p>I could have let an automated email welcome you, but I wanted this one to come from me.</p>
+
+//                   <p>Welcome to SkilLoop <strong>Fellow Builder!</strong></p>
+
+//                   <p>You're now part of a community built around one simple idea: we all know something and we all have something left to learn.</p>
+
+//                   <p>Thank you for choosing to be early. We're building this with people like you in mind and I can't wait to show you what we're creating.</p>
+
+//                   <p>Before we launch, come meet the community:</p>
+
+//                   <div style="text-align:center; margin:25px 0;">
+//                     <a
+//                       href="https://chat.whatsapp.com/J4zhoYLwqOUGXzVG8fujRV"
+//                         style="
+//                           background:#25D366;
+//                           color:#ffffff;
+//                           text-decoration:none;
+//                           padding:12px 24px;
+//                           border-radius:8px;
+//                           font-weight:bold;
+//                           display:inline-block;
+//                         "
+//                     >
+//                       Join the SkilLoop Community
+//                     </a>
+//                   </div>                 
+                  
+//                   <p>We’re just getting started.</p>
+//                   <p>Dairo Oladotun<br />Founder, SkilLoop</p>
+//                  </div>
+
+
+//                 </div>
+
+
+
+//                 <!-- Footer -->
+//                 <div style="
+//                   background:#0f172a;
+//                   padding:25px 20px;
+//                   text-align:center;
+//                   color:#ffffff;
+//                   border-radius:0 0 12px 12px;
+//                 ">
+
+//                   <img
+//                     src="https://www.skil-loop.com/images/SkilLoop.png"
+//                     alt="SkilLoop"
+//                     width="140"
+//                     style="max-width:140px; margin-bottom:15px;"
+//                   />
+
+
+//                   <p style="
+//                     margin:5px 0;
+//                     color:#cbd5e1;
+//                   ">
+//                     Building the future with SkilLoop 🚀
+//                   </p>
+
+
+//                   <div style="
+//                     text-align:center;
+//                     margin:20px 0;
+//                   ">
+//                     <a href="https://vm.tiktok.com/ZS9jP4SHcoddC-TBqey/" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
+//                       <img src="https://cdn.simpleicons.org/tiktok/white" alt="TikTok" width="24" height="24" style="display:block; border:none;" />
+//                     </a>
+//                     <a href="https://www.instagram.com/getskilloop?igsh=aGltMHhjeGNjZmZh" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
+//                       <img src="https://cdn.simpleicons.org/instagram/white" alt="Instagram" width="24" height="24" style="display:block; border:none;" />
+//                     </a>
+//                     <a href="https://x.com/SkilLoop0" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
+//                       <img src="https://cdn.simpleicons.org/x/white" alt="X" width="20" height="20" style="display:block; border:none;" />
+//                     </a>
+//                     <a href="https://www.linkedin.com/company/getskilloop/" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
+//                       <img src="https://img.icons8.com/?size=100&id=447&format=png&color=ffffff" alt="LinkedIn" width="24" height="24" style="display:block; border:none;" />
+//                     </a>
+//                   </div>
+
+
+//                   <hr style="
+//                     border:none;
+//                     border-top:1px solid #334155;
+//                     margin:25px 0;
+//                   " />
+
+//                   <p style="
+//                     margin:0;
+//                     font-size:14px;
+//                     color:#cbd5e1;
+//                   ">
+//                     © 2026 SkilLoop. All rights reserved.
+//                   </p>
+
+
+//                 </div>
+
+
+//               </div>
+//             `,
+//     });
+
+//     if (error) {
+//       console.error("Resend Error:", error);
+
+//       return new Response(
+//         JSON.stringify({
+//           success: false,
+//           error,
+//         }),
+//         {
+//           status: 500,
+//           headers: {
+//             "Content-Type": "application/json",
+//           },
+//         },
+//       );
+//     }
+
+//     // Admin notification email
+//     try {
+//       await resend.emails.send({
+//         from: "SkilLoop <hello@mail.skil-loop.com>",
+//         replyTo: "hello@skil-loop.com",
+//         to: "hello@skil-loop.com",
+//         subject: "🎉 New Waitlist Signup",
+//         html: `
+//       <div style="font-family: Arial, sans-serif;">
+//         <h2>🎉 New Waitlist Signup</h2>
+
+//         <p><strong>Name:</strong> ${fullName}</p>
+//         <p><strong>Email:</strong> ${email}</p>
+//         <p><strong>Joined:</strong> ${new Date().toLocaleString()}</p>
+
+//         <hr />
+
+//         <p>A new user has joined the SkilLoop waitlist.</p>
+//       </div>
+//     `,
+//       });
+//     } catch (adminError) {
+//       console.error("Admin notification failed:", adminError);
+//     }
+
+//     console.log("Email sent successfully:", data);
+
+//     return new Response(
+//       JSON.stringify({
+//         success: true,
+//         data,
+//       }),
+//       {
+//         status: 200,
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+//       },
+//     );
+//   } catch (error) {
+//     console.error("Function Error:", error);
+
+//     return new Response(
+//       JSON.stringify({
+//         success: false,
+//         error: error instanceof Error ? error.message : "Unknown error",
+//       }),
+//       {
+//         status: 500,
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+//       },
+//     );
+//   }
+// });
+import { createClient } from "@supabase/supabase-js";
+import { crypto } from "@std/crypto";
+
+// ============================================================
+// ENVIRONMENT VARIABLES
+// ============================================================
+
+const MAILCHIMP_API_KEY = Deno.env.get(
+  "MAILCHIMP_API_KEY"
+);
+
+const MAILCHIMP_AUDIENCE_ID = Deno.env.get(
+  "MAILCHIMP_AUDIENCE_ID"
+);
+
+const MAILCHIMP_SERVER_PREFIX = Deno.env.get(
+  "MAILCHIMP_SERVER_PREFIX"
+);
+
+const SUPABASE_URL = Deno.env.get(
+  "SUPABASE_URL"
+);
+
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get(
+  "SUPABASE_SERVICE_ROLE_KEY"
+);
+
+// ============================================================
+// ENVIRONMENT VALIDATION
+// ============================================================
+
+if (
+  !MAILCHIMP_API_KEY ||
+  !MAILCHIMP_AUDIENCE_ID ||
+  !MAILCHIMP_SERVER_PREFIX
+) {
+  throw new Error(
+    "Missing Mailchimp environment variables"
+  );
 }
 
-const resend = new Resend(RESEND_API_KEY);
+if (
+  !SUPABASE_URL ||
+  !SUPABASE_SERVICE_ROLE_KEY
+) {
+  throw new Error(
+    "Missing Supabase environment variables"
+  );
+}
+
+// ============================================================
+// SUPABASE CLIENT
+// ============================================================
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY
+);
+
+// ============================================================
+// TYPES
+// ============================================================
+
+interface WaitlistRecord {
+  id?: number;
+  email?: string | null;
+  full_name?: string | null;
+  created_at?: string | null;
+  mailchimp_synced?: boolean | null;
+  mailchimp_synced_at?: string | null;
+}
+
+interface SupabaseWebhookPayload {
+  type?: string;
+  table?: string;
+  schema?: string;
+  record?: WaitlistRecord | null;
+  old_record?: WaitlistRecord | null;
+}
+
+interface MailchimpResponse {
+  id?: string;
+  email_address?: string;
+  unique_email_id?: string;
+  web_id?: number;
+  status_if_new?: string;
+  merge_fields?: {
+    FNAME?: string;
+    LNAME?: string;
+  };
+  tags?: Array<{
+    id?: number;
+    name?: string;
+  }>;
+  title?: string;
+  detail?: string;
+  status?: number;
+}
+
+// ============================================================
+// CORS
+// ============================================================
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods":
+    "POST, OPTIONS",
+};
+
+// ============================================================
+// JSON RESPONSE
+// ============================================================
+
+function jsonResponse(
+  body: unknown,
+  status = 200
+): Response {
+  return new Response(
+    JSON.stringify(body),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        "Content-Type":
+          "application/json",
+      },
+    }
+  );
+}
+
+// ============================================================
+// CREATE MAILCHIMP SUBSCRIBER HASH
+// ============================================================
+//
+// Mailchimp requires:
+// MD5(lowercase(email))
+//
+// Example:
+// john@example.com
+//       ↓
+// MD5
+//       ↓
+// subscriber hash
+//
+// ============================================================
+
+async function createSubscriberHash(
+  email: string
+): Promise<string> {
+  const normalizedEmail =
+    email.trim().toLowerCase();
+
+  const data =
+    new TextEncoder().encode(
+      normalizedEmail
+    );
+
+  const hash =
+    await crypto.subtle.digest(
+      "MD5",
+      data
+    );
+
+  const bytes =
+    new Uint8Array(hash);
+
+  return Array.from(bytes)
+    .map((byte) =>
+      byte
+        .toString(16)
+        .padStart(2, "0")
+    )
+    .join("");
+}
+
+// ============================================================
+// SPLIT NAME
+// ============================================================
+
+function splitName(
+  fullName: string | null
+): {
+  firstName: string;
+  lastName: string;
+} {
+  if (!fullName) {
+    return {
+      firstName: "",
+      lastName: "",
+    };
+  }
+
+  const nameParts =
+    fullName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  if (nameParts.length === 0) {
+    return {
+      firstName: "",
+      lastName: "",
+    };
+  }
+
+  return {
+    firstName:
+      nameParts[0] ?? "",
+
+    lastName:
+      nameParts
+        .slice(1)
+        .join(" "),
+  };
+}
+
+// ============================================================
+// MAIN FUNCTION
+// ============================================================
 
 Deno.serve(async (req) => {
   try {
-    const payload = await req.json();
+    // ========================================================
+    // OPTIONS
+    // ========================================================
 
-    console.log("Incoming payload:", payload);
-
-    // Only process INSERT events
-    if (payload?.type && payload.type !== "INSERT") {
-      return Response.json({
-        success: true,
-        message: "Ignoring non-insert event",
-      });
-    }
-
-    const email = payload?.record?.email;
-    const fullName = payload?.record?.full_name;
-
-    if (!email || !fullName) {
+    if (req.method === "OPTIONS") {
       return new Response(
-        JSON.stringify({
-          error: "Missing email or full name",
-        }),
+        "ok",
         {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
+          headers: corsHeaders,
+        }
       );
     }
 
-    // Welcome email to user
-    const { data, error } = await resend.emails.send({
-      from: "SkilLoop <hello@mail.skil-loop.com>",
-      replyTo: "hello@skil-loop.com",
-      to: email,
-      subject: "Hey, Our Founder has a message for you...",
-      html: `
-              <div style="
-                font-family: Arial, Helvetica, sans-serif;
-                max-width: 600px;
-                margin: 0 auto;
-                color: #1e293b;
-                line-height: 1.6;
-                background:#ffffff;
-              ">
+    // ========================================================
+    // ONLY POST
+    // ========================================================
 
-                <!-- Header -->
-                <div style="
-                  background:#f8fafc;
-                  padding:25px 20px;
-                  text-align:center;
-                  border-bottom:1px solid #e2e8f0;
-                ">
-                  <img
-                    src="https://www.skil-loop.com/images/SkilLoop.png"
-                    alt="SkilLoop"
-                    width="140"
-                    style="max-width:140px;"
-                  />
-                </div>
-
-
-                <!-- Body -->
-                <div style="
-                  padding:30px 20px;
-                ">
-
-                  <p>Hi ${fullName},</p>
-                  
-                  <p>I could have let an automated email welcome you, but I wanted this one to come from me.</p>
-
-                  <p>Welcome to SkilLoop <strong>Fellow Builder!</strong></p>
-
-                  <p>You're now part of a community built around one simple idea: we all know something and we all have something left to learn.</p>
-
-                  <p>Thank you for choosing to be early. We're building this with people like you in mind and I can't wait to show you what we're creating.</p>
-
-                  <p>Before we launch, come meet the community:</p>
-
-                  <div style="text-align:center; margin:25px 0;">
-                    <a
-                      href="https://chat.whatsapp.com/J4zhoYLwqOUGXzVG8fujRV"
-                        style="
-                          background:#25D366;
-                          color:#ffffff;
-                          text-decoration:none;
-                          padding:12px 24px;
-                          border-radius:8px;
-                          font-weight:bold;
-                          display:inline-block;
-                        "
-                    >
-                      Join the SkilLoop Community
-                    </a>
-                  </div>                 
-                  
-                  <p>We’re just getting started.</p>
-                  <p>Dairo Oladotun<br />Founder, SkilLoop</p>
-                 </div>
-
-
-                </div>
-
-
-
-                <!-- Footer -->
-                <div style="
-                  background:#0f172a;
-                  padding:25px 20px;
-                  text-align:center;
-                  color:#ffffff;
-                  border-radius:0 0 12px 12px;
-                ">
-
-                  <img
-                    src="https://www.skil-loop.com/images/SkilLoop.png"
-                    alt="SkilLoop"
-                    width="140"
-                    style="max-width:140px; margin-bottom:15px;"
-                  />
-
-
-                  <p style="
-                    margin:5px 0;
-                    color:#cbd5e1;
-                  ">
-                    Building the future with SkilLoop 🚀
-                  </p>
-
-
-                  <div style="
-                    text-align:center;
-                    margin:20px 0;
-                  ">
-                    <a href="https://vm.tiktok.com/ZS9jP4SHcoddC-TBqey/" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
-                      <img src="https://cdn.simpleicons.org/tiktok/white" alt="TikTok" width="24" height="24" style="display:block; border:none;" />
-                    </a>
-                    <a href="https://www.instagram.com/getskilloop?igsh=aGltMHhjeGNjZmZh" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
-                      <img src="https://cdn.simpleicons.org/instagram/white" alt="Instagram" width="24" height="24" style="display:block; border:none;" />
-                    </a>
-                    <a href="https://x.com/SkilLoop0" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
-                      <img src="https://cdn.simpleicons.org/x/white" alt="X" width="20" height="20" style="display:block; border:none;" />
-                    </a>
-                    <a href="https://www.linkedin.com/company/getskilloop/" target="_blank" style="text-decoration:none; display:inline-block; margin:0 10px;">
-                      <img src="https://img.icons8.com/?size=100&id=447&format=png&color=ffffff" alt="LinkedIn" width="24" height="24" style="display:block; border:none;" />
-                    </a>
-                  </div>
-
-
-                  <hr style="
-                    border:none;
-                    border-top:1px solid #334155;
-                    margin:25px 0;
-                  " />
-
-                  <p style="
-                    margin:0;
-                    font-size:14px;
-                    color:#cbd5e1;
-                  ">
-                    © 2026 SkilLoop. All rights reserved.
-                  </p>
-
-
-                </div>
-
-
-              </div>
-            `,
-    });
-
-    if (error) {
-      console.error("Resend Error:", error);
-
-      return new Response(
-        JSON.stringify({
+    if (req.method !== "POST") {
+      return jsonResponse(
+        {
           success: false,
-          error,
-        }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-          },
+          error:
+            "Method not allowed",
         },
+        405
       );
     }
 
-    // Admin notification email
-    try {
-      await resend.emails.send({
-        from: "SkilLoop <hello@mail.skil-loop.com>",
-        replyTo: "hello@skil-loop.com",
-        to: "hello@skil-loop.com",
-        subject: "🎉 New Waitlist Signup",
-        html: `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>🎉 New Waitlist Signup</h2>
+    // ========================================================
+    // READ WEBHOOK PAYLOAD
+    // ========================================================
 
-        <p><strong>Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Joined:</strong> ${new Date().toLocaleString()}</p>
+    const payload =
+      (await req.json()) as SupabaseWebhookPayload;
 
-        <hr />
+    console.log(
+      "Incoming Supabase payload:",
+      JSON.stringify(payload)
+    );
 
-        <p>A new user has joined the SkilLoop waitlist.</p>
-      </div>
-    `,
+    // ========================================================
+    // ONLY PROCESS INSERT
+    // ========================================================
+
+    if (
+      payload.type &&
+      payload.type !== "INSERT"
+    ) {
+      console.log(
+        `Ignoring event type: ${payload.type}`
+      );
+
+      return jsonResponse({
+        success: true,
+        message:
+          "Ignoring non-insert event",
       });
-    } catch (adminError) {
-      console.error("Admin notification failed:", adminError);
     }
 
-    console.log("Email sent successfully:", data);
+    // ========================================================
+    // GET RECORD
+    // ========================================================
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data,
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
+    const record =
+      payload.record;
+
+    if (!record) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Missing record in webhook payload",
         },
-      },
+        400
+      );
+    }
+
+    // ========================================================
+    // GET EMAIL
+    // ========================================================
+
+    const email =
+      typeof record.email === "string"
+        ? record.email
+            .trim()
+            .toLowerCase()
+        : "";
+
+    if (!email) {
+      console.error(
+        "Missing email in webhook record"
+      );
+
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Missing email",
+        },
+        400
+      );
+    }
+
+    // ========================================================
+    // GET NAME
+    // ========================================================
+
+    const fullName =
+      typeof record.full_name === "string"
+        ? record.full_name.trim()
+        : null;
+
+    const {
+      firstName,
+      lastName,
+    } = splitName(fullName);
+
+    console.log(
+      "Processing subscriber:",
+      {
+        id: record.id,
+        email,
+        fullName,
+        firstName,
+        lastName,
+      }
     );
-  } catch (error) {
-    console.error("Function Error:", error);
 
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
+    // ========================================================
+    // CREATE SUBSCRIBER HASH
+    // ========================================================
+
+    const subscriberHash =
+      await createSubscriberHash(
+        email
+      );
+
+    console.log(
+      "Subscriber hash generated successfully"
+    );
+
+    // ========================================================
+    // MAILCHIMP URL
+    // ========================================================
+
+    const mailchimpUrl =
+      `https://${MAILCHIMP_SERVER_PREFIX}.api.mailchimp.com/3.0/` +
+      `lists/${MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`;
+
+    // ========================================================
+    // MAILCHIMP AUTH
+    // ========================================================
+
+    const credentials =
+      btoa(
+        `key:${MAILCHIMP_API_KEY}`
+      );
+
+    // ========================================================
+    // MAILCHIMP REQUEST
+    // ========================================================
+
+    const mailchimpResponse =
+      await fetch(
+        mailchimpUrl,
+        {
+          method: "PUT",
+
+          headers: {
+            Authorization:
+              `Basic ${credentials}`,
+
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            email_address:
+              email,
+
+            status_if_new:
+              "subscribed",
+
+            merge_fields: {
+              FNAME:
+                firstName,
+
+              LNAME:
+                lastName,
+            },
+
+            tags: [
+              "waitlist",
+            ],
+          }),
+        }
+      );
+
+    // ========================================================
+    // PARSE MAILCHIMP RESPONSE
+    // ========================================================
+
+    let mailchimpData:
+      MailchimpResponse = {};
+
+    const responseText =
+      await mailchimpResponse.text();
+
+    if (responseText) {
+      try {
+        mailchimpData =
+          JSON.parse(
+            responseText
+          ) as MailchimpResponse;
+      } catch {
+        console.error(
+          "Could not parse Mailchimp response:",
+          responseText
+        );
+      }
+    }
+
+    // ========================================================
+    // HANDLE MAILCHIMP ERROR
+    // ========================================================
+
+    if (
+      !mailchimpResponse.ok
+    ) {
+      console.error(
+        "Mailchimp API error:",
+        {
+          status:
+            mailchimpResponse.status,
+
+          statusText:
+            mailchimpResponse.statusText,
+
+          response:
+            mailchimpData,
+        }
+      );
+
+      return jsonResponse(
+        {
+          success: false,
+
+          error:
+            mailchimpData.detail ||
+            mailchimpData.title ||
+            "Failed to sync subscriber with Mailchimp",
+
+          mailchimp: {
+            status:
+              mailchimpResponse.status,
+
+            title:
+              mailchimpData.title,
+
+            detail:
+              mailchimpData.detail,
+          },
         },
+        mailchimpResponse.status
+      );
+    }
+
+    // ========================================================
+    // MAILCHIMP SUCCESS
+    // ========================================================
+
+    console.log(
+      "Successfully synced with Mailchimp:",
+      {
+        email,
+
+        mailchimpId:
+          mailchimpData.id,
+
+        status:
+          mailchimpData.status,
+      }
+    );
+
+    // ========================================================
+    // UPDATE SUPABASE
+    // ========================================================
+
+    if (record.id !== undefined) {
+      const {
+        error: updateError,
+      } = await supabase
+        .from("waitlist")
+        .update({
+          mailchimp_synced:
+            true,
+
+          mailchimp_synced_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "id",
+          record.id
+        );
+
+      if (updateError) {
+        console.error(
+          "Failed to update sync status:",
+          updateError
+        );
+      } else {
+        console.log(
+          "Supabase sync status updated successfully"
+        );
+      }
+    }
+
+    // ========================================================
+    // SUCCESS
+    // ========================================================
+
+    return jsonResponse({
+      success: true,
+
+      message:
+        "Subscriber successfully synced with Mailchimp",
+
+      subscriber: {
+        id: record.id,
+        email,
+        fullName,
       },
+
+      mailchimp: {
+        id:
+          mailchimpData.id,
+
+        emailAddress:
+          mailchimpData.email_address,
+
+        status:
+          mailchimpData.status,
+      },
+    });
+  } catch (error) {
+    // ========================================================
+    // GLOBAL ERROR
+    // ========================================================
+
+    console.error(
+      "Mailchimp sync function error:",
+      error
+    );
+
+    return jsonResponse(
+      {
+        success: false,
+
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown error",
+      },
+      500
     );
   }
 });

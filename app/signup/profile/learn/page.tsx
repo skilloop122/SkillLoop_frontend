@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import {
   FileCode,
@@ -43,16 +44,17 @@ export default function LearnSkills() {
   const allSkills = [...apiSkills, ...customSkills.map((s) => ({ id: `custom-${s}`, name: s }))];
 
   const categories = [...new Set(apiSkills.map((s) => s.category).filter(Boolean))].sort();
-  const [skillCategory, setSkillCategory] = useState("all");
+  const [skillCategory, setSkillCategory] = useState("");
 
-  const visibleSkills =
-    skillCategory === "all"
-      ? allSkills
-      : skillCategory === "custom"
-        ? customSkills.map((s) => ({ id: `custom-${s}`, name: s }))
-        : allSkills.filter(
-            (s) => "category" in s && (s as { category?: string }).category === skillCategory && !s.id.startsWith("custom-")
-          );
+  const visibleSkills = (() => {
+    if (!skillCategory) return [];
+    if (skillCategory === "custom") {
+      return customSkills.map((s) => ({ id: `custom-${s}`, name: s }));
+    }
+    return allSkills.filter(
+      (s) => "category" in s && (s as { category?: string }).category === skillCategory && !s.id.startsWith("custom-")
+    );
+  })();
 
   const getSkillKey = (s: { id: string; name: string }) => s.id;
   const getSkillName = (s: { id: string; name: string }) => s.name;
@@ -184,7 +186,24 @@ export default function LearnSkills() {
       </div>
 
       {/* ── Body ── */}
-      <div className="relative z-10 w-full max-w-150 mx-auto flex-1 flex flex-col gap-6">
+      <div className="relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col gap-6">
+
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+
+          <div className="hidden lg:flex items-center justify-center order-2 lg:order-1">
+            <div className="relative w-full max-w-md aspect-square overflow-hidden rounded-[40px] shadow-2xl">
+              <Image
+                src="/hero_collaboration.png"
+                alt="SkilLoop Skills Collaboration"
+                fill
+                priority
+                quality={95}
+                className="object-cover object-center select-none"
+              />
+            </div>
+          </div>
+
+          <div className="w-full space-y-6 order-1 lg:order-2">
 
         {/* Section heading */}
         <div className="space-y-1.5">
@@ -206,14 +225,21 @@ export default function LearnSkills() {
             <div className="flex items-center gap-3">
               <label className="block flex-1">
                 <span className="mb-1.5 block text-sm font-semibold text-slate-500">
-                  Filter by Category
+                  Select Category
                 </span>
                 <select
                   value={skillCategory}
-                  onChange={(e) => setSkillCategory(e.target.value)}
+                  onChange={(e) => {
+                    setSkillCategory(e.target.value);
+                    setSelectedSkills((prev) =>
+                      prev.filter((s) =>
+                        visibleSkills.some((vs) => vs.name === s)
+                      )
+                    );
+                  }}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 >
-                  <option value="all">All Categories</option>
+                  <option value="">Select a category</option>
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -222,6 +248,11 @@ export default function LearnSkills() {
               </label>
             </div>
 
+            {!skillCategory ? (
+              <p className="text-sm text-slate-400">Select a category to see available skills.</p>
+            ) : visibleSkills.length === 0 ? (
+              <p className="text-sm text-slate-400">No skills in this category.</p>
+            ) : (
             <div className="flex flex-wrap gap-2.5">
               <AnimatePresence>
                 {visibleSkills.filter((s) => s.name).map((skill) => {
@@ -249,6 +280,7 @@ export default function LearnSkills() {
               })}
             </AnimatePresence>
           </div>
+            )}
           </>
         )}
 
@@ -277,7 +309,8 @@ export default function LearnSkills() {
             </button>
           </div>
         </div>
-
+          </div>
+        </div>
       </div>
 
       {/* ── Find Matches Button — pill shape ── */}
