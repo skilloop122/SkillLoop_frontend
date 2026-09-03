@@ -438,7 +438,7 @@ export default function ProfileSetup() {
                           }))
                         }
                         className={`w-full rounded-[8px] border px-3 py-2 text-base outline-none ${expError ? "border-red-500 text-red-500 focus:border-red-600" : "border-slate-500 text-gray-500"}`}
-                        placeholder="2"
+                        placeholder="e.g: 2"
                       />
                     </label>
 

@@ -20,6 +20,7 @@ import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
 import { useToast } from "../../../hooks/useToast";
+import { SideNav } from "../../../components/SideNav";
 import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
 import { Suspense } from "react";
@@ -184,7 +185,9 @@ function RequestSessionContent() {
   const fullName = profile ? `${profile.firstName} ${profile.lastName}` : "User";
 
   return (
-    <div className="min-h-screen bg-white font-sans pb-10">
+    <>
+      <SideNav />
+      <div className="min-h-screen bg-white font-sans pb-10 md:ml-64">
       <div className="w-full max-w-md md:max-w-6xl md:pt-16  mx-auto px-5 pt-12">
         <button
           type="button"
@@ -511,6 +514,7 @@ function RequestSessionContent() {
 
       {toastElement}
     </div>
+    </>
   );
 }
 
