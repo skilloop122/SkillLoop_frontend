@@ -15,6 +15,12 @@ import {
   Atom,
   Terminal,
   Cpu,
+  Award,
+  GraduationCap,
+  Link2,
+  User,
+  Pencil,
+  ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useProfileStore } from "../../../lib/profileStore";
@@ -60,8 +66,6 @@ export default function PreviewProfilePage() {
   const learnSkills = profile?.learnSkills.map(s => s.name) || [];
   const bio = profile?.bio || "";
 
-  const initials = (profile?.firstName?.[0] ?? "?").toUpperCase() + (profile?.lastName?.[0] ?? "").toUpperCase();
-
   return (
     <div className="relative min-h-screen bg-sky-50 font-sans flex text-black overflow-hidden">
       {/* Scattered tech icons background */}
@@ -98,78 +102,76 @@ export default function PreviewProfilePage() {
             className="object-cover"
           />
           <div className="absolute inset-0 bg-black/10" />
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="absolute top-5 left-5 z-10 flex h-11 w-11 items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm shadow-md hover:bg-white transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5 text-black" />
+          </button>
+          <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent px-8 pt-24 pb-8">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+              {fullName}
+            </h1>
+            <div className="mt-2 flex items-center gap-3">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-white/90 backdrop-blur px-2.5 py-1 text-sm">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-medium text-slate-700">4.7 Rating</span>
+              </span>
+              <span className="text-sm text-white/80">122 Reviews</span>
+            </div>
+          </div>
         </div>
 
         {/* Right: Details */}
         <div className="w-full md:w-1/2 flex flex-col justify-center px-6 py-10 md:px-12 md:py-16 overflow-y-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
-                <span className="text-3xl font-bold text-sky-600">
-                  {initials}
-                </span>
+          <div className="grid grid-cols-1 gap-5">
+            {/* About */}
+            <InfoCard title="About" icon={<User size={18} />}>
+              <p className="text-slate-600 leading-relaxed">
+                {bio || "No bio available."}
+              </p>
+            </InfoCard>
+
+            {/* Teaches */}
+            <InfoCard title="Teaches" icon={<Award size={18} />}>
+              <ChipList items={teachSkills} variant="sky" />
+            </InfoCard>
+
+            {/* Wants to learn */}
+            <InfoCard title="Wants to learn" icon={<GraduationCap size={18} />}>
+              <ChipList items={learnSkills} variant="violet" />
+            </InfoCard>
+
+            {/* Links */}
+            <InfoCard title="Links" icon={<Link2 size={18} />}>
+              <div className="flex flex-col gap-2">
+                <LinkItem href={profile?.linkedinUrl} label="LinkedIn" />
+                <LinkItem href={profile?.githubUrl} label="GitHub" />
+                <LinkItem href={profile?.twitterUrl} label="Twitter / X" />
+                <LinkItem href={profile?.portfolioUrl} label="Portfolio" />
               </div>
-              <div>
-                <h1 className="text-[28px] font-semibold text-black leading-tight">
-                  {fullName}
-                </h1>
-                <p className="text-[16px] text-slate-500">User Profile</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[14px]">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-medium text-slate-700">4.7 Rating</span>
-              </div>
-              <span className="text-[14px] text-slate-400">122 Reviews</span>
-            </div>
+              {!profile?.linkedinUrl && !profile?.githubUrl && !profile?.twitterUrl && !profile?.portfolioUrl && (
+                <p className="text-sm text-slate-400">No links added.</p>
+              )}
+            </InfoCard>
           </div>
 
-          {/* About */}
-          <section className="mb-6">
-            <h2 className="mb-1.5 text-[18px] font-semibold text-black">About</h2>
-            <p className="text-[15px] text-slate-600 leading-relaxed">
-              {bio || "No bio available."}
-            </p>
-          </section>
-
-          {/* Teaches */}
-          <section className="mb-6">
-            <h2 className="mb-2 text-[18px] font-semibold text-black">Teaches</h2>
-            <ChipList items={teachSkills} />
-          </section>
-
-          {/* Wants to learn */}
-          <section className="mb-6">
-            <h2 className="mb-2 text-[18px] font-semibold text-black">Wants to learn</h2>
-            <ChipList items={learnSkills} />
-          </section>
-
-          {/* Links */}
-          <section className="mb-8">
-            <h2 className="mb-2 text-[18px] font-semibold text-black">Links</h2>
-            <div className="flex flex-col gap-2">
-              <LinkItem href={profile?.linkedinUrl} label="LinkedIn" />
-              <LinkItem href={profile?.githubUrl} label="GitHub" />
-              <LinkItem href={profile?.twitterUrl} label="Twitter / X" />
-              <LinkItem href={profile?.portfolioUrl} label="Portfolio" />
-            </div>
-          </section>
-
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="mt-8 flex gap-3">
             <button
               type="button"
               onClick={() => router.push("/profile/edit")}
-              className="flex-1 rounded-[12px] bg-[#0ea5e9] py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 transition-colors"
+              className="flex-1 rounded-2xl bg-sky-500 hover:bg-sky-600 py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 transition-colors flex items-center justify-center gap-2"
             >
+              <Pencil size={16} />
               Edit Profile
             </button>
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 rounded-[12px] border border-slate-200 bg-white py-3.5 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              className="flex-1 rounded-2xl border border-slate-200 bg-white py-3.5 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               Back
             </button>
@@ -177,6 +179,20 @@ export default function PreviewProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function InfoCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-500">
+          {icon}
+        </span>
+        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -196,14 +212,19 @@ function LinkItem({ href, label }: { href?: string; label: string }) {
   );
 }
 
-function ChipList({ items }: { items: string[] }) {
+const chipVariants = {
+  sky: "bg-linear-to-b from-[#0ea5e9] to-[#11688b]",
+  violet: "bg-linear-to-b from-violet-500 to-purple-700",
+};
+
+function ChipList({ items, variant = "sky" }: { items: string[]; variant?: "sky" | "violet" }) {
   if (items.length === 0) return <p className="text-[14px] text-slate-400">None added yet.</p>;
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item, index) => (
         <span
           key={index}
-          className="rounded-lg bg-linear-to-b from-[#0ea5e9] to-[#0c7aa5] px-3 py-1.5 text-[14px] text-white"
+          className={`rounded-lg ${chipVariants[variant]} px-3 py-1.5 text-[14px] font-semibold text-white shadow-sm`}
         >
           {item}
         </span>

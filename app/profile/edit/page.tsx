@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { Camera, X, Loader2, Plus, CalendarDays } from "lucide-react";
+import { Camera, X, Loader2, CalendarDays, ArrowLeft, Award, GraduationCap, User, Link2, Save } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useProfileStore, UpdateProfilePayload, Skill, Schedule, UserProfile } from "../../../lib/profileStore";
 import { useAuthStore } from "../../../lib/authStore";
 import { useSkillsStore } from "../../../lib/skillsStore";
+import { SideNav } from "../../../components/SideNav";
 
 const DAYS = [
   "Monday",
@@ -69,12 +70,12 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   const [learnSkills, setLearnSkills] = useState<string[]>(
     profile.learnSkills.map((s) => (typeof s === "string" ? s : s.name))
   );
-  const [teachCustomInput, setTeachCustomInput] = useState("");
-  const [learnCustomInput, setLearnCustomInput] = useState("");
-  const [customTeachSkills, setCustomTeachSkills] = useState<string[]>([]);
-  const [customLearnSkills, setCustomLearnSkills] = useState<string[]>([]);
-  const [teachCategory, setTeachCategory] = useState("all");
-  const [learnCategory, setLearnCategory] = useState("all");
+  // const [teachCustomInput, setTeachCustomInput] = useState("");
+  // const [learnCustomInput, setLearnCustomInput] = useState("");
+  const customTeachSkills:string[] = [];
+  const customLearnSkills:string[] = [];
+  const [teachCategory, setTeachCategory] = useState("");
+  const [learnCategory, setLearnCategory] = useState("");
   const [selectedDays, setSelectedDays] = useState<string[]>(initialDays);
   const [timeRanges, setTimeRanges] = useState<Record<string, TimeRange>>(initialRanges);
   const [activeDay, setActiveDay] = useState(initialDays.length > 0 ? initialDays[0] : "");
@@ -84,23 +85,25 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
 
   const skillCategories = [...new Set(apiSkills.map((s) => s.category).filter(Boolean))].sort();
 
-  const visibleTeachSkills =
-    teachCategory === "all"
-      ? allTeachSkills
-      : teachCategory === "custom"
-        ? customTeachSkills.map((s) => ({ id: `custom-${s}`, name: s }))
-        : allTeachSkills.filter(
-            (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === teachCategory
-          );
+  const visibleTeachSkills = (() => {
+    if (!teachCategory) return [];
+    if (teachCategory === "custom") {
+      return customTeachSkills.map((s) => ({ id: `custom-${s}`, name: s }));
+    }
+    return allTeachSkills.filter(
+      (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === teachCategory
+    );
+  })();
 
-  const visibleLearnSkills =
-    learnCategory === "all"
-      ? allLearnSkills
-      : learnCategory === "custom"
-        ? customLearnSkills.map((s) => ({ id: `custom-${s}`, name: s }))
-        : allLearnSkills.filter(
-            (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === learnCategory
-          );
+  const visibleLearnSkills = (() => {
+    if (!learnCategory) return [];
+    if (learnCategory === "custom") {
+      return customLearnSkills.map((s) => ({ id: `custom-${s}`, name: s }));
+    }
+    return allLearnSkills.filter(
+      (s) => !s.id.startsWith("custom-") && "category" in s && (s as { category?: string }).category === learnCategory
+    );
+  })();
 
   const handleUpdate = (field: keyof UpdateProfilePayload, value: string | (string | Skill)[] | undefined) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -118,29 +121,29 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
     );
   };
 
-  const addCustom = (type: "teach" | "learn") => {
-    const input = type === "teach" ? teachCustomInput : learnCustomInput;
-    const trimmed = input.trim();
-    if (!trimmed) return;
-    const pool = type === "teach" ? allTeachSkills : allLearnSkills;
-    if (pool.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) return;
-    if (type === "teach") {
-      setCustomTeachSkills((prev) => [...prev, trimmed]);
-      setTeachSkills((prev) => [...prev, trimmed]);
-      setTeachCustomInput("");
-    } else {
-      setCustomLearnSkills((prev) => [...prev, trimmed]);
-      setLearnSkills((prev) => [...prev, trimmed]);
-      setLearnCustomInput("");
-    }
-  };
+  // const addCustom = (type: "teach" | "learn") => {
+  //   const input = type === "teach" ? teachCustomInput : learnCustomInput;
+  //   const trimmed = input.trim();
+  //   if (!trimmed) return;
+  //   const pool = type === "teach" ? allTeachSkills : allLearnSkills;
+  //   if (pool.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) return;
+  //   if (type === "teach") {
+  //     setCustomTeachSkills((prev) => [...prev, trimmed]);
+  //     setTeachSkills((prev) => [...prev, trimmed]);
+  //     setTeachCustomInput("");
+  //   } else {
+  //     setCustomLearnSkills((prev) => [...prev, trimmed]);
+  //     setLearnSkills((prev) => [...prev, trimmed]);
+  //     setLearnCustomInput("");
+  //   }
+  // };
 
-  const handleCustomKeyDown = (e: React.KeyboardEvent, type: "teach" | "learn") => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addCustom(type);
-    }
-  };
+  // const handleCustomKeyDown = (e: React.KeyboardEvent, type: "teach" | "learn") => {
+  //   if (e.key === "Enter") {
+  //     e.preventDefault();
+  //     addCustom(type);
+  //   }
+  // };
 
   const toggleDay = (day: string) => {
     setSelectedDays((prev) => {
@@ -222,15 +225,20 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       endTime: timeRanges[row.day].end,
     }));
 
+    // Normalize optional fields: treat null/empty as "not set" (omitted from payload)
+    // so the backend doesn't reject the empty URL fields.
+    const emptyToUndefined = (v?: string | null) =>
+      v === null || v === undefined || v.trim() === "" ? undefined : v;
+
     const payload: UpdateProfilePayload = {
-      bio: draft.bio,
-      phoneNumber: draft.phoneNumber,
-      email: draft.email,
-      avatarUrl: draft.avatarUrl,
-      linkedinUrl: draft.linkedinUrl,
-      githubUrl: draft.githubUrl,
-      twitterUrl: draft.twitterUrl,
-      portfolioUrl: draft.portfolioUrl,
+      bio: emptyToUndefined(draft.bio),
+      phoneNumber: emptyToUndefined(draft.phoneNumber),
+      email: emptyToUndefined(draft.email),
+      avatarUrl: emptyToUndefined(draft.avatarUrl),
+      linkedinUrl: emptyToUndefined(draft.linkedinUrl),
+      githubUrl: emptyToUndefined(draft.githubUrl),
+      twitterUrl: emptyToUndefined(draft.twitterUrl),
+      portfolioUrl: emptyToUndefined(draft.portfolioUrl),
       teachSkills,
       learnSkills,
       schedule,
@@ -250,85 +258,93 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   };
 
   return (
-    <div className="min-h-screen bg-white px-5 pt-24 pb-10 font-sans text-black">
+    <>
+      <SideNav />
+<div className="min-h-screen bg-slate-50 px-5 pt-24 pb-10 font-sans text-black md:ml-64">
       <div className="mx-auto w-full max-w-md md:max-w-6xl">
-        <section className="mb-10 flex justify-center">
-          <div className="relative h-42 w-42">
-            {draft.avatarUrl ? (
-              <div className="relative h-full w-full overflow-hidden rounded-full border-[6px] border-slate-200 bg-slate-100">
-                <Image
-                  src={draft.avatarUrl}
-                  alt="Profile"
-                  fill
-                  priority
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="h-full w-full rounded-full bg-sky-100 flex items-center justify-center shrink-0 border-[6px] border-slate-200">
-                <span className="text-6xl font-bold text-sky-600">
-                  {user?.firstName?.[0]?.toUpperCase() ?? "?"}
-                  {user?.lastName?.[0]?.toUpperCase() ?? ""}
-                </span>
-              </div>
-            )}
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-2 flex h-11 w-11 items-center justify-center rounded-[6px] bg-sky-300 text-white ring-4 ring-white"
-            >
-              <Camera className="h-6 w-6" />
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleImageUpload} 
-            />
+        <div className="mb-10 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Edit Profile</h1>
+            <p className="text-sm font-medium text-slate-500 mt-1">Update your information and availability</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-10 h-10 border border-[#0ea5e9] rounded-lg flex items-center justify-center hover:bg-sky-50 transition-colors shrink-0"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Profile photo card */}
+        <section className="mb-6 rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative h-28 w-28 shrink-0">
+              {draft.avatarUrl ? (
+                <div className="relative h-full w-full overflow-hidden rounded-full border-[6px] border-slate-100 bg-slate-100">
+                  <Image
+                    src={draft.avatarUrl}
+                    alt="Profile"
+                    fill
+                    priority
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-full w-full rounded-full bg-linear-to-br from-sky-400 to-blue-500 flex items-center justify-center shrink-0 border-[6px] border-slate-100 shadow-inner">
+                  <span className="text-5xl font-bold text-white">
+                    {user?.firstName?.[0]?.toUpperCase() ?? "?"}
+                    {user?.lastName?.[0]?.toUpperCase() ?? ""}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-1 flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-white ring-4 ring-white hover:bg-sky-600 transition-colors"
+                aria-label="Change photo"
+              >
+                <Camera className="h-5 w-5" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <h2 className="text-xl font-bold text-slate-900">
+                {user?.firstName ?? "Profile"} {user?.lastName ?? ""}
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Tap the camera icon to change your photo</p>
+            </div>
           </div>
         </section>
 
-        <div className="space-y-5">
-          <div className="block">
-            <span className="mb-2 block text-[16px] font-medium text-slate-500">Bio</span>
-            <textarea
-              value={draft.bio ?? ""}
-              onChange={(e) => handleUpdate("bio", e.target.value)}
-              className="w-full rounded-[18px] bg-white px-4 py-4 text-[16px] shadow-[0_10px_24px_rgba(0,0,0,0.16)] outline-none min-h-30"
+        {/* Basic info */}
+        <InfoCard title="Personal Info" icon={<User size={18} />}>
+          <div className="space-y-4">
+            <div className="block">
+              <span className="mb-2 block text-[16px] font-medium text-slate-500">Bio</span>
+              <textarea
+                value={draft.bio ?? ""}
+                onChange={(e) => handleUpdate("bio", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[16px] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 min-h-28 resize-none"
+              />
+            </div>
+            <Input
+              label="Phone Number"
+              value={draft.phoneNumber ?? ""}
+              onChange={(v) => handleUpdate("phoneNumber", v)}
             />
           </div>
-          <Input
-            label="Phone Number"
-            value={draft.phoneNumber ?? ""}
-            onChange={(v) => handleUpdate("phoneNumber", v)}
-          />
-          <Input
-            label="LinkedIn URL"
-            value={draft.linkedinUrl ?? ""}
-            onChange={(v) => handleUpdate("linkedinUrl", v)}
-          />
-          <Input
-            label="Github URL"
-            value={draft.githubUrl ?? ""}
-            onChange={(v) => handleUpdate("githubUrl", v)}
-          />
-          <Input
-            label="Twitter / X URL"
-            value={draft.twitterUrl ?? ""}
-            onChange={(v) => handleUpdate("twitterUrl", v)}
-          />
-          <Input
-            label="Portfolio URL"
-            value={draft.portfolioUrl ?? ""}
-            onChange={(v) => handleUpdate("portfolioUrl", v)}
-          />
-        </div>
+        </InfoCard>
 
         {/* Skills to Teach */}
-        <section className="mt-9">
-          <h2 className="mb-1 text-[26px] font-normal">Skills to Teach</h2>
-          <p className="text-sm text-slate-400 mb-3">Select skills you can teach others</p>
-
+        <InfoCard title="Skills to Teach" icon={<Award size={18} />}>
+          <p className="text-sm text-slate-400 mb-4">Select skills you can teach others</p>
           {skillsLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 size={24} className="animate-spin text-sky-500" />
@@ -336,13 +352,13 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
           ) : (
             <>
               <label className="block mb-3 max-w-md">
-                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Filter by Category</span>
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Select Category</span>
                 <select
                   value={teachCategory}
                   onChange={(e) => setTeachCategory(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 >
-                  <option value="all">All Categories</option>
+                  <option value="">Select a category</option>
                   {skillCategories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -350,6 +366,11 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                 </select>
               </label>
 
+              {!teachCategory ? (
+                <p className="text-sm text-slate-400 max-w-md">Select a category to see available skills.</p>
+              ) : visibleTeachSkills.length === 0 ? (
+                <p className="text-sm text-slate-400 max-w-md">No skills in this category.</p>
+              ) : (
               <div className="flex flex-wrap gap-2.5">
                 <AnimatePresence>
                   {visibleTeachSkills.filter((s) => s.name).map((skill) => {
@@ -365,7 +386,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                         transition={{ type: "spring", stiffness: 420, damping: 30 }}
                         className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
                           ? "bg-sky-500 text-white shadow-sky-200"
-                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                           }`}
                       >
                         {skill.name}
@@ -374,35 +395,14 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                   })}
                 </AnimatePresence>
               </div>
+              )}
             </>
           )}
-
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)] focus-within:border-sky-300 transition-all">
-              <input
-                type="text"
-                value={teachCustomInput}
-                onChange={(e) => setTeachCustomInput(e.target.value)}
-                onKeyDown={(e) => handleCustomKeyDown(e, "teach")}
-                placeholder="Add custom skill"
-                className="w-full bg-transparent text-slate-800 font-medium text-sm outline-hidden"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => addCustom("teach")}
-              className="w-12 h-12 rounded-2xl bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center shadow-lg shadow-sky-300/40 active:scale-95 transition-all shrink-0"
-            >
-              <Plus size={22} strokeWidth={2.5} />
-            </button>
-          </div>
-        </section>
+        </InfoCard>
 
         {/* Learning Goals */}
-        <section className="mt-9">
-          <h2 className="mb-1 text-[26px] font-normal">Learning Goals</h2>
-          <p className="text-sm text-slate-400 mb-3">Select skills you want to learn</p>
-
+        <InfoCard title="Learning Goals" icon={<GraduationCap size={18} />}>
+          <p className="text-sm text-slate-400 mb-4">Select skills you want to learn</p>
           {skillsLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 size={24} className="animate-spin text-sky-500" />
@@ -410,13 +410,13 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
           ) : (
             <>
               <label className="block mb-3 max-w-md">
-                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Filter by Category</span>
+                <span className="mb-1.5 block text-sm font-semibold text-slate-500">Select Category</span>
                 <select
                   value={learnCategory}
                   onChange={(e) => setLearnCategory(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 >
-                  <option value="all">All Categories</option>
+                  <option value="">Select a category</option>
                   {skillCategories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -424,6 +424,11 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                 </select>
               </label>
 
+              {!learnCategory ? (
+                <p className="text-sm text-slate-400 max-w-md">Select a category to see available skills.</p>
+              ) : visibleLearnSkills.length === 0 ? (
+                <p className="text-sm text-slate-400 max-w-md">No skills in this category.</p>
+              ) : (
               <div className="flex flex-wrap gap-2.5">
                 <AnimatePresence>
                   {visibleLearnSkills.filter((s) => s.name).map((skill) => {
@@ -438,8 +443,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                         exit={{ opacity: 0, scale: 0.85 }}
                         transition={{ type: "spring", stiffness: 420, damping: 30 }}
                         className={`px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 active:scale-95 shadow-sm ${isSelected
-                          ? "bg-sky-500 text-white shadow-sky-200"
-                          : "bg-[#c1c1c1] text-[#000000]/50 hover:bg-slate-300"
+                          ? "bg-violet-500 text-white shadow-violet-200"
+                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                           }`}
                       >
                         {skill.name}
@@ -448,34 +453,47 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                   })}
                 </AnimatePresence>
               </div>
+              )}
             </>
           )}
+        </InfoCard>
 
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)] focus-within:border-sky-300 transition-all">
-              <input
-                type="text"
-                value={learnCustomInput}
-                onChange={(e) => setLearnCustomInput(e.target.value)}
-                onKeyDown={(e) => handleCustomKeyDown(e, "learn")}
-                placeholder="Add custom goal"
-                className="w-full bg-transparent text-slate-800 font-medium text-sm outline-hidden"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => addCustom("learn")}
-              className="w-12 h-12 rounded-2xl bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center shadow-lg shadow-sky-300/40 active:scale-95 transition-all shrink-0"
-            >
-              <Plus size={22} strokeWidth={2.5} />
-            </button>
+        {/* Links */}
+        <InfoCard title="Links" icon={<Link2 size={18} />}>
+          <p className="text-sm text-slate-400 mb-4">Share your online profiles</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              label="LinkedIn URL"
+              value={draft.linkedinUrl ?? ""}
+              onChange={(v) => handleUpdate("linkedinUrl", v)}
+            />
+            <Input
+              label="Github URL"
+              value={draft.githubUrl ?? ""}
+              onChange={(v) => handleUpdate("githubUrl", v)}
+            />
+            <Input
+              label="Twitter / X URL"
+              value={draft.twitterUrl ?? ""}
+              onChange={(v) => handleUpdate("twitterUrl", v)}
+            />
+            <Input
+              label="Portfolio URL"
+              value={draft.portfolioUrl ?? ""}
+              onChange={(v) => handleUpdate("portfolioUrl", v)}
+            />
           </div>
-        </section>
+        </InfoCard>
 
         {/* Availability */}
-        <section className="mt-9">
-          <h2 className="mb-1 text-[26px] font-normal">Availability</h2>
-          <p className="text-sm text-slate-400 mb-3">Select the days and times that work for you</p>
+        <section className="rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100">
+          <div className="mb-4 flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-500">
+              <CalendarDays size={18} />
+            </span>
+            <h2 className="text-lg font-bold text-slate-900">Availability</h2>
+          </div>
+          <p className="text-sm text-slate-400 mb-4">Select the days and times that work for you</p>
 
           <div className="flex flex-wrap gap-3">
             {DAYS.map((day) => {
@@ -569,9 +587,10 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
           type="button"
           onClick={saveChanges}
           disabled={loading}
-          className="mt-8 w-full rounded-[18px] bg-[#0ea5e9] py-4 text-[16px] font-semibold text-white shadow-xl shadow-sky-500/25 flex items-center justify-center"
+          className="mt-8 w-full rounded-2xl bg-linear-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 py-4 text-base font-semibold text-white shadow-xl shadow-sky-500/25 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Save Changes"}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save size={18} />}
+          {loading ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
@@ -581,6 +600,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -632,8 +652,22 @@ function Input({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[18px] bg-white px-4 py-4 text-[16px] shadow-[0_10px_24px_rgba(0,0,0,0.16)] outline-none"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[16px] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
       />
     </label>
+  );
+}
+
+function InfoCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="mb-6 rounded-2xl bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-slate-100">
+      <div className="mb-4 flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-500">
+          {icon}
+        </span>
+        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      </div>
+      {children}
+    </section>
   );
 }
