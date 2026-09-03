@@ -225,15 +225,20 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       endTime: timeRanges[row.day].end,
     }));
 
+    // Normalize optional fields: treat null/empty as "not set" (omitted from payload)
+    // so the backend doesn't reject the empty URL fields.
+    const emptyToUndefined = (v?: string | null) =>
+      v === null || v === undefined || v.trim() === "" ? undefined : v;
+
     const payload: UpdateProfilePayload = {
-      bio: draft.bio,
-      phoneNumber: draft.phoneNumber,
-      email: draft.email,
-      avatarUrl: draft.avatarUrl,
-      linkedinUrl: draft.linkedinUrl,
-      githubUrl: draft.githubUrl,
-      twitterUrl: draft.twitterUrl,
-      portfolioUrl: draft.portfolioUrl,
+      bio: emptyToUndefined(draft.bio),
+      phoneNumber: emptyToUndefined(draft.phoneNumber),
+      email: emptyToUndefined(draft.email),
+      avatarUrl: emptyToUndefined(draft.avatarUrl),
+      linkedinUrl: emptyToUndefined(draft.linkedinUrl),
+      githubUrl: emptyToUndefined(draft.githubUrl),
+      twitterUrl: emptyToUndefined(draft.twitterUrl),
+      portfolioUrl: emptyToUndefined(draft.portfolioUrl),
       teachSkills,
       learnSkills,
       schedule,
