@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Folder,
@@ -13,8 +13,10 @@ import {
   BarChart3,
   Activity,
   Search,
-  MessageSquare,
   Plus,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -26,44 +28,82 @@ import {
   Tooltip,
 } from "recharts";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
+import { useAdminProjectStore } from "@/lib/adminProjectStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { useToast } from "@/hooks/useToast";
 
 interface ProjectListing {
   id: string;
-  name: string;
+  title: string;
   category: string;
-  members: number;
-  status: "active" | "completed" | "canceled";
+  status: string;
   startDate: string;
+  deadline?: string;
+  endDate?: string;
+  createdAt?: string;
+  created_at?: string;
+  created?: string;
+  userId?: string;
+  members?: number;
 }
 
-const SAMPLE_PROJECTS: ProjectListing[] = [
-  { id: "P-101", name: "E-Commerce Redesign", category: "UI/UX Design", members: 4, status: "active", startDate: "2026-06-15" },
-  { id: "P-102", name: "Python API Integration", category: "Backend Dev", members: 2, status: "completed", startDate: "2026-06-01" },
-  { id: "P-103", name: "React Native App", category: "Mobile Dev", members: 3, status: "active", startDate: "2026-06-20" },
-  { id: "P-104", name: "Marketing Campaign Asset", category: "Design", members: 1, status: "canceled", startDate: "2026-05-10" },
-  { id: "P-105", name: "Data Pipeline Setup", category: "Data Science", members: 2, status: "completed", startDate: "2026-06-05" },
-];
+function projectEndDate(item: ProjectListing): string {
+  return (item.endDate ?? item.deadline ?? "") as string;
+}
 
-const PROJECT_TRENDS = [
-  { day: "Mon", projects: 2 },
-  { day: "Tue", projects: 4 },
-  { day: "Wed", projects: 3 },
-  { day: "Thu", projects: 6 },
-  { day: "Fri", projects: 5 },
-  { day: "Sat", projects: 8 },
-  { day: "Sun", projects: 7 },
-];
+export function buildProjectTrends(items: ProjectListing[]): { day: string; projects: number }[] {
+  const days: { key: string; label: string }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    days.push({
+      key: d.toDateString(),
+      label: d.toLocaleDateString("en-US", { weekday: "short" }),
+    });
+  }
+
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    const record = item as unknown as Record<string, unknown>;
+    const raw =
+      record.createdAt ??
+      record.created_at ??
+      record.created ??
+      item.startDate;
+    if (!raw) continue;
+    const date = new Date(String(raw));
+    if (Number.isNaN(date.getTime())) continue;
+    const key = date.toDateString();
+    const day = days.find((d) => d.key === key);
+    if (!day) continue;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  return days.map((d) => ({ day: d.label, projects: counts[d.key] ?? 0 }));
+}
 
 export default function AdminProjectsPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
+  const { getProjects, deleteProject } = useAdminProjectStore();
+  const { toastElement, showToast } = useToast();
   
-  const [projectsList] = useState<ProjectListing[]>(SAMPLE_PROJECTS);
+  const [projectsList, setProjectsList] = useState<ProjectListing[]>([]);
+  const [totalProjectsCount, setTotalProjectsCount] = useState(0);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+
+  const [categories, setCategories] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [projectTrends, setProjectTrends] = useState<{ day: string; projects: number }[]>([]);
 
   useEffect(() => {
     if (hydrated && !token) {
@@ -71,31 +111,109 @@ export default function AdminProjectsPage() {
     }
   }, [hydrated, token, router]);
 
-  // Derived mock metrics
-  const totalProjects = projectsList.length;
-  const activeProjects = projectsList.filter((p) => p.status === "active").length;
-  const completedProjects = projectsList.filter((p) => p.status === "completed").length;
-  const canceledProjects = projectsList.filter((p) => p.status === "canceled").length;
+  const fetchProjectsData = useCallback(async () => {
+    if (!token) return;
+    setLoadingProjects(true);
+    const result = await getProjects(token, {
+      page,
+      limit,
+      search: search || undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      category: categoryFilter !== "all" ? categoryFilter : undefined,
+    });
+
+    if (result.success && result.data) {
+      const raw = result.data;
+      const items: ProjectListing[] = Array.isArray(raw)
+        ? (raw as ProjectListing[])
+        : ((raw.projects ?? raw.data ?? raw.items ?? []) as ProjectListing[]);
+      const total: number = Number(raw.total ?? raw.count ?? items.length);
+      setProjectsList(items);
+      setTotalProjectsCount(total);
+
+      if (categories.length === 0) {
+        const cats = new Set(items.map((i) => i.category).filter(Boolean));
+        setCategories(Array.from(cats) as string[]);
+      }
+    } else {
+      showToast(result.message || "Failed to load projects");
+    }
+    setLoadingProjects(false);
+  }, [token, page, limit, search, statusFilter, categoryFilter, getProjects, categories.length, showToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!token) return;
+      const result = await getProjects(token, {
+        page,
+        limit,
+        search: search || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        category: categoryFilter !== "all" ? categoryFilter : undefined,
+      });
+      if (cancelled) return;
+      if (result.success && result.data) {
+        const raw = result.data;
+        const items: ProjectListing[] = Array.isArray(raw)
+          ? (raw as ProjectListing[])
+          : ((raw.projects ?? raw.data ?? raw.items ?? []) as ProjectListing[]);
+        const total: number = Number(raw.total ?? raw.count ?? items.length);
+        setProjectsList(items);
+        setTotalProjectsCount(total);
+        if (categories.length === 0) {
+          const cats = new Set(items.map((i) => i.category).filter(Boolean));
+          setCategories(Array.from(cats) as string[]);
+        }
+      } else {
+        showToast(result.message || "Failed to load projects");
+      }
+      setLoadingProjects(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, page, limit, search, statusFilter, categoryFilter, showToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!token) return;
+      const result = await getProjects(token, { limit: 1000 });
+      if (cancelled) return;
+      if (result.success && result.data) {
+        const raw = result.data;
+        const items: ProjectListing[] = Array.isArray(raw)
+          ? (raw as ProjectListing[])
+          : ((raw.projects ?? raw.data ?? raw.items ?? []) as ProjectListing[]);
+        setProjectTrends(buildProjectTrends(items));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token, getProjects]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (!token) return;
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    setDeletingId(id);
+    const result = await deleteProject(token, id);
+    setDeletingId(null);
+    if (result.success) {
+      showToast("Project deleted");
+      fetchProjectsData();
+    } else {
+      showToast(result.message || "Failed to delete project");
+    }
+  }, [token, deleteProject, fetchProjectsData, showToast]);
+
+  // Derived metrics from the current paginated view
+  const totalProjects = totalProjectsCount;
+  const activeProjects = projectsList.filter((p) => p.status?.toLowerCase() === "active" || p.status?.toLowerCase() === "in_progress").length;
+  const completedProjects = projectsList.filter((p) => p.status?.toLowerCase() === "completed").length;
+  const canceledProjects = projectsList.filter((p) => p.status?.toLowerCase() === "canceled" || p.status?.toLowerCase() === "failed").length;
 
   const completionRate = totalProjects > 0 
     ? ((completedProjects / totalProjects) * 100).toFixed(0) 
     : "0";
-
-  // Categories for filter
-  const categories = useMemo(() => {
-    const cats = new Set(projectsList.map((p) => p.category));
-    return Array.from(cats);
-  }, [projectsList]);
-
-  const filteredProjects = useMemo(() => {
-    return projectsList.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
-                            item.id.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-      const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
-      return matchesSearch && matchesStatus && matchesCategory;
-    });
-  }, [projectsList, search, statusFilter, categoryFilter]);
 
   if (!hydrated || authLoading) {
     return (
@@ -148,7 +266,7 @@ export default function AdminProjectsPage() {
                 border: "border-sky-200",
               },
               {
-                label: "Active",
+                label: "Active / Pending",
                 value: activeProjects,
                 icon: Clock,
                 color: "text-amber-500",
@@ -164,7 +282,7 @@ export default function AdminProjectsPage() {
                 border: "border-green-200",
               },
               {
-                label: "Canceled",
+                label: "Failed / Canceled",
                 value: canceledProjects,
                 icon: XCircle,
                 color: "text-red-500",
@@ -199,12 +317,12 @@ export default function AdminProjectsPage() {
                 </select>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                {PROJECT_TRENDS.length === 0 ? (
+                {projectTrends.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-300">
                     <Activity className="w-10 h-10 animate-pulse" />
                   </div>
                 ) : (
-                  <AreaChart data={PROJECT_TRENDS}>
+                  <AreaChart data={projectTrends}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
@@ -270,25 +388,26 @@ export default function AdminProjectsPage() {
                   type="text"
                   placeholder="Search project name or ID…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                 />
               </div>
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="canceled">Canceled</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="FAILED">Failed</option>
               </select>
 
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
@@ -300,40 +419,56 @@ export default function AdminProjectsPage() {
 
             {/* Mobile Cards */}
             <div className="lg:hidden p-4 space-y-3">
-              {filteredProjects.length === 0 ? (
+              {loadingProjects ? (
+                <div className="flex justify-center py-12">
+                   <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
+                </div>
+              ) : projectsList.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Folder size={40} className="mx-auto mb-2 opacity-40" />
                   <p className="text-sm">No projects found</p>
                 </div>
               ) : (
-                filteredProjects.map((item) => (
-                  <div key={item.id} className="border rounded-xl p-4 space-y-2">
+                projectsList.map((item) => (
+                  <div key={item.id} className="border rounded-xl p-4 space-y-2 bg-white">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm truncate">{item.name}</p>
+                        <p className="font-semibold text-sm truncate">{item.title}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{item.id}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/admin/projects/${item.id}`)}
-                        className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
-                      >
-                        View
-                      </button>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/projects/${item.id}`)}
+                          className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingId === item.id}
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        {item.category}
+                        {item.category || "Uncategorized"}
                       </span>
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        item.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                        item.status === 'canceled' ? 'bg-red-50 text-red-700 border-red-200' :
+                        item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                        (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
                         'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
-                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                        {item.status ? item.status.replace("_", " ") : "Pending"}
                       </span>
-                      <span className="text-xs text-gray-500">{item.members} members</span>
-                      <span className="text-xs text-gray-500">{item.startDate}</span>
+                      <span className="text-xs text-gray-500">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
+                      <span className="text-xs text-gray-500">
+                        {projectEndDate(item) ? `End: ${new Date(projectEndDate(item)).toLocaleDateString()}` : ""}
+                      </span>
                     </div>
                   </div>
                 ))
@@ -348,57 +483,75 @@ export default function AdminProjectsPage() {
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">ID</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Project Name</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Category</th>
-                    <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Members</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Status</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Start Date</th>
+                    <th className="text-left font-semibold text-gray-600 px-4 py-3.5">End Date</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProjects.length === 0 ? (
+                  {loadingProjects ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-sky-500 mx-auto" />
+                      </td>
+                    </tr>
+                  ) : projectsList.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-12 text-gray-400">
-                        <MessageSquare size={40} className="mx-auto mb-2 opacity-40" />
+                        <Folder size={40} className="mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No projects found</p>
                       </td>
                     </tr>
                   ) : (
-                    filteredProjects.map((item) => (
+                    projectsList.map((item) => (
                       <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-4">
-                          <span className="font-semibold text-gray-600">{item.id}</span>
+                          <span className="font-semibold text-gray-600">{item.id.substring(0,8)}...</span>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="font-medium text-gray-900">{item.name}</span>
+                          <span className="font-medium text-gray-900">{item.title}</span>
                         </td>
                         <td className="px-4 py-4">
                           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                            {item.category}
+                            {item.category || "Uncategorized"}
                           </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="font-medium text-gray-800">{item.members}</span>
                         </td>
                         <td className="px-4 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                            item.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                            item.status === 'canceled' ? 'bg-red-50 text-red-700 border-red-200' :
+                            item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                            (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
                             'bg-amber-50 text-amber-700 border-amber-200'
                           }`}>
-                            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                            {item.status ? item.status.replace("_", " ") : "Pending"}
                           </span>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="font-medium text-gray-800">{item.startDate}</span>
+                          <span className="font-medium text-gray-800">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
                         </td>
                         <td className="px-4 py-4">
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/admin/projects/${item.id}`)}
-                            className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
-                          >
-                            View
-                          </button>
+                          <span className="font-medium text-gray-800">
+                            {projectEndDate(item) ? new Date(projectEndDate(item)).toLocaleDateString() : "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/admin/projects/${item.id}`)}
+                              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingId === item.id}
+                              onClick={() => handleDelete(item.id)}
+                              className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -407,15 +560,36 @@ export default function AdminProjectsPage() {
               </table>
             </div>
 
-            {filteredProjects.length > 0 && (
-              <div className="px-5 py-3 border-t text-sm text-gray-500">
-                Showing {filteredProjects.length} project items
+            {/* Pagination & Footer */}
+            {!loadingProjects && projectsList.length > 0 && (
+              <div className="px-5 py-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50">
+                <span className="text-sm text-gray-500">
+                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalProjectsCount)} of {totalProjectsCount} projects
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="flex items-center justify-center p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm font-medium px-2">{page}</span>
+                  <button
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={projectsList.length < limit || page * limit >= totalProjectsCount}
+                    className="flex items-center justify-center p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
         </div>
       </div>
+      {toastElement}
     </div>
   );
 }

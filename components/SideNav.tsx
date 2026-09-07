@@ -1,16 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Compass, CalendarDays, Folder, User, LogOut } from "lucide-react";
 import Image from "next/image";
 import { useAuthStore } from "../lib/authStore";
+import { useProfileStore } from "../lib/profileStore";
+import { UserAvatar } from "./UserAvatar";
 
 export function SideNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, token, logout } = useAuthStore();
+  const { profile, fetchProfile } = useProfileStore();
+
+  useEffect(() => {
+    if (token && !profile) {
+      fetchProfile();
+    }
+  }, [token, profile, fetchProfile]);
 
   const navItems = [
     { name: "Home", href: "/home", icon: Home },
@@ -70,12 +79,12 @@ export function SideNav() {
       {/* Bottom Profile Snippet */}
       <div className="mt-auto px-4 py-4 border-t border-slate-100">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-sky-600">
-              {user?.firstName?.[0]?.toUpperCase() ?? "?"}
-              {user?.lastName?.[0]?.toUpperCase() ?? ""}
-            </span>
-          </div>
+          <UserAvatar
+            avatarUrl={profile?.avatarUrl}
+            firstName={user?.firstName}
+            lastName={user?.lastName}
+            className="w-10 h-10 rounded-full text-sm shrink-0"
+          />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-900 truncate">
               {user?.firstName && user?.lastName

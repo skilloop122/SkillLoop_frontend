@@ -13,6 +13,7 @@ export interface ApiSession {
     profile?: {
       firstName: string;
       lastName: string;
+      avatarUrl?: string | null;
     };
   };
   requester?: {
@@ -21,6 +22,7 @@ export interface ApiSession {
     profile?: {
       firstName: string;
       lastName: string;
+      avatarUrl?: string | null;
     };
   };
   request?: {

@@ -71,13 +71,17 @@ function RequestSessionContent() {
 
   const loadSlots = useCallback((skillId: string, date?: string) => {
     if (!skillId) return;
-    const targetDate = date || slotDate;
+    const targetDate = date || "";
     setSlotsLoading(true);
     setSlotsError("");
     setSlots([]);
     setSelectedSlot(null);
     setProposedDate("");
     setProposedTime("");
+    if (!targetDate) {
+      setSlotsLoading(false);
+      return;
+    }
     fetchSkillSlots(skillId, targetDate).then(res => {
       if (res.success && res.data) {
         setSlots(res.data);
@@ -86,7 +90,7 @@ function RequestSessionContent() {
       }
       setSlotsLoading(false);
     });
-  }, [fetchSkillSlots, slotDate]);
+  }, [fetchSkillSlots]);
 
   useEffect(() => {
     if (matchId) {
@@ -210,6 +214,7 @@ function RequestSessionContent() {
                     src={profile.avatarUrl}
                     alt={fullName}
                     fill
+                    unoptimized
                     className="object-cover"
                   />
                 ) : (

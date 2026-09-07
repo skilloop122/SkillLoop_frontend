@@ -20,7 +20,7 @@ export function UserAvatar({ avatarUrl, firstName, lastName, className = "" }: U
   if (avatarUrl) {
     return (
       <div className={`relative overflow-hidden bg-slate-100 ${className}`}>
-        <Image src={avatarUrl} alt={`${firstName || ""} ${lastName || ""}`.trim() || "Profile"} fill className="object-cover" />
+        <Image src={avatarUrl} alt={`${firstName || ""} ${lastName || ""}`.trim() || "Profile"} fill unoptimized className="object-cover" />
       </div>
     );
   }

@@ -23,6 +23,7 @@ import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { useAdminUserStore } from "@/lib/adminUserStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/hooks/useToast";
 
 export default function AdminUsersPage() {
@@ -191,11 +192,12 @@ export default function AdminUsersPage() {
                 </div>
               ) : filtered.map((user) => (
                 <div key={user.id} className="border rounded-xl p-4 flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-sky-100 shrink-0 flex items-center justify-center">
-                    <span className="text-sky-600 font-bold text-sm">
-                      {(user.profile?.firstName?.[0] ?? user.email[0]).toUpperCase()}
-                    </span>
-                  </div>
+                  <UserAvatar
+                    avatarUrl={user.profile?.avatarUrl ?? user.avatarUrl}
+                    firstName={user.profile?.firstName}
+                    lastName={user.profile?.lastName}
+                    className="w-11 h-11 rounded-full text-sm shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate">
                       {user.profile?.firstName
@@ -269,11 +271,12 @@ export default function AdminUsersPage() {
                   ) : filtered.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4 flex items-center gap-3">
-                        <div className="w-9 h-9 bg-sky-100 rounded-full flex items-center justify-center shrink-0">
-                          <span className="text-sky-600 font-bold text-xs">
-                            {(user.profile?.firstName?.[0] ?? user.email[0]).toUpperCase()}
-                          </span>
-                        </div>
+                        <UserAvatar
+                          avatarUrl={user.profile?.avatarUrl ?? user.avatarUrl}
+                          firstName={user.profile?.firstName}
+                          lastName={user.profile?.lastName}
+                          className="w-9 h-9 rounded-full text-xs shrink-0"
+                        />
                         <span className="font-medium text-sm">
                           {user.profile?.firstName
                             ? `${user.profile.firstName} ${user.profile.lastName ?? ""}`
