@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminRequestStore } from "@/lib/adminRequestStore";
 
@@ -77,12 +78,10 @@ export default function RequestDetailsPage() {
   const requester = request.requester;
   const reqName = requester?.profile ? `${requester.profile.firstName} ${requester.profile.lastName}` : "Unknown";
   const reqEmail = requester?.email || "";
-  const reqInitials = requester?.profile ? `${requester.profile.firstName?.[0] || ""}${requester.profile.lastName?.[0] || ""}` : "?";
 
   const provider = request.provider;
   const provName = provider?.profile ? `${provider.profile.firstName} ${provider.profile.lastName}` : "Unknown";
   const provEmail = provider?.email || "";
-  const provInitials = provider?.profile ? `${provider.profile.firstName?.[0] || ""}${provider.profile.lastName?.[0] || ""}` : "?";
 
   const statusLabel = request.status
     ? request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase()
@@ -199,9 +198,12 @@ export default function RequestDetailsPage() {
                   <p className="text-sm font-semibold mb-4">Requester</p>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm uppercase shrink-0">
-                        {reqInitials}
-                      </div>
+                      <UserAvatar
+                        avatarUrl={requester?.profile?.avatarUrl}
+                        firstName={requester?.profile?.firstName}
+                        lastName={requester?.profile?.lastName}
+                        className="w-12 h-12 rounded-full text-sm shrink-0"
+                      />
                       <div>
                         <p className="font-semibold text-sm">{reqName}</p>
                         <p className="text-xs text-gray-500">{reqEmail}</p>
@@ -215,9 +217,12 @@ export default function RequestDetailsPage() {
                   <p className="text-sm font-semibold mb-4">Provider</p>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-sm uppercase shrink-0">
-                        {provInitials}
-                      </div>
+                      <UserAvatar
+                        avatarUrl={provider?.profile?.avatarUrl}
+                        firstName={provider?.profile?.firstName}
+                        lastName={provider?.profile?.lastName}
+                        className="w-12 h-12 rounded-full text-sm shrink-0"
+                      />
                       <div>
                         <p className="font-semibold text-sm">{provName}</p>
                         <p className="text-xs text-gray-500">{provEmail}</p>

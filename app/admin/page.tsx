@@ -29,6 +29,7 @@ import {
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -255,11 +256,12 @@ export default function AdminDashboard() {
                   <div key={user.id} className="border border-sky-200 rounded-2xl p-3">
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
-                      <div className="w-12 h-12 rounded-full bg-sky-100 shrink-0 flex items-center justify-center">
-                        <span className="text-sky-600 font-bold text-sm">
-                          {(user.profile?.firstName?.[0] ?? user.email[0]).toUpperCase()}
-                        </span>
-                      </div>
+                      <UserAvatar
+                        avatarUrl={user.profile?.avatarUrl ?? user.avatarUrl}
+                        firstName={user.profile?.firstName}
+                        lastName={user.profile?.lastName}
+                        className="w-12 h-12 rounded-full text-sm shrink-0"
+                      />
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
@@ -308,7 +310,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[800px]">
+                  <table className="w-full min-w-200">
                     <thead className="bg-slate-100">
                       <tr>
                         <th className="text-left p-4">Name</th>
@@ -328,11 +330,12 @@ export default function AdminDashboard() {
                       ) : (metrics?.topUsers ?? []).map((user) => (
                         <tr key={user.id} className="border-t">
                           <td className="p-4 flex items-center gap-3">
-                            <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center shrink-0">
-                              <span className="text-sky-600 font-bold text-sm">
-                                {(user.profile?.firstName?.[0] ?? user.email[0]).toUpperCase()}
-                              </span>
-                            </div>
+                            <UserAvatar
+                              avatarUrl={user.profile?.avatarUrl ?? user.avatarUrl}
+                              firstName={user.profile?.firstName}
+                              lastName={user.profile?.lastName}
+                              className="w-10 h-10 rounded-full text-sm shrink-0"
+                            />
                             <span className="truncate">
                               {user.profile?.firstName
                                 ? `${user.profile.firstName} ${user.profile.lastName ?? ""}`

@@ -1,366 +1,201 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Users } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Folder,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  Calendar,
+  Tag,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
+import { useProjectStore, Project, projectTitle, projectStatusLabel } from "../../lib/projectStore";
+import { useAuthStore } from "../../lib/authStore";
 
-type Project = {
-  id: string;
-  title: string;
-  description: string;
-  skills: string[];
-  image: string;
+type Tab = "Active" | "Completed";
+
+const STATUS_STYLES: Record<string, string> = {
+  COMPLETED: "bg-green-50 text-green-700 border-green-200",
+  IN_PROGRESS: "bg-amber-50 text-amber-700 border-amber-200",
+  FAILED: "bg-red-50 text-red-700 border-red-200",
+  PENDING: "bg-sky-50 text-sky-700 border-sky-200",
 };
 
-type MyProject = Project & {
-  collaborators: string;
-  role: string;
-  status: "Active" | "Completed";
-};
+function statusStyle(status?: string) {
+  return STATUS_STYLES[(status ?? "PENDING").toUpperCase()] ?? STATUS_STYLES.PENDING;
+}
 
-const COMPLETED_PROJECTS_KEY = "completedProjects";
+function formatDate(value?: string) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
 
-const subscribeToCompletedProjects = (callback: () => void) => {
-  window.addEventListener("storage", callback);
-  window.addEventListener("completedProjectsChanged", callback);
+const isActive = (p: Project) =>
+  (p.status ?? "").toUpperCase() === "IN_PROGRESS" ||
+  (p.status ?? "").toUpperCase() === "PENDING" ||
+  (p.status ?? "").toUpperCase() === "ACTIVE";
 
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("completedProjectsChanged", callback);
-  };
-};
-
-const getCompletedProjectsSnapshot = () => {
-  if (typeof window === "undefined") return "[]";
-  return localStorage.getItem(COMPLETED_PROJECTS_KEY) || "[]";
-};
-
-const getCompletedProjectsServerSnapshot = () => "[]";
-
-const availableProjects: Project[] = [
-  {
-    id: "available-1",
-    title: "Frontend Project",
-    description: "Code a desktop landing.....",
-    skills: ["Frontend", "Web Dev"],
-    image: "/james_klin.png",
-  },
-  {
-    id: "available-2",
-    title: "Frontend Project",
-    description: "Code a desktop landing.....",
-    skills: ["Frontend", "Web Dev"],
-    image: "/james_klin.png",
-  },
-  {
-    id: "available-3",
-    title: "Frontend Project",
-    description: "Code a desktop landing.....",
-    skills: ["Frontend", "Web Dev"],
-    image: "/james_klin.png",
-  },
-];
-
-const myProjects: MyProject[] = [
-  {
-    id: "my-1",
-    title: "Frontend Project",
-    description: "Code a desktop landing.....",
-    skills: ["Frontend", "Web Dev"],
-    collaborators: "4/5 Collaborators",
-    role: "Frontend Dev",
-    status: "Active",
-    image: "/james_klin.png",
-  },
-  {
-    id: "my-2",
-    title: "Frontend Project",
-    description: "Code a desktop landing.....",
-    skills: ["Frontend", "Web Dev"],
-    collaborators: "4/5 Collaborators",
-    role: "Frontend Dev",
-    status: "Active",
-    image: "/james_klin.png",
-  },
-];
+const isCompleted = (p: Project) => (p.status ?? "").toUpperCase() === "COMPLETED";
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [progressSlide, setProgressSlide] = useState(0);
-  const [myProjectTab, setMyProjectTab] = useState<"Active" | "Completed">(
-    "Active"
-  );
-
-  const completedProjectsSnapshot = useSyncExternalStore(
-    subscribeToCompletedProjects,
-    getCompletedProjectsSnapshot,
-    getCompletedProjectsServerSnapshot
-  );
-
-  const storedCompletedProjects = useMemo<MyProject[]>(() => {
-    try {
-      return JSON.parse(completedProjectsSnapshot) as MyProject[];
-    } catch {
-      return [];
-    }
-  }, [completedProjectsSnapshot]);
-
-  const activeProjectsCount = myProjects.filter(
-    (project) => project.status === "Active"
-  ).length;
-
-  const completedProjectsCount = storedCompletedProjects.length;
-
-  const myProjectCounts = {
-    Active: activeProjectsCount,
-    Completed: completedProjectsCount,
-  };
-
-  const filteredMyProjects =
-    myProjectTab === "Completed"
-      ? storedCompletedProjects
-      : myProjects.filter((project) => project.status === "Active");
+  const token = useAuthStore((s) => s.token);
+  const { getProjects } = useProjectStore();
+  const [tab, setTab] = useState<Tab>("Active");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setProgressSlide((current) => (current + 1) % 2);
-    }, 3500);
+    let cancelled = false;
+    (async () => {
+      if (!token) return;
+      setLoading(true);
+      const result = await getProjects();
+      if (cancelled) return;
+      if (result.success && result.projects) {
+        setProjects(result.projects);
+        setError(null);
+      } else {
+        setError(result.message || "Failed to load projects");
+      }
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [token, getProjects]);
 
-    return () => window.clearInterval(interval);
-  }, []);
+  const activeProjects = projects.filter(isActive);
+  const completedProjects = projects.filter(isCompleted);
+  const filtered = tab === "Completed" ? completedProjects : activeProjects;
+
+  const stats = [
+    { label: "Total", value: projects.length, icon: Folder, iconColor: "text-sky-300" },
+    { label: "Active", value: activeProjects.length, icon: Clock, iconColor: "text-amber-300" },
+    { label: "Completed", value: completedProjects.length, icon: CheckCircle2, iconColor: "text-green-300" },
+  ];
 
   return (
-    <div className="min-h-screen bg-white font-sans flex">
+    <div className="min-h-screen bg-white md:bg-gray-50 font-sans flex">
       <SideNav />
 
-      <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12">
-        <div className="w-full max-w-md md:max-w-6xl mx-auto px-5 pt-10 md:pt-16">
-          <header className="mb-6">
-            <h1 className="text-[32px] md:text-4xl font-semibold text-black tracking-tight mb-2">
-              Projects
+      <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
+        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-10 md:pt-16">
+          <header className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 tracking-tight mb-2">
+              My Projects
             </h1>
-            <p className="text-[15px] text-black leading-snug">
-              Explore real world projects and work with others.
+            <p className="text-[15px] text-gray-500 leading-snug">
+              Track your assigned projects and their progress.
             </p>
           </header>
 
-          <section className="mb-9 overflow-hidden rounded-[8px] bg-linear-to-b from-[#0ea5e9] to-[#448ca9] px-4 py-7 text-white">
-            <div className="relative min-h-[112px]">
-              {progressSlide === 0 && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <h2 className="text-[16px] font-medium mb-3">
-                    Projects Progress
-                  </h2>
-
-                  <div className="grid grid-cols-3 gap-6">
-                    {[
-                      [String(activeProjectsCount), "Active Projects"],
-                      ["12", "Sessions Done"],
-                      [String(completedProjectsCount), "Completed"],
-                    ].map(([value, label]) => (
-                      <div
-                        key={label}
-                        className="min-h-[72px] rounded-[4px] border border-white/70 bg-white/10 flex flex-col items-center justify-center text-center"
-                      >
-                        <span className="text-[16px] font-medium">
-                          {value}
-                        </span>
-                        <span className="mt-2 text-[13px] leading-tight">
-                          {label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {progressSlide === 1 && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <h2 className="text-[24px] font-medium leading-tight mb-2">
-                    Session Progress
-                  </h2>
-
-                  <div className="mb-2 h-1 rounded-full bg-white/80">
-                    <div className="h-full w-2/3 rounded-full bg-slate-500/70" />
-                  </div>
-
-                  <p className="text-[22px] font-medium leading-tight mb-3">
-                    2/3 Sessions Completed
-                  </p>
-
-                  <Link
-                    href="/sessions"
-                    className="rounded-[4px] bg-[#03afff] px-4 py-2 text-[14px] font-medium text-white"
-                  >
-                    View Sessions
-                  </Link>
-
-                  <p className="mt-3 text-[14px] text-slate-900">
-                    Take one more session to be eligible for Projects
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="mb-9">
-            <h2 className="text-[26px] font-medium text-black mb-3">
-              Available Projects
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {availableProjects.map((project) => (
+          {/* Stats */}
+          <div className="mb-8 rounded-3xl bg-linear-to-br from-sky-500 via-sky-400 to-blue-500 p-5 sm:p-6 shadow-sm">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              {stats.map((stat) => (
                 <div
-                  key={project.id}
-                  className="overflow-hidden rounded-[8px] border border-[#bae6fd] bg-white flex"
+                  key={stat.label}
+                  className="rounded-xl bg-white/10 border border-white/30 px-4 py-4 sm:py-5 text-center"
                 >
-                  <div className="relative w-[44%] min-h-[160px] shrink-0 bg-slate-100">
-                    <Image
-                      src={project.image}
-                      alt={project.title}
-                      fill
-                      className="object-cover"
-                    />
+                  <div className="mx-auto mb-2 w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+                    <stat.icon size={22} className={stat.iconColor} />
                   </div>
-
-                  <div className="min-w-0 flex-1 px-3 py-3">
-                    <h3 className="text-[18px] font-medium text-black mb-3 leading-tight">
-                      {project.title}
-                    </h3>
-
-                    <p className="text-[15px] text-black mb-3 truncate">
-                      {project.description}
-                    </p>
-
-                    <div className="mb-3 flex flex-wrap items-center gap-1 text-[15px] text-black">
-                      <span>Skill:</span>
-                      {project.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[14px] text-slate-800"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mb-2 flex items-center gap-1 text-black">
-                      <Users className="h-5 w-5 fill-[#0ea5e9] text-[#0ea5e9]" />
-                      <span className="text-[15px]">2 spots left</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => router.push("/projects/join")}
-                      className="rounded-[4px] bg-[#0ea5e9] px-2 py-1 text-[15px] font-medium text-white"
-                    >
-                      View Details
-                    </button>
-                  </div>
+                  <p className="text-2xl font-bold text-white leading-none">{stat.value}</p>
+                  <p className="text-xs text-white/80 font-medium uppercase tracking-wide mt-1">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
 
-          <section>
-            <h2 className="text-[26px] font-medium text-black mb-3">
-              My Projects
-            </h2>
-
-            <div className="mb-6 flex gap-2">
-              {(["Active", "Completed"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setMyProjectTab(tab)}
-                  className={`rounded-[4px] px-2.5 py-2 text-[16px] transition-colors ${myProjectTab === tab
-                    ? "bg-[#0ea5e9] text-black"
-                    : "bg-[#ccebf8] text-black"
-                    }`}
+          {/* Tabs */}
+          <div className="mb-5 flex gap-2 bg-white border rounded-xl p-1.5 w-fit">
+            {(["Active", "Completed"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  tab === t ? "bg-sky-500 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                {t}
+                <span
+                  className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold ${
+                    tab === t ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                  }`}
                 >
-                  {tab}
-                  <span className="ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#bae6fd] px-2 text-[14px]">
-                    {myProjectCounts[tab]}
-                  </span>
+                  {t === "Active" ? activeProjects.length : completedProjects.length}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-24 bg-white border rounded-2xl">
+              <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+            </div>
+          ) : error ? (
+            <div className="py-24 text-center text-red-500 bg-white border rounded-2xl">{error}</div>
+          ) : filtered.length === 0 ? (
+            <div className="py-24 text-center text-gray-400 bg-white border rounded-2xl">
+              <Folder size={44} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-medium">No {tab.toLowerCase()} projects yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filtered.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                  className="group text-left bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 leading-tight group-hover:text-sky-600 transition-colors">
+                      {projectTitle(project)}
+                    </h3>
+                    <span
+                      className={`inline-flex items-center shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${statusStyle(project.status)}`}
+                    >
+                      {projectStatusLabel(project.status)}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-1">
+                    {project.description || "No description provided."}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {project.category && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-medium">
+                        <Tag size={12} />
+                        {project.category}
+                      </span>
+                    )}
+                    {formatDate(project.deadline) && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-xs font-medium">
+                        <Calendar size={12} />
+                        Due {formatDate(project.deadline)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-end text-sky-600 text-sm font-semibold">
+                    View Details
+                    <ArrowRight size={16} className="ml-1 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </button>
               ))}
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredMyProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="overflow-hidden rounded-[8px] border border-[#bae6fd] bg-white flex"
-                >
-                  <div className="relative w-[38%] min-h-[150px] shrink-0 bg-slate-100 p-2">
-                    <Image
-                      src={project.image}
-                      alt={project.title}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-
-                  <div className="min-w-0 flex-1 px-3 py-2">
-                    <h3 className="text-[17px] font-medium text-black mb-2 leading-tight">
-                      {project.title}
-                    </h3>
-
-                    <p className="text-[14px] text-black mb-2 truncate">
-                      {project.description}
-                    </p>
-
-                    <div className="mb-2 flex flex-wrap items-center gap-1 text-[14px] text-black">
-                      <span>Skill:</span>
-                      {project.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[13px] text-slate-800"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mb-2 flex items-center gap-1 text-black">
-                      <Users className="h-4 w-4 fill-[#0ea5e9] text-[#0ea5e9]" />
-                      <span className="text-[14px]">{project.collaborators}</span>
-                    </div>
-
-                    <div className="mb-2 flex flex-wrap items-center gap-1 text-[14px] text-black">
-                      <span>Your Role:</span>
-                      <span className="rounded-[4px] bg-[#ccebf8] px-1.5 py-0.5 text-[13px] text-slate-800">
-                        {project.role}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(
-                          `/projects/workspace?status=${project.status === "Completed" ? "completed" : "in-progress"
-                          }`
-                        )
-                      }
-                      className="rounded-[4px] bg-[#0ea5e9] px-2 py-1 text-[14px] font-medium text-white"
-                    >
-                      View Project
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {filteredMyProjects.length === 0 && (
-                <div className="md:col-span-2 py-16 text-center text-slate-500">
-                  No {myProjectTab.toLowerCase()} projects yet.
-                </div>
-              )}
-            </div>
-          </section>
+          )}
         </div>
       </div>
 

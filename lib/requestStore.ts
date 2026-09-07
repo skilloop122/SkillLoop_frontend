@@ -115,7 +115,7 @@ interface RequestState {
   }>;
   updateRequestStatus: (
     id: string,
-    status: "accepted" | "rejected" | "cancelled",
+    status: "accepted" | "rejected" | "canceled",
   ) => Promise<{ success: boolean; message?: string }>;
   createRequest: (payload: {
     skillListingId: string;
@@ -368,7 +368,7 @@ export const useRequestStore = create<RequestState>((set) => ({
 
   updateRequestStatus: async (
     id: string,
-    status: "accepted" | "rejected" | "cancelled",
+    status: "accepted" | "rejected" | "canceled",
   ) => {
     set({ loading: true, error: null });
     try {

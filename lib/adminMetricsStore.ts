@@ -14,9 +14,11 @@ export interface TopUser {
   role: string;
   status?: string;
   createdAt?: string;
+  avatarUrl?: string | null;
   profile: {
     firstName: string;
     lastName: string;
+    avatarUrl?: string | null;
   };
 }
 

@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminSessionStore } from "@/lib/adminSessionStore";
 
@@ -77,12 +78,12 @@ export default function SessionDetailsPage() {
   const requester = session.requester;
   const reqName = requester?.profile ? `${requester.profile.firstName} ${requester.profile.lastName}` : "Unknown Requester";
   const reqEmail = requester?.email || "";
-  const reqInitials = requester?.profile ? `${requester.profile.firstName?.[0] || ""}${requester.profile.lastName?.[0] || ""}` : "?";
+  const reqAvatar = requester?.profile?.avatarUrl || "";
 
   const provider = session.provider;
   const provName = provider?.profile ? `${provider.profile.firstName} ${provider.profile.lastName}` : "Unknown Provider";
   const provEmail = provider?.email || "";
-  const provInitials = provider?.profile ? `${provider.profile.firstName?.[0] || ""}${provider.profile.lastName?.[0] || ""}` : "?";
+  const provAvatar = provider?.profile?.avatarUrl || "";
 
   return (
     <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
@@ -225,7 +226,12 @@ export default function SessionDetailsPage() {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Requester</p>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0 uppercase">{reqInitials}</div>
+                    <UserAvatar
+                      avatarUrl={reqAvatar}
+                      firstName={requester?.profile?.firstName}
+                      lastName={requester?.profile?.lastName}
+                      className="w-12 h-12 rounded-full text-sm shrink-0"
+                    />
                     <div>
                       <p className="font-bold text-sm text-gray-900">{reqName}</p>
                       <p className="text-xs text-gray-500">{reqEmail}</p>
@@ -239,7 +245,12 @@ export default function SessionDetailsPage() {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Provider</p>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-sm shrink-0 uppercase">{provInitials}</div>
+                    <UserAvatar
+                      avatarUrl={provAvatar}
+                      firstName={provider?.profile?.firstName}
+                      lastName={provider?.profile?.lastName}
+                      className="w-12 h-12 rounded-full text-sm shrink-0"
+                    />
                     <div>
                       <p className="font-bold text-sm text-gray-900">{provName}</p>
                       <p className="text-xs text-gray-500">{provEmail}</p>

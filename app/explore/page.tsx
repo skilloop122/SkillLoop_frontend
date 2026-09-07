@@ -106,12 +106,13 @@ export default function ExplorePage() {
                   className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
                 >
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="relative w-[52px] h-[52px] rounded-lg overflow-hidden shrink-0 bg-sky-100 flex items-center justify-center">
+                    <div className="relative w-13 h-13 rounded-lg overflow-hidden shrink-0 bg-sky-100 flex items-center justify-center">
                       {(match.user?.profile?.avatarUrl || match.avatarUrl) ? (
                         <Image
                           src={match.user?.profile?.avatarUrl || match.avatarUrl}
                           alt={match.user?.profile?.firstName || match.firstName || "User"}
                           fill
+                          unoptimized
                           className="object-cover"
                         />
                       ) : (
@@ -145,7 +146,7 @@ export default function ExplorePage() {
                   <div className="flex flex-col gap-4 mt-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] shrink-0">
+                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
                           Teaches:
                         </span>
                         <p className="text-[14px] font-medium text-black truncate">
@@ -154,7 +155,7 @@ export default function ExplorePage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-[4px] shrink-0">
+                        <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
                           Learning:
                         </span>
                         <p className="text-[14px] font-medium text-black truncate">
@@ -163,7 +164,7 @@ export default function ExplorePage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 w-full lg:w-[240px] shrink-0">
+                    <div className="flex gap-2 w-full lg:w-60 shrink-0">
                       <Link href={"/explore/request?id=" + (match.user?.id || match.id)} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
                         Request Session
                       </Link>

@@ -288,6 +288,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                     alt="Profile"
                     fill
                     priority
+                    unoptimized
                     className="object-cover"
                   />
                 </div>

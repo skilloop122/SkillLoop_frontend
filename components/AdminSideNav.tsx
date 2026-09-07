@@ -30,7 +30,7 @@ export function AdminSideNav() {
       icon: LayoutDashboard,
     },
     {
-      name: "User",
+      name: "Users",
       href: "/admin/users",
       icon: Users,
     },
@@ -106,7 +106,10 @@ export function AdminSideNav() {
           {/* Menu */}
           <nav className="flex-1 px-4 space-y-2">
             {navItems.map((item) => {
-              const active = pathname === item.href;
+              const active =
+                item.href === "/admin"
+                  ? pathname === "/admin"
+                  : pathname === item.href || pathname.startsWith(item.href + "/");
               const Icon = item.icon;
 
               return (

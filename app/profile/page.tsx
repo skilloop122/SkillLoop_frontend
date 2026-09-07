@@ -157,6 +157,7 @@ export default function ProfilePage() {
                         alt="Profile"
                         width={100}
                         height={100}
+                        unoptimized
                         className="object-cover w-full h-full"
                       />
                     </div>

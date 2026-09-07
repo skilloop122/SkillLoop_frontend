@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminUserStore, AdminUserDetailsResponse } from "@/lib/adminUserStore";
 import { scheduleTime } from "@/lib/profileStore";
@@ -103,8 +104,6 @@ export default function UserDetailsPage() {
     );
   }
 
-  const initials = ((profile?.firstName?.[0] ?? "") + (profile?.lastName?.[0] ?? "")).toUpperCase() || "?";
-
   return (
     <div className="min-h-screen bg-sky-100 md:bg-gray-50 flex text-black">
       <AdminSideNav />
@@ -126,15 +125,12 @@ export default function UserDetailsPage() {
           <div className="bg-white rounded-3xl border shadow-sm p-6">
             <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
               <div className="flex flex-col sm:flex-row gap-6">
-                {profile ? (
-                  <div className="w-32.5 h-32.5 rounded-full bg-sky-100 flex items-center justify-center shrink-0 text-black">
-                    <span className="text-5xl font-bold text-sky-600">{initials}</span>
-                  </div>
-                ) : (
-                  <div className="w-32.5 h-32.5 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                    <span className="text-5xl font-bold text-slate-400">?</span>
-                  </div>
-                )}
+                <UserAvatar
+                  avatarUrl={profile?.avatarUrl}
+                  firstName={profile?.firstName}
+                  lastName={profile?.lastName}
+                  className="w-32.5 h-32.5 rounded-full text-5xl shrink-0"
+                />
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-bold text-black">

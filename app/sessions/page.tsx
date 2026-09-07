@@ -21,6 +21,7 @@ export default function SessionsPage() {
   const [feedbackComment, setFeedbackComment] = useState("");
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
@@ -40,8 +41,10 @@ export default function SessionsPage() {
     window.setTimeout(() => setToast(""), 2500);
   };
 
-  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "cancelled") => {
+  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
+    if (status === "canceled") setCancelingId(id);
     const result = await updateRequestStatus(id, status);
+    if (status === "canceled") setCancelingId(null);
     if (result.success) {
       showToast("Request updated successfully.");
       loadData();
@@ -118,8 +121,8 @@ export default function SessionsPage() {
   });
 
   const canceledSessions = [
-    ...sentRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "canceled").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "canceled").map(r => ({ ...r, type: "received" }))
   ];
 
   const completedSessions = [
@@ -277,7 +280,14 @@ export default function SessionsPage() {
                   </div>
                   <div className="flex gap-2">
                     {request.type === "sent" ? (
-                      <button onClick={() => handleStatusUpdate(request.id, "cancelled")} className="w-full py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">Cancel Request</button>
+                      <button
+                        onClick={() => handleStatusUpdate(request.id, "canceled")}
+                        disabled={cancelingId === request.id}
+                        className="w-full py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      >
+                        {cancelingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                        Cancel Request
+                      </button>
                     ) : (
                       <>
                         <button onClick={() => handleStatusUpdate(request.id, "accepted")} className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors">Accept</button>
