@@ -58,7 +58,7 @@ export default function HomePage() {
   const pendingSent = sentRequests.filter(r => r.status?.toLowerCase() === "pending");
   const totalPending = pendingReceived.length + pendingSent.length;
 
-  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "cancelled") => {
+  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
     const result = await updateRequestStatus(id, status);
     if (result.success) {
       loadData();

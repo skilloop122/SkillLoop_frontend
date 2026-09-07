@@ -121,8 +121,8 @@ export default function SessionsPage() {
   });
 
   const canceledSessions = [
-    ...sentRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "sent" })),
-    ...receivedRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "cancelled").map(r => ({ ...r, type: "received" }))
+    ...sentRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "canceled").map(r => ({ ...r, type: "sent" })),
+    ...receivedRequests.filter(r => r.status?.toLowerCase() === "rejected" || r.status?.toLowerCase() === "canceled").map(r => ({ ...r, type: "received" }))
   ];
 
   const completedSessions = [
