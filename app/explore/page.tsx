@@ -30,11 +30,24 @@ export default function ExplorePage() {
     setSelectedSkillId(val === "all" ? "" : val);
   };
 
-  const filteredMatches = matches.filter(m => {
-    const fName = m.user?.profile?.firstName || m.firstName || "";
-    const lName = m.user?.profile?.lastName || m.lastName || "";
-    return (fName + " " + lName).toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const skillNames = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return (value as (string | { name?: string })[])
+    .map((s) => (typeof s === "string" ? s : s?.name || ""))
+    .filter(Boolean);
+};
+
+const filteredMatches = matches.filter(m => {
+  const q = searchQuery.toLowerCase().trim();
+  if (!q) return true;
+  const fName = m.user?.profile?.firstName || m.firstName || "";
+  const lName = m.user?.profile?.lastName || m.lastName || "";
+  const name = (fName + " " + lName).toLowerCase();
+  const taught = skillNames(m.directSkills || m.teachSkills);
+  const learning = skillNames(m.reciprocalSkills || m.learnSkills);
+  const haystack = [name, ...taught, ...learning].join(" ").toLowerCase();
+  return haystack.includes(q);
+});
 
   return (
     <div className="min-h-screen bg-white font-sans flex text-black">
@@ -56,7 +69,7 @@ export default function ExplorePage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name..."
+              placeholder="Search by name or skill..."
               className="w-full pl-12 pr-4 py-3.5 bg-white border border-[#0ea5e9] rounded-2xl text-[15px] outline-none placeholder:text-slate-400 font-medium shadow-sm"
             />
           </div>

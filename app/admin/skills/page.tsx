@@ -47,7 +47,6 @@ interface UISkillListing {
 }
 
 const STATUS_OPTIONS = ["all", "approved", "pending", "failed"] as const;
-const CATEGORY_OPTIONS = ["all", "Design & PM", "Frontend", "Backend","Management"] as const;
 const DEMAND_OPTIONS = ["all", "high", "medium", "low"] as const;
 
 const DEMAND_COLORS: Record<string, string> = {
@@ -152,6 +151,14 @@ export default function AdminSkillsPage() {
       return matchesSearch && matchesStatus && matchesCategory && matchesDemand;
     });
   }, [uiListings, search, statusFilter, categoryFilter, demandFilter]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    uiListings.forEach((l) => {
+      if (l.category) set.add(l.category);
+    });
+    return Array.from(set).sort();
+  }, [uiListings]);
 
   if (!hydrated || authLoading) {
     return (
@@ -262,7 +269,7 @@ export default function AdminSkillsPage() {
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
-                {CATEGORY_OPTIONS.filter((c) => c !== "all").map((c) => (
+                {availableCategories.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
