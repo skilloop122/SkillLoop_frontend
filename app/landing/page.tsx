@@ -44,11 +44,19 @@ const sessionCards = [
     },
     {
         id: "james-learns",
-        name: "James Klin",
+        name: "Maya Stone",
         rating: "4.8",
         role: ["Brand Design", "Figma"],
         skills: ["React", "Next.js"],
-        image: "/james_klin.png",
+        image: "/images/ebony.jpg",
+    },
+    {
+        id: "tony-learns",
+        name: "Tony Elizeu ",
+        rating: "4.8",
+        role: ["Design Syatems", "Canva"],
+        skills: ["Affiliate Marketing", "Content Creation"],
+        image: "/images/elizeu.jpg",
     },
 ];
 
@@ -197,7 +205,7 @@ export default function Home() {
                     </div>
 
                     <nav className="hidden md:flex items-center gap-8">
-                        <a href="#simulator" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                        <a href="#in-action" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
                             Matching Engine
                         </a>
                         <a href="#how-it-works" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
@@ -228,7 +236,7 @@ export default function Home() {
                             className="md:hidden border-b border-white/10 bg-slate-950/95 backdrop-blur-lg overflow-hidden"
                         >
                             <div className="px-6 py-6 flex flex-col gap-4">
-                                <a href="#simulator" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-slate-300 py-2 border-b border-white/5">
+                                <a href="#in-action" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-slate-300 py-2 border-b border-white/5">
                                     Matching Engine
                                 </a>
                                 <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-base font-medium text-slate-300 py-2 border-b border-white/5">
@@ -348,7 +356,7 @@ export default function Home() {
 
             <section id="session-carousel" className="py-20 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Find the Right Match</h2>
+                    <h2 className="flex justify-center text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Find the Right Match</h2>
                     {/* <p className="text-base text-slate-500 font-medium mb-10">Browse people by their skills and start a session today.</p> */}
 
                     {/* Mobile: carousel */}
@@ -430,8 +438,12 @@ export default function Home() {
 
             <section id="how-it-works" className="py-20 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">How it Works</h2>
-                    <p className="text-base text-slate-500 font-medium mb-12">Three simple steps to start your skill journey.</p>
+                    <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">How it Works</h2>
+                            <p className="text-base text-slate-500 font-medium mb-12">Three simple steps to start your skill journey.</p>
+                        </div>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
                         <div className="flex md:flex-col items-start gap-5">
@@ -472,12 +484,17 @@ export default function Home() {
 
             <section id="in-action" className="py-20 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">
-                        SkilLoop in Action
-                    </h2>
-                    <p className="text-base text-slate-500 font-medium mb-10">
-                        See how our users are learning and teaching in real-time.
-                    </p>
+                    <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">
+                                SkilLoop in Action
+                            </h2>
+                            <p className="text-base text-slate-500 font-medium mb-10">
+                                See how our users are learning and teaching in real-time.
+                            </p>
+                        </div>
+                    </div>
+
 
                     {/* Mobile: carousel */}
                     <div className="md:hidden relative overflow-hidden">
@@ -603,9 +620,13 @@ export default function Home() {
 
             <section id="why" className="py-20 px-6 bg-slate-50">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Why SkilLoop?</h2>
-                    <p className="text-base text-slate-500 font-medium mb-12">Built for people who want to grow fast and give back.</p>
+                    <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
 
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Why SkilLoop?</h2>
+                            <p className="text-base text-slate-500 font-medium mb-12">Built for people who want to grow fast and give back.</p>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
                             <div className="w-14 h-14 rounded-2xl bg-[#00CCFC]/20 flex items-center justify-center">
@@ -646,8 +667,13 @@ export default function Home() {
             {/* ── GROWTH BENEFITS ── */}
             <section className="py-20 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Earn as You Learn</h2>
-                    <p className="text-base font-semibold leading-relaxed text-slate-500 mb-12">Get rewarded for every skill you teach and learn.</p>
+                    <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Earn as You Learn</h2>
+                            <p className="text-base font-semibold leading-relaxed text-slate-500 mb-12">Get rewarded for every skill you teach and learn.</p>
+                        </div>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="rounded-2xl bg-[#ff6f47]/10 p-8 flex flex-row gap-5 shadow-sm hover:shadow-md transition-shadow">
@@ -686,8 +712,12 @@ export default function Home() {
             {/* ── EXPLORE SKILLS ── */}
             <section id="explore-skills" className="py-20 px-6 bg-white">
                 <div className="max-w-7xl mx-auto">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Explore Skills</h2>
-                    <p className="text-base font-semibold leading-relaxed text-slate-500 mb-10">Discover what you can learn or teach with <span className="text-sky-500">SkilLoop</span></p>
+                    <div className="flex justify-center">
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Explore Skills</h2>
+                            <p className="text-base font-semibold leading-relaxed text-slate-500 mb-10">Discover what you can learn or teach with <span className="text-sky-500">SkilLoop</span></p>
+                        </div>
+                    </div>
 
                     {/* Mobile: carousel */}
                     <div className="md:hidden relative overflow-hidden">
