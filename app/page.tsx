@@ -61,7 +61,7 @@ export default function WaitlistPage() {
       <section className="bg-white px-5 pt-20 pb-16 text-center">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8 inline-flex items-center gap-2 rounded-[8px] bg-sky-100 px-3 py-2 text-[16px] font-medium text-slate-700">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[4px] bg-[#0ea5e9] text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0ea5e9] text-white">
               <Image
                 src="/images/SkilLoop.png"
                 alt="Logo"
@@ -78,7 +78,7 @@ export default function WaitlistPage() {
             Your Skills Are Your Fees
           </h1>
 
-          <p className="mx-auto mb-9 max-w-[900px] text-[17px] leading-snug text-slate-500 font-medium">
+          <p className="mx-auto mb-9 max-w-225 text-[17px] leading-snug text-slate-500 font-medium">
             Stop paying for courses. Start exchanging skills.
           </p>
 

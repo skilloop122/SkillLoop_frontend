@@ -441,7 +441,7 @@ export default function Home() {
                     <div className="flex justify-center">
                         <div className="flex flex-col items-center">
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">How it Works</h2>
-                            <p className="text-base text-slate-500 font-medium mb-12">Three simple steps to start your skill journey.</p>
+                            <p className="text-base w-90 md:w-full text-slate-500 font-medium mb-12">Three simple steps to start your skill journey.</p>
                         </div>
                     </div>
 
@@ -489,7 +489,7 @@ export default function Home() {
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">
                                 SkilLoop in Action
                             </h2>
-                            <p className="text-base text-slate-500 font-medium mb-10">
+                            <p className="text-base w-64 md:w-full text-slate-500 font-medium mb-10">
                                 See how our users are learning and teaching in real-time.
                             </p>
                         </div>
@@ -624,7 +624,7 @@ export default function Home() {
                         <div className="flex flex-col items-center">
 
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Why SkilLoop?</h2>
-                            <p className="text-base text-slate-500 font-medium mb-12">Built for people who want to grow fast and give back.</p>
+                            <p className="text-base w-56 md:w-full text-slate-500 font-medium mb-12">Built for people who want to grow fast and give back.</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -671,7 +671,7 @@ export default function Home() {
                         <div className="flex flex-col items-center">
 
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">Earn as You Learn</h2>
-                            <p className="text-base font-semibold leading-relaxed text-slate-500 mb-12">Get rewarded for every skill you teach and learn.</p>
+                            <p className="text-base w-64 md:w-full font-semibold leading-relaxed text-slate-500 mb-12">Get rewarded for every skill you teach and learn.</p>
                         </div>
                     </div>
 
@@ -715,7 +715,7 @@ export default function Home() {
                     <div className="flex justify-center">
                         <div className="flex flex-col items-center">
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Explore Skills</h2>
-                            <p className="text-base font-semibold leading-relaxed text-slate-500 mb-10">Discover what you can learn or teach with <span className="text-sky-500">SkilLoop</span></p>
+                            <p className="text-base w-72 md:w-full font-semibold leading-relaxed text-slate-500 mb-10">Discover what you can learn or teach with <span className="text-sky-500">SkilLoop</span></p>
                         </div>
                     </div>
 
