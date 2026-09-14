@@ -178,18 +178,32 @@ export default function AdminProjectsPage() {
     let cancelled = false;
     (async () => {
       if (!token) return;
-      const result = await getProjects(token, { limit: 1000 });
-      if (cancelled) return;
-      if (result.success && result.data) {
+      const collected: ProjectListing[] = [];
+      let pageNum = 1;
+      while (!cancelled) {
+        const result = await getProjects(token, { page: pageNum, limit: 10 });
+        if (!result.success || !result.data) {
+          if (pageNum === 1) {
+            showToast(result.message || "Failed to load projects");
+          }
+          break;
+        }
         const raw = result.data;
         const items: ProjectListing[] = Array.isArray(raw)
           ? (raw as ProjectListing[])
           : ((raw.projects ?? raw.data ?? raw.items ?? []) as ProjectListing[]);
-        setProjectTrends(buildProjectTrends(items));
+        if (items.length === 0) break;
+        collected.push(...items);
+        const total = Number(raw.total ?? raw.count ?? items.length);
+        if (collected.length >= total) break;
+        pageNum += 1;
+        if (pageNum > 100) break;
       }
+      if (cancelled) return;
+      setProjectTrends(buildProjectTrends(collected));
     })();
     return () => { cancelled = true; };
-  }, [token, getProjects]);
+  }, [token, getProjects, showToast]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!token) return;

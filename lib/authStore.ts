@@ -20,6 +20,10 @@ interface User {
   lastName?: string;
 }
 
+interface GoogleAuthPayload {
+  idToken: string;
+}
+
 interface AuthState {
   loading: boolean;
   error: string | null;
@@ -42,6 +46,10 @@ interface AuthState {
     message: string;
     user?: User;
   }>;
+
+  googleAuth: (
+    payload: GoogleAuthPayload,
+  ) => Promise<{ success: boolean; message: string }>;
 
   logout: () => Promise<void>;
 }
@@ -255,6 +263,76 @@ export const useAuthStore = create<AuthState>()(
             success: false,
             message: "Error loading user",
           };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      googleAuth: async ({ idToken }) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await fetch(`${API_BASE}auth/google`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idToken }),
+          });
+
+          const body = await response.json();
+
+          console.log("GOOGLE AUTH RESPONSE:", body);
+          console.log("GOOGLE AUTH STATUS:", response.status);
+          console.log("GOOGLE AUTH FULL BODY:", JSON.stringify(body, null, 2));
+
+          if (!response.ok) {
+            const errMsg = body?.message || "Google authentication failed";
+            set({ error: errMsg });
+            return { success: false, message: errMsg };
+          }
+
+          const token =
+            body?.access_token ||
+            body?.accessToken ||
+            body?.token ||
+            body?.data?.access_token ||
+            body?.data?.accessToken ||
+            body?.data?.token ||
+            body?.result?.access_token ||
+            null;
+
+          console.log(
+            "GOOGLE AUTH TOKEN EXTRACTED:",
+            token ? token.substring(0, 20) + "..." : null,
+          );
+
+          const googleUser = body?.user ||
+            body?.data?.user || {
+              id: body?.id,
+              email: body?.email,
+              firstName: body?.profile?.firstName || body?.firstName,
+              lastName: body?.profile?.lastName || body?.lastName,
+            };
+
+          console.log("GOOGLE AUTH USER:", googleUser);
+          console.log(
+            "GOOGLE AUTH WELCOME POINTS:",
+            body?.welcomePoints ??
+            body?.data?.welcomePoints ??
+            body?.points ??
+            "(not returned in top-level body)",
+          );
+
+          set({ user: googleUser, token });
+
+          return {
+            success: true,
+            message: body?.message || "Google authentication successful",
+          };
+        } catch (err) {
+          console.error("GOOGLE AUTH ERROR:", err);
+          return { success: false, message: "Google authentication failed" };
         } finally {
           set({ loading: false });
         }

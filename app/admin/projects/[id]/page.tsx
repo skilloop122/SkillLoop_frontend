@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   Plus,
   X,
   Save,
+  Search,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminProjectStore } from "@/lib/adminProjectStore";
@@ -63,12 +64,216 @@ const DELIVERABLE_TYPES = [
   { id: "case-study", label: "Case Study", icon: BookOpen },
 ];
 
+interface DeliverableEntry { type: string; value: string; }
+interface DeliverableData {
+  githubUrl?: string;
+  liveUrl?: string;
+  note?: string;
+  submittedAt?: string;
+  entries: DeliverableEntry[];
+}
+
+function typeKey(t: string) {
+  return t.toLowerCase().replace(/[-\s_]/g, "");
+}
+
+const isGitType = (t: string) => ["github", "repo", "repository"].includes(typeKey(t));
+const isLiveType = (t: string) => ["liveurl", "live", "website", "app", "demo"].includes(typeKey(t));
+
+function pickString(...vals: unknown[]): string {
+  for (const v of vals) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+function collectEntries(src: unknown): DeliverableEntry[] {
+  const out: DeliverableEntry[] = [];
+  if (!Array.isArray(src)) return out;
+  src.forEach((item: unknown) => {
+    if (typeof item === "string") {
+      out.push({ type: "", value: item });
+    } else if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      out.push({
+        type: pickString(o.type, o.name, o.title, o.deliverableType),
+        value: pickString(o.value, o.url, o.link, o.uri, o.file),
+      });
+    }
+  });
+  return out;
+}
+
+function buildDeliverableData(
+  merged: Record<string, unknown>,
+  entriesSrc: unknown,
+): DeliverableData {
+  const entries = collectEntries(entriesSrc);
+  let githubUrl = pickString(merged.githubUrl, merged.github_url);
+  let liveUrl = pickString(merged.liveUrl, merged.live_url);
+  if (!githubUrl) {
+    const hit = entries.find((e) => isGitType(e.type) && e.value);
+    if (hit) githubUrl = hit.value;
+  }
+  if (!liveUrl) {
+    const hit = entries.find((e) => isLiveType(e.type) && e.value);
+    if (hit) liveUrl = hit.value;
+  }
+  const otherEntries = entries.filter(
+    (e) =>
+      e.value &&
+      !(isGitType(e.type) && githubUrl) &&
+      !(isLiveType(e.type) && liveUrl),
+  );
+  return {
+    githubUrl,
+    liveUrl,
+    note: pickString(merged.note, merged.notes, merged.submissionNotes, merged.submission_note, merged.comment),
+    submittedAt: pickString(merged.submittedAt, merged.submissionDate, merged.createdAt, merged.created_at, merged.submitted_date),
+    entries: otherEntries,
+  };
+}
+
+function normalizeDeliverables(raw: unknown): DeliverableData {
+  if (Array.isArray(raw)) {
+    return buildDeliverableData({}, raw);
+  }
+
+  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const dataField = obj.data;
+  if (Array.isArray(dataField)) {
+    return buildDeliverableData(obj, dataField);
+  }
+
+  const nested = dataField && typeof dataField === "object"
+    ? dataField as Record<string, unknown>
+    : obj;
+  const proj = nested.project && typeof nested.project === "object"
+    ? nested.project as Record<string, unknown>
+    : null;
+  const sub = nested.submission && typeof nested.submission === "object"
+    ? nested.submission as Record<string, unknown>
+    : null;
+  const next = nested.submissions && typeof nested.submissions === "object" && !Array.isArray(nested.submissions)
+    ? nested.submissions as Record<string, unknown>
+    : null;
+
+  const merged: Record<string, unknown> = {};
+  const layers = [obj, nested, next, sub, proj];
+  layers.forEach((r) => {
+    if (r) Object.assign(merged, r);
+  });
+
+  let entriesSrc: unknown = null;
+  for (const r of layers) {
+    if (!r) continue;
+    for (const k of ["deliverables", "deliverableList", "submittedDeliverables", "submissions", "entries"]) {
+      if (Array.isArray(r[k])) {
+        entriesSrc = r[k];
+        break;
+      }
+    }
+    if (entriesSrc) break;
+  }
+
+  const arrayScalars: Record<string, unknown> = {};
+  if (Array.isArray(entriesSrc)) {
+    for (const item of entriesSrc) {
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        const o = item as Record<string, unknown>;
+        for (const k of ["githubUrl", "github_url", "liveUrl", "live_url", "notes", "note", "submissionNotes", "submission_note", "submittedAt", "submissionDate", "createdAt", "created_at", "submitted_date", "comment"]) {
+          if (o[k] !== undefined && arrayScalars[k] === undefined) arrayScalars[k] = o[k];
+        }
+      }
+    }
+  }
+
+  return buildDeliverableData({ ...arrayScalars, ...merged }, entriesSrc ?? []);
+}
+
+interface AssignedUser {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  avatarUrl?: string | null;
+  skill?: string;
+}
+
+function normalizeAssignedUser(u: unknown): AssignedUser | null {
+  if (!u || typeof u !== "object") return null;
+  const o = u as Record<string, unknown>;
+  const profile = o.profile && typeof o.profile === "object"
+    ? o.profile as Record<string, unknown>
+    : null;
+  return {
+    id: pickString(o.id),
+    firstName: pickString(o.firstName, profile?.firstName) || undefined,
+    lastName: pickString(o.lastName, profile?.lastName) || undefined,
+    name: pickString(o.name) || undefined,
+    email: pickString(o.email) || undefined,
+    avatarUrl:
+      (typeof o.avatarUrl === "string" && o.avatarUrl) ||
+      (typeof profile?.avatarUrl === "string" && profile.avatarUrl) ||
+      null,
+    skill: pickString(o.skill, profile?.skill) || undefined,
+  };
+}
+
+function assignedUserName(u: AssignedUser): string {
+  return [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || "Unknown";
+}
+
+function assignedUserKey(u: AssignedUser): string {
+  return u.id || u.email || assignedUserName(u);
+}
+
+function assignedUsersList(p: Record<string, unknown> | null | undefined): AssignedUser[] {
+  const out: AssignedUser[] = [];
+  const seen = new Set<string>();
+  const add = (u: unknown) => {
+    const n = normalizeAssignedUser(u);
+    if (!n) return;
+    const key = assignedUserKey(n);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(n);
+  };
+
+  const arr = Array.isArray(p?.users)
+    ? p.users as unknown[]
+    : Array.isArray(p?.assignedUsers)
+      ? p.assignedUsers as unknown[]
+      : [];
+  arr.forEach(add);
+  add(p?.user ?? p?.assignedUser);
+  return out;
+}
+
+function renderDeliverableRow(entry: DeliverableEntry) {
+  const Icon = deliverableIcon(entry.type);
+  return (
+    <div className="flex items-center gap-4 px-5 py-4">
+      <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+        <Icon size={18} className="text-sky-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">
+          {entry.type ? entry.type.replace(/-/g, " ") : "Deliverable"}
+        </p>
+        <p className="text-xs text-gray-500 truncate">{entry.value}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params?.id as string;
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-  const { getProjectById, updateProject } = useAdminProjectStore();
+  const { getProjectById, updateProject, createProject, approveProject, getEligibleUsers, fetchProjectDeliverables } = useAdminProjectStore();
   const { toastElement, showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -76,6 +281,11 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<Record<string, unknown> | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  const [loadingDeliverables, setLoadingDeliverables] = useState(false);
+  const [deliverableData, setDeliverableData] = useState<DeliverableData | null>(null);
+  const [deliverableError, setDeliverableError] = useState("");
 
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -86,6 +296,17 @@ export default function ProjectDetailsPage() {
   const [editTasks, setEditTasks] = useState<string[]>([]);
   const [editDeliverables, setEditDeliverables] = useState<string[]>([]);
   const [taskInput, setTaskInput] = useState("");
+
+  // User re-assignment state
+  interface EligibleUser { id: string; firstName?: string; lastName?: string; email?: string; avatarUrl?: string | null; }
+  const [editUsers, setEditUsers] = useState<EligibleUser[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userResults, setUserResults] = useState<EligibleUser[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userFullName = (u: EligibleUser) =>
+    [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
 
   useEffect(() => {
     if (hydrated && !token) {
@@ -113,6 +334,25 @@ export default function ProjectDetailsPage() {
     return () => { cancelled = true; };
   }, [token, projectId, getProjectById, showToast]);
 
+  useEffect(() => {
+    if (!token || !projectId || activeTab !== "submission") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingDeliverables(true);
+      const result = await fetchProjectDeliverables(token, projectId);
+      if (cancelled) return;
+      if (result.success && result.data) {
+        setDeliverableData(normalizeDeliverables(result.data));
+        setDeliverableError("");
+      } else {
+        setDeliverableData(null);
+        setDeliverableError(result.message || "Failed to load deliverables");
+      }
+      setLoadingDeliverables(false);
+    })();
+    return () => { cancelled = true; };
+  }, [token, projectId, activeTab, fetchProjectDeliverables]);
+
   function populateEdit() {
     if (!project) return;
     const existingTasks = Array.isArray(project.tasks)
@@ -134,7 +374,63 @@ export default function ProjectDetailsPage() {
         : [];
     setEditDeliverables(existingDeliverables);
     setTaskInput("");
-  }
+
+    // Pre-populate assigned users from the loaded project
+    const existingUsers: EligibleUser[] = [];
+    const rawUser = project.user ?? project.assignedUser ?? null;
+    if (rawUser && typeof rawUser === "object") {
+      const u = rawUser as Record<string, unknown>;
+      existingUsers.push({
+        id: String(u.id ?? ""),
+        firstName: u.firstName as string | undefined,
+        lastName: u.lastName as string | undefined,
+        email: u.email as string | undefined,
+        avatarUrl: u.avatarUrl as string | null | undefined,
+      });
+    }
+    // Handle arrays of users (userIds / users)
+    const rawUsers = project.users ?? project.assignedUsers ?? null;
+    if (Array.isArray(rawUsers)) {
+      (rawUsers as Record<string, unknown>[]).forEach((u) => {
+        if (!existingUsers.find((x) => x.id === String(u.id ?? ""))) {
+          existingUsers.push({
+            id: String(u.id ?? ""),
+            firstName: u.firstName as string | undefined,
+            lastName: u.lastName as string | undefined,
+            email: u.email as string | undefined,
+            avatarUrl: u.avatarUrl as string | null | undefined,
+          });
+        }
+      });
+    }
+    setEditUsers(existingUsers);
+    setUserSearchQuery("");
+    setUserResults([]);
+    setShowUserDropdown(false);
+
+  };
+
+  // Debounced user search when in edit mode
+  useEffect(() => {
+    if (!editing || !token || userSearchQuery.trim().length < 2) return;
+    if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
+    userSearchTimer.current = setTimeout(async () => {
+      setSearchingUsers(true);
+      const result = await getEligibleUsers(token, userSearchQuery.trim());
+      setSearchingUsers(false);
+      if (result.success && result.data) {
+        const raw = result.data;
+        const users: EligibleUser[] = Array.isArray(raw)
+          ? (raw as EligibleUser[])
+          : ((raw.users ?? raw.data ?? raw.items ?? []) as EligibleUser[]);
+        setUserResults(users);
+        setShowUserDropdown(true);
+      } else {
+        setUserResults([]);
+      }
+    }, 300);
+    return () => { if (userSearchTimer.current) clearTimeout(userSearchTimer.current); };
+  }, [userSearchQuery, token, editing, getEligibleUsers]);
 
   const startEditing = () => {
     populateEdit();
@@ -188,20 +484,83 @@ export default function ProjectDetailsPage() {
       return;
     }
     setSaving(true);
-    const result = await updateProject(token, projectId, {
+    const base = {
       title: editTitle.trim(),
       description: editDescription.trim(),
       category: editCategory,
       status: editStatus,
-      startDate: editStartDate || undefined,
-      deadline: editDeadline || undefined,
+      startDate: editStartDate || "",
+      deadline: editDeadline || "",
       tasks: editTasks,
+      attachments: Array.isArray(project?.attachments)
+        ? (project.attachments as string[])
+        : [],
       deliverableTypes: editDeliverables,
       additionalInstructions: (project?.additionalInstructions ?? "") as string,
+    };
+    if (editUsers.length <= 1) {
+      const result = await updateProject(token, projectId, {
+        ...base,
+        userIds: editUsers.map((u) => u.id),
+      });
+      setSaving(false);
+      if (result.success) {
+        showToast("Project updated");
+        setEditing(false);
+        const refreshed = await getProjectById(token, projectId);
+        if (refreshed.success && refreshed.data) {
+          const raw = refreshed.data;
+          const prj: Record<string, unknown> = (raw.project ?? raw.data ?? (typeof raw === "object" && raw !== null ? raw : {})) as Record<string, unknown>;
+          setProject(prj);
+        }
+      } else {
+        showToast(result.message || "Failed to update project");
+      }
+      return;
+    }
+
+    // Multi-user: split into independent copies - original stays with the
+    // first user, each other user gets their own copy.
+    let splitCount = 0;
+    let lastError = "";
+    const original = await updateProject(token, projectId, {
+      ...base,
+      userIds: [editUsers[0].id],
     });
+    if (original.success) splitCount += 1;
+    else lastError = original.message || "Failed to update project";
+    for (const u of editUsers.slice(1)) {
+      const res = await createProject(token, {
+        ...base,
+        userIds: [u.id],
+      });
+      if (res.success) splitCount += 1;
+      else lastError = res.message || "Failed to create project";
+    }
     setSaving(false);
+    if (splitCount === editUsers.length) {
+      showToast(`Project split into ${editUsers.length} projects - one per user`);
+    } else if (splitCount > 0) {
+      showToast(`Split ${splitCount}/${editUsers.length} projects. ${lastError}`);
+    } else {
+      showToast(lastError || "Failed to split project");
+    }
+    setEditing(false);
+    const refreshed = await getProjectById(token, projectId);
+    if (refreshed.success && refreshed.data) {
+      const raw = refreshed.data;
+      const prj: Record<string, unknown> = (raw.project ?? raw.data ?? (typeof raw === "object" && raw !== null ? raw : {})) as Record<string, unknown>;
+      setProject(prj);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!token || !projectId || approving) return;
+    setApproving(true);
+    const result = await approveProject(token, projectId);
+    setApproving(false);
     if (result.success) {
-      showToast("Project updated");
+      showToast("Project approved - reward points credited");
       setEditing(false);
       const refreshed = await getProjectById(token, projectId);
       if (refreshed.success && refreshed.data) {
@@ -210,7 +569,7 @@ export default function ProjectDetailsPage() {
         setProject(prj);
       }
     } else {
-      showToast(result.message || "Failed to update project");
+      showToast(result.message || "Failed to approve project");
     }
   };
 
@@ -225,21 +584,12 @@ export default function ProjectDetailsPage() {
   const title = (p?.title ?? p?.name ?? "Untitled Project") as string;
   const projectIdDisplay = (p?.id ?? projectId ?? "") as string;
 
-  const user = (p?.user ?? p?.assignedUser ?? null) as Record<string, unknown> | null;
-  const userProfile = (user?.profile ?? null) as Record<string, unknown> | null;
-  const userAvatar = (user?.avatarUrl ??
-    (userProfile ? (userProfile.avatarUrl as string) : undefined) ??
-    "") as string;
-  const userName = user
-    ? ([user.firstName, user.lastName].filter(Boolean).join(" ") || (user.name as string) || "Unknown")
-    : "Unassigned";
-  const userEmail = (user?.email ?? "") as string;
-  const userSkill = (user?.skill ?? p?.skill ?? "") as string;
+  const assignedUsers = assignedUsersList(p);
 
-  const deliverables: string[] = Array.isArray(p?.deliverables)
-    ? p.deliverables as string[]
-    : Array.isArray(p?.deliverableTypes)
-      ? p.deliverableTypes as string[]
+  const deliverables: string[] = Array.isArray(p?.deliverableTypes)
+    ? (p.deliverableTypes as string[]).filter(Boolean)
+    : Array.isArray(p?.deliverables)
+      ? (p.deliverables as string[])
       : [];
 
   const attachments: { name: string; size?: string }[] = Array.isArray(p?.attachments)
@@ -262,6 +612,13 @@ export default function ProjectDetailsPage() {
     ? p.submissions as { id: number; file?: string; size?: string; submittedBy?: string; date?: string; status?: string }[]
     : [];
 
+  const hasDeliverables =
+    !!deliverableData &&
+    (!!deliverableData.githubUrl ||
+      !!deliverableData.liveUrl ||
+      !!deliverableData.note ||
+      deliverableData.entries.length > 0);
+
   if (!hydrated || authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
@@ -280,6 +637,17 @@ export default function ProjectDetailsPage() {
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
           <AdminHeader title={title} subtitle={`Project ID: ${projectIdDisplay}`}>
             <div className="flex items-center gap-3">
+              {!editing && status.toUpperCase() !== "COMPLETED" && (
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving}
+                  className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle2 size={16} />
+                  {approving ? "Approving..." : "Approve & Reward"}
+                </button>
+              )}
               {!editing && (
                 <button
                   type="button"
@@ -341,6 +709,80 @@ export default function ProjectDetailsPage() {
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                   />
                 </div>
+              </div>
+
+              {/* Assign Users */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Assigned Users
+                </label>
+                <div className="relative mb-2">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    onFocus={() => { if (userResults.length > 0) setShowUserDropdown(true); }}
+                    onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
+                    placeholder="Search and add users..."
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                  />
+                  {showUserDropdown && userResults.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {userResults
+                        .filter((u) => !editUsers.some((s) => s.id === u.id))
+                        .map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onMouseDown={() => {
+                              setEditUsers((prev) => [...prev, u]);
+                              setUserSearchQuery("");
+                              setUserResults([]);
+                              setShowUserDropdown(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
+                          >
+                            <UserAvatar avatarUrl={u.avatarUrl} firstName={u.firstName} lastName={u.lastName} className="w-8 h-8 rounded-full text-xs shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{userFullName(u)}</p>
+                              {u.email && <p className="text-xs text-gray-500 truncate">{u.email}</p>}
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                  {searchingUsers && (
+                    <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />
+                  )}
+                </div>
+                {editUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {editUsers.map((u) => (
+                      <div key={u.id} className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-sky-50 border border-sky-200 rounded-xl">
+                        <UserAvatar avatarUrl={u.avatarUrl} firstName={u.firstName} lastName={u.lastName} className="w-6 h-6 rounded-full text-xs shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 truncate leading-tight">{userFullName(u)}</p>
+                          {u.email && <p className="text-xs text-gray-400 truncate leading-tight">{u.email}</p>}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditUsers((prev) => prev.filter((s) => s.id !== u.id))}
+                          className="p-0.5 rounded hover:bg-sky-100 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                          aria-label={`Remove ${userFullName(u)}`}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {editUsers.length > 1 && (
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs text-amber-700">
+                    Saving with multiple users splits this project into one
+                    independent copy per user.
+                  </p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -557,26 +999,10 @@ export default function ProjectDetailsPage() {
                 </div>
               )}
 
-              {/* User Card */}
+              {/* Assigned Users */}
               <div className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
-                <div className="flex items-center gap-4">
-                  <UserAvatar
-                    avatarUrl={userAvatar}
-                    firstName={user?.firstName as string}
-                    lastName={user?.lastName as string}
-                    className="w-14 h-14 rounded-full text-lg shrink-0"
-                  />
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{userName}</p>
-                    {userEmail && (
-                      <p className="text-sm text-gray-500">{userEmail}</p>
-                    )}
-                    {userSkill && (
-                      <span className="inline-block mt-1.5 px-3 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700">
-                        {userSkill}
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <h2 className="text-sm font-semibold text-gray-700">Assigned Users</h2>
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusCls}`}
                   >
@@ -584,6 +1010,35 @@ export default function ProjectDetailsPage() {
                     {statusLabel}
                   </span>
                 </div>
+                {assignedUsers.length === 0 ? (
+                  <p className="text-sm text-gray-400">No users assigned</p>
+                ) : (
+                  <div className="space-y-4">
+                    {assignedUsers.map((u) => (
+                      <div key={assignedUserKey(u)} className="flex items-center gap-4">
+                        <UserAvatar
+                          avatarUrl={u.avatarUrl}
+                          firstName={u.firstName}
+                          lastName={u.lastName}
+                          className="w-14 h-14 rounded-full text-lg shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900">
+                            {assignedUserName(u)}
+                          </p>
+                          {u.email && (
+                            <p className="text-sm text-gray-500">{u.email}</p>
+                          )}
+                          {u.skill && (
+                            <span className="inline-block mt-1.5 px-3 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700">
+                              {u.skill}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Tabs */}
@@ -762,7 +1217,69 @@ export default function ProjectDetailsPage() {
 
                   {activeTab === "submission" && (
                     <div className="space-y-4">
-                      {submissions.length === 0 ? (
+                      {loadingDeliverables ? (
+                        <div className="flex items-center justify-center py-10 text-gray-400">
+                          <Loader2 size={28} className="mr-2 animate-spin" />
+                          <span className="text-sm">Loading deliverables...</span>
+                        </div>
+                      ) : hasDeliverables ? (
+                        <div className="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
+                          <div className="flex items-center justify-between gap-3 px-5 py-4 bg-sky-50/60">
+                            <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                              <Upload size={16} className="text-sky-600" />
+                              Submitted Deliverables
+                            </p>
+                            {deliverableData?.submittedAt && (
+                              <span className="text-xs text-gray-500">
+                                {new Date(deliverableData.submittedAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {deliverableData?.githubUrl && (
+                            <a
+                              href={deliverableData.githubUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center shrink-0">
+                                <GitBranch size={18} className="text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900">GitHub Repository</p>
+                                <p className="text-xs text-gray-500 truncate">{deliverableData.githubUrl}</p>
+                              </div>
+                              <Globe size={15} className="text-gray-300 shrink-0" />
+                            </a>
+                          )}
+                          {deliverableData?.liveUrl && (
+                            <a
+                              href={deliverableData.liveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+                                <Globe size={18} className="text-sky-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900">Live URL</p>
+                                <p className="text-xs text-gray-500 truncate">{deliverableData.liveUrl}</p>
+                              </div>
+                              <Globe size={15} className="text-gray-300 shrink-0" />
+                            </a>
+                          )}
+                          {deliverableData?.entries.map((d, idx) => (
+                            <div key={`${d.type}-${idx}`}>{renderDeliverableRow(d)}</div>
+                          ))}
+                          {deliverableData?.note && (
+                            <div className="px-5 py-4">
+                              <p className="text-sm font-medium text-gray-900 mb-1">Submission Notes</p>
+                              <p className="text-sm text-gray-600 whitespace-pre-wrap">{deliverableData.note}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                         <div className="text-center py-8 text-gray-400">
                           <Upload
                             size={36}
@@ -770,40 +1287,49 @@ export default function ProjectDetailsPage() {
                           />
                           <p className="text-sm">No submissions yet</p>
                         </div>
-                      ) : (
-                        submissions.map((s) => (
-                          <div
-                            key={s.id}
-                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
-                              <Upload
-                                size={18}
-                                className="text-sky-600"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {s.file ?? "Unknown file"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {s.submittedBy ?? ""}
-                                {s.date ? ` · ${s.date}` : ""}
-                                {s.size ? ` · ${s.size}` : ""}
-                              </p>
-                            </div>
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                s.status === "approved"
-                                  ? "bg-green-50 text-green-700"
-                                  : "bg-amber-50 text-amber-700"
-                              }`}
+                      )}
+                      {deliverableError && (
+                        <p className="text-xs text-red-500">{deliverableError}</p>
+                      )}
+                      {submissions.length > 0 && (
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-semibold text-gray-700">
+                            Files
+                          </h3>
+                          {submissions.map((s) => (
+                            <div
+                              key={s.id}
+                              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
                             >
-                              {(s.status ?? "pending").charAt(0).toUpperCase() +
-                                (s.status ?? "pending").slice(1)}
-                            </span>
-                          </div>
-                        ))
+                              <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                                <Upload
+                                  size={18}
+                                  className="text-sky-600"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {s.file ?? "Unknown file"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {s.submittedBy ?? ""}
+                                  {s.date ? ` · ${s.date}` : ""}
+                                  {s.size ? ` · ${s.size}` : ""}
+                                </p>
+                              </div>
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  s.status === "approved"
+                                    ? "bg-green-50 text-green-700"
+                                    : "bg-amber-50 text-amber-700"
+                                }`}
+                              >
+                                {(s.status ?? "pending").charAt(0).toUpperCase() +
+                                  (s.status ?? "pending").slice(1)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}

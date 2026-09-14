@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Calendar,
   Tag,
+  XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../../components/BottomNav";
@@ -16,7 +17,7 @@ import { SideNav } from "../../components/SideNav";
 import { useProjectStore, Project, projectTitle, projectStatusLabel } from "../../lib/projectStore";
 import { useAuthStore } from "../../lib/authStore";
 
-type Tab = "Active" | "Completed";
+type Tab = "Active" | "Completed" | "Failed";
 
 const STATUS_STYLES: Record<string, string> = {
   COMPLETED: "bg-green-50 text-green-700 border-green-200",
@@ -42,6 +43,8 @@ const isActive = (p: Project) =>
   (p.status ?? "").toUpperCase() === "ACTIVE";
 
 const isCompleted = (p: Project) => (p.status ?? "").toUpperCase() === "COMPLETED";
+
+const isFailed = (p: Project) => (p.status ?? "").toUpperCase() === "FAILED";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -72,12 +75,25 @@ export default function ProjectsPage() {
 
   const activeProjects = projects.filter(isActive);
   const completedProjects = projects.filter(isCompleted);
-  const filtered = tab === "Completed" ? completedProjects : activeProjects;
+  const failedProjects = projects.filter(isFailed);
+  const filtered =
+    tab === "Active"
+      ? activeProjects
+      : tab === "Completed"
+        ? completedProjects
+        : failedProjects;
+
+  const tabCounts: Record<Tab, number> = {
+    Active: activeProjects.length,
+    Completed: completedProjects.length,
+    Failed: failedProjects.length,
+  };
 
   const stats = [
-    { label: "Total", value: projects.length, icon: Folder, iconColor: "text-sky-300" },
-    { label: "Active", value: activeProjects.length, icon: Clock, iconColor: "text-amber-300" },
-    { label: "Completed", value: completedProjects.length, icon: CheckCircle2, iconColor: "text-green-300" },
+    { label: "Total", value: projects.length, icon: Folder, iconColor: "text-sky-500" },
+    { label: "Active", value: activeProjects.length, icon: Clock, iconColor: "text-amber-500" },
+    { label: "Completed", value: completedProjects.length, icon: CheckCircle2, iconColor: "text-green-500" },
+    { label: "Failed", value: failedProjects.length, icon: XCircle, iconColor: "text-red-500" },
   ];
 
   return (
@@ -96,8 +112,8 @@ export default function ProjectsPage() {
           </header>
 
           {/* Stats */}
-          <div className="mb-8 rounded-3xl bg-linear-to-br from-sky-500 via-sky-400 to-blue-500 p-5 sm:p-6 shadow-sm">
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="mb-8 rounded-3xl bg-linear-to-br from-[#2dbcf8] to-[#60cbf9] p-5 sm:p-6 shadow-sm">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {stats.map((stat) => (
                 <div
                   key={stat.label}
@@ -117,7 +133,7 @@ export default function ProjectsPage() {
 
           {/* Tabs */}
           <div className="mb-5 flex gap-2 bg-white border rounded-xl p-1.5 w-fit">
-            {(["Active", "Completed"] as const).map((t) => (
+            {(["Active", "Completed", "Failed"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -132,7 +148,7 @@ export default function ProjectsPage() {
                     tab === t ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
                   }`}
                 >
-                  {t === "Active" ? activeProjects.length : completedProjects.length}
+                  {tabCounts[t]}
                 </span>
               </button>
             ))}
@@ -151,7 +167,44 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filtered.map((project) => (
+              {filtered.map((project) => {
+                const failed = isFailed(project);
+                return failed ? (
+                  <div
+                    key={project.id}
+                    className="text-left bg-white border rounded-2xl p-5 shadow-sm flex flex-col opacity-80"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900 leading-tight">
+                        {projectTitle(project)}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${statusStyle(project.status)}`}
+                      >
+                        {projectStatusLabel(project.status)}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-1">
+                      {project.description || "No description provided."}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      {project.category && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-medium">
+                          <Tag size={12} />
+                          {project.category}
+                        </span>
+                      )}
+                      {formatDate(project.deadline) && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-xs font-medium">
+                          <Calendar size={12} />
+                          Due {formatDate(project.deadline)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
                 <button
                   key={project.id}
                   type="button"
@@ -193,7 +246,8 @@ export default function ProjectsPage() {
                     <ArrowRight size={16} className="ml-1 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

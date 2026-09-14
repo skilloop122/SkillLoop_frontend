@@ -3,7 +3,7 @@ import { create } from "zustand";
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 
 export interface ProjectPayload {
-  userId: string;
+  userIds: string[];
   title: string;
   description: string;
   category: string;
@@ -34,7 +34,9 @@ interface AdminProjectState {
   getProjects: (token: string, params?: GetProjectsParams) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
   getEligibleUsers: (token: string, search?: string) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
   getProjectById: (token: string, id: string) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
+  fetchProjectDeliverables: (token: string, id: string) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
   updateProject: (token: string, id: string, payload: ProjectUpdatePayload) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
+  approveProject: (token: string, id: string) => Promise<{ success: boolean; data?: Record<string, unknown>; message?: string }>;
   deleteProject: (token: string, id: string) => Promise<{ success: boolean; message?: string }>;
 }
 
@@ -158,6 +160,33 @@ export const useAdminProjectStore = create<AdminProjectState>((set) => ({
     }
   },
 
+  fetchProjectDeliverables: async (token: string, id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE}projects/${id}/deliverables`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      console.log("GET /projects/" + id + "/deliverables ->", response.status, data);
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || "Failed to fetch project deliverables");
+      }
+
+      set({ loading: false });
+      return { success: true, data };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "An unknown error occurred";
+      set({ loading: false, error: msg });
+      return { success: false, message: msg };
+    }
+  },
+
   updateProject: async (token: string, id: string, payload: ProjectUpdatePayload) => {
     set({ loading: true, error: null });
     try {
@@ -174,6 +203,31 @@ export const useAdminProjectStore = create<AdminProjectState>((set) => ({
 
       if (!response.ok) {
         throw new Error(data?.message || data?.error || "Failed to update project");
+      }
+
+      set({ loading: false });
+      return { success: true, data };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "An unknown error occurred";
+      set({ loading: false, error: msg });
+      return { success: false, message: msg };
+    }
+  },
+
+  approveProject: async (token: string, id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE}admin/projects/${id}/approve`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || "Failed to approve project");
       }
 
       set({ loading: false });

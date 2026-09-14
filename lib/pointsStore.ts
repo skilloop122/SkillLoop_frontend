@@ -11,6 +11,8 @@ export type TransactionReason =
   | "REFERRAL_REWARD"
   | "SKILL_LEARNED"
   | "SESSION_DEDUCTED"
+  | "PROJECT_COMPLETED"
+  | "PROJECT_FAILED"
   | string;
 
 export interface PointTransaction {
@@ -59,6 +61,8 @@ export const usePointsStore = create<PointsState>((set) => ({
       });
 
       const body = await response.json();
+
+      console.log("GET /users/points/history ->", response.status, body);
 
       if (!response.ok) {
         set({ error: body?.message || "Failed to load points history", loading: false });

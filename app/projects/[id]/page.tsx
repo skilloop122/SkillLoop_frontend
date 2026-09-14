@@ -108,6 +108,7 @@ export default function ProjectDetailPage() {
     if (result.success && result.project) {
       setProject(result.project);
       setSubmitError(null);
+      router.push("/projects");
     } else {
       setSubmitError(result.message || "Failed to submit project");
     }
@@ -301,7 +302,7 @@ export default function ProjectDetailPage() {
                   ) : (
                     <Send size={16} />
                   )}
-                  Submit & Mark Completed
+                  Submit
                 </button>
               </div>
             )}
