@@ -51,13 +51,13 @@ function reasonLabel(reason: string): string {
   return reason.replace(/_/g, " ");
 }
 
-const normReason = (r: string) => (r ?? "").toUpperCase().replace(/[^A-Z]/g, "");
+// const normReason = (r: string) => (r ?? "").toUpperCase().replace(/[^A-Z]/g, "");
 
-const isProjectTx = (t: PointTransaction) => normReason(t.reason).includes("PROJECT");
-const isProjectCompletedTx = (t: PointTransaction) =>
-  isProjectTx(t) && !normReason(t.reason).includes("FAIL");
-const isProjectFailedTx = (t: PointTransaction) =>
-  isProjectTx(t) && normReason(t.reason).includes("FAIL");
+// const isProjectTx = (t: PointTransaction) => normReason(t.reason).includes("PROJECT");
+// const isProjectCompletedTx = (t: PointTransaction) =>
+//   isProjectTx(t) && !normReason(t.reason).includes("FAIL");
+// const isProjectFailedTx = (t: PointTransaction) =>
+//   isProjectTx(t) && normReason(t.reason).includes("FAIL");
 
 // ─── transaction row ─────────────────────────────────────────────────────────
 
@@ -231,36 +231,36 @@ export default function HistoryPage() {
                   </div>
 
                   {/* Skills */}
-                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                  {/* <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
                     <span className="text-[18px] font-bold text-slate-800 mb-1">
                       {transactions.filter(t => t.reason === "SKILL_LEARNED").length}
                     </span>
                     <span className="text-[11px] font-medium text-slate-500 leading-tight">Skills Learned</span>
-                  </div>
+                  </div> */}
 
                   {/* Sessions */}
-                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                  {/* <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
                     <span className="text-[18px] font-bold text-slate-800 mb-1">
                       {transactions.filter(t => t.reason === "SESSION_COMPLETED").length}
                     </span>
                     <span className="text-[11px] font-medium text-slate-500 leading-tight">Sessions Done</span>
-                  </div>
+                  </div> */}
 
                   {/* Projects Completed */}
-                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                  {/* <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
                     <span className="text-[18px] font-bold text-slate-800 mb-1">
                       {transactions.filter(isProjectCompletedTx).length}
                     </span>
                     <span className="text-[11px] font-medium text-slate-500 leading-tight">Projects Completed</span>
-                  </div>
+                  </div> */}
 
                   {/* Projects Failed */}
-                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                  {/* <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
                     <span className="text-[18px] font-bold text-slate-800 mb-1">
                       {transactions.filter(isProjectFailedTx).length}
                     </span>
                     <span className="text-[11px] font-medium text-slate-500 leading-tight">Projects Failed</span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 

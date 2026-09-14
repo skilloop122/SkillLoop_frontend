@@ -7,7 +7,8 @@ export interface AdminUserSkill {
 
 export interface AdminUserSchedule {
   day: string;
-  time: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface AdminUserProfile {
@@ -25,14 +26,26 @@ export interface AdminUserProfile {
   schedule: AdminUserSchedule[];
 }
 
+export interface AdminTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+  type?: string;
+}
+
 export interface AdminUserDetail {
   id: string;
   email: string;
   points: number;
+  escrowPoints?: number;
+  streakCount?: number;
   role: string;
   status?: string;
   createdAt?: string;
+  projectIds?: string[];
   profile?: AdminUserProfile;
+  transactions?: AdminTransaction[];
 }
 
 export interface AdminUserRequest {
@@ -103,20 +116,126 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
 
       const raw = body?.data?.user ? body.data : body?.result?.user ? body.result : body;
 
+      const rawProfile = raw.profile || {};
+
+      const parseSkillList = (value: unknown) => {
+        if (Array.isArray(value)) return value.filter((s) => s && typeof s === "object" && s.id && s.name);
+        if (typeof value === "string") {
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) return parsed.filter((s) => s && typeof s === "object" && s.id && s.name);
+          } catch {
+            /* ignore malformed string */
+          }
+        }
+        return [];
+      };
+
+      const parseSchedule = (value: unknown) => {
+        if (Array.isArray(value)) return value.filter((s) => s && typeof s === "object" && s.day);
+        if (typeof value === "string") {
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) return parsed.filter((s) => s && typeof s === "object" && s.day);
+          } catch {
+            /* ignore malformed string */
+          }
+        }
+        return [];
+      };
+
+      const profile: AdminUserProfile = rawProfile
+        ? {
+            firstName: rawProfile.firstName || "",
+            lastName: rawProfile.lastName || "",
+            bio: rawProfile.bio ?? null,
+            avatarUrl: rawProfile.avatarUrl ?? null,
+            phoneNumber: rawProfile.phoneNumber ?? null,
+            teachSkills: parseSkillList(rawProfile.teachSkills),
+            learnSkills: parseSkillList(rawProfile.learnSkills),
+            linkedinUrl: rawProfile.linkedinUrl ?? null,
+            githubUrl: rawProfile.githubUrl ?? null,
+            twitterUrl: rawProfile.twitterUrl ?? null,
+            portfolioUrl: rawProfile.portfolioUrl ?? null,
+            schedule: parseSchedule(rawProfile.schedule),
+          }
+        : ({} as AdminUserProfile);
+
+      const mapRequest = (r: Record<string, unknown>): AdminUserRequest => {
+        const requester = (r.requester || r.fromUser || {}) as Record<string, unknown>;
+        const toUser = (r.toUser || r.receiver || r.recipient || {}) as Record<string, unknown>;
+        return {
+          id: String(r.id || ""),
+          status: String(r.status || ""),
+          message: r.message ? String(r.message) : undefined,
+          createdAt: String(r.createdAt || ""),
+          fromUser: {
+            id: String(requester.id || ""),
+            firstName: requester.firstName ? String(requester.firstName) : undefined,
+            lastName: requester.lastName ? String(requester.lastName) : undefined,
+          },
+          toUser: {
+            id: String(toUser.id || ""),
+            firstName: toUser.firstName ? String(toUser.firstName) : undefined,
+            lastName: toUser.lastName ? String(toUser.lastName) : undefined,
+          },
+        };
+      };
+
+      const mapSession = (s: Record<string, unknown>): AdminUserSession => {
+        const other = (s.withUser || s.otherUser || s.requester || s.provider || {}) as Record<string, unknown>;
+        const skillListing = s.skillListing as Record<string, unknown> | undefined;
+        return {
+          id: String(s.id || ""),
+          status: String(s.status || ""),
+          scheduledAt: s.scheduledAt ? String(s.scheduledAt) : undefined,
+          completedAt: s.completedAt ? String(s.completedAt) : undefined,
+          topic: s.topic
+            ? String(s.topic)
+            : skillListing?.title
+              ? String(skillListing.title)
+              : String(s.skillName || ""),
+          withUser: {
+            id: String(other.id || ""),
+            firstName: other.firstName ? String(other.firstName) : undefined,
+            lastName: other.lastName ? String(other.lastName) : undefined,
+          },
+        };
+      };
+
+      const mapFeedback = (f: Record<string, unknown>): AdminUserFeedback => {
+        const giver = (f.giver || f.fromUser || f.user || {}) as Record<string, unknown>;
+        return {
+          id: String(f.id || ""),
+          rating: Number(f.rating) || 0,
+          comment: f.comment ? String(f.comment) : f.comments ? String(f.comments) : undefined,
+          createdAt: String(f.createdAt || ""),
+          fromUser: {
+            id: String(giver.id || ""),
+            firstName: giver.firstName ? String(giver.firstName) : undefined,
+            lastName: giver.lastName ? String(giver.lastName) : undefined,
+          },
+        };
+      };
+
       const normalized: AdminUserDetailsResponse = {
         user: {
           id: raw.id,
           email: raw.email,
           points: raw.points,
+          escrowPoints: raw.escrowPoints,
+          streakCount: raw.streakCount,
           role: raw.role,
           status: raw.status,
           createdAt: raw.createdAt,
-          profile: raw.profile || undefined,
+          projectIds: Array.isArray(raw.projectIds) ? raw.projectIds.map(String) : [],
+          profile: Object.keys(rawProfile).length ? profile : undefined,
+          transactions: Array.isArray(raw.transactions) ? raw.transactions : [],
         },
-        profile: raw.profile || undefined,
-        requests: [...(raw.requestsSent || []), ...(raw.requestsReceived || [])],
-        sessions: [...(raw.sessionsAsProvider || []), ...(raw.sessionsAsRequester || [])],
-        feedback: raw.feedbackReceived || [],
+        profile,
+        requests: [...(raw.requestsSent || []), ...(raw.requestsReceived || [])].map(mapRequest),
+        sessions: [...(raw.sessionsAsProvider || []), ...(raw.sessionsAsRequester || [])].map(mapSession),
+        feedback: (raw.feedbackReceived || []).map(mapFeedback),
       };
 
       console.log("ADMIN USER DETAILS NORMALIZED:", JSON.stringify(normalized, null, 2));

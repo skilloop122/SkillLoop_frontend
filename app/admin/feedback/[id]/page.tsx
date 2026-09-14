@@ -18,8 +18,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { AdminSideNav } from "@/components/AdminSideNav";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
-import { useAdminFeedbackStore } from "@/lib/adminFeedbackStore";
+import { useAdminFeedbackStore, feedbackSessionTitle, feedbackUserName } from "@/lib/adminFeedbackStore";
 
 export default function FeedbackDetailsPage() {
   const router = useRouter();
@@ -64,9 +65,14 @@ export default function FeedbackDetailsPage() {
   }
 
   const rating = feedback.rating ?? 0;
-  const comments = feedback.comments || "No comment was provided for this feedback.";
-  const skillTitle = feedback.session?.sessionRequest?.skillListing?.title || "Unknown Skill";
+  const comments = feedback.comment || (feedback as { comments?: string }).comments || "No comment was provided for this feedback.";
+  const skillTitle = feedbackSessionTitle(feedback) || "Unknown Skill";
   const status = feedback.status || "reviewed";
+
+  const giverName = feedbackUserName(feedback.giver) || "Unknown";
+  const giverEmail = feedback.giver?.email || "";
+  const receiverName = feedbackUserName(feedback.receiver) || "Unknown";
+  const receiverEmail = feedback.receiver?.email || "";
 
   const createdDate = feedback.createdAt ? new Date(feedback.createdAt) : null;
   const dateStr = createdDate?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) ?? "N/A";
@@ -139,6 +145,42 @@ export default function FeedbackDetailsPage() {
                 </p>
               </div>
 
+            </div>
+
+            {/* People */}
+            <div className="bg-white border rounded-2xl p-6 shadow-sm">
+              <h3 className="font-bold text-lg mb-4 text-gray-900">People</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Giver */}
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    avatarUrl={feedback.giver?.profile?.avatarUrl}
+                    firstName={feedback.giver?.profile?.firstName}
+                    lastName={feedback.giver?.profile?.lastName}
+                    className="w-12 h-12 rounded-full text-sm shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Feedback From</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{giverName}</p>
+                    {giverEmail && <p className="text-xs text-gray-500 truncate">{giverEmail}</p>}
+                  </div>
+                </div>
+
+                {/* Receiver */}
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    avatarUrl={feedback.receiver?.profile?.avatarUrl}
+                    firstName={feedback.receiver?.profile?.firstName}
+                    lastName={feedback.receiver?.profile?.lastName}
+                    className="w-12 h-12 rounded-full text-sm shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Received By</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{receiverName}</p>
+                    {receiverEmail && <p className="text-xs text-gray-500 truncate">{receiverEmail}</p>}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Feedback Content */}

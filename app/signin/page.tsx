@@ -7,7 +7,7 @@ import {
   Eye,
   EyeOff,
   // ArrowLeft,
-  Apple,
+  // Apple,
   FileCode,
   Palette,
   Settings,
@@ -259,10 +259,10 @@ export default function SignIn() {
             Google
           </button>
 
-          <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
+          {/* <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
             <Apple size={16} className="text-slate-900 fill-slate-900" />
             Apple
-          </button>
+          </button> */}
 
         </div>
 

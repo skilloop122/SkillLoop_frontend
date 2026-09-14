@@ -14,14 +14,16 @@ import {
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
-import { useAdminFeedbackStore, ApiFeedback } from "@/lib/adminFeedbackStore";
+import { useAdminFeedbackStore, ApiFeedback, feedbackSessionTitle, feedbackUserName } from "@/lib/adminFeedbackStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 
 interface FeedbackListing {
   id: string;
-  feedback: string;
+  comment: string;
   session: string;
+  giverName: string;
+  giverEmail: string;
   rating: number;
   status: "published" | "hidden" | "pending";
   submitted: string;
@@ -30,8 +32,10 @@ interface FeedbackListing {
 const mapFeedbackToUI = (f: ApiFeedback): FeedbackListing => {
   return {
     id: f.id,
-    feedback: f.comments || "No comments provided",
-    session: f.session?.sessionRequest?.skillListing?.title || "Untitled Session",
+    comment: f.comment || "No comments provided",
+    session: feedbackSessionTitle(f) || "Untitled Session",
+    giverName: feedbackUserName(f.giver) || "Unknown",
+    giverEmail: f.giver?.email || "",
     rating: f.rating,
     status: (f.status as FeedbackListing["status"]) || "published",
     submitted: new Date(f.createdAt || Date.now()).toISOString().split('T')[0],
@@ -65,7 +69,7 @@ export default function AdminFeedbackPage() {
 
   const filteredFeedback = useMemo(() => {
     return feedbackList.filter((item) => {
-      const matchesSearch = item.feedback.toLowerCase().includes(search.toLowerCase()) || 
+      const matchesSearch = item.comment.toLowerCase().includes(search.toLowerCase()) || 
                             item.session.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesRating = ratingFilter === "all" || item.rating.toString() === ratingFilter;
@@ -301,8 +305,11 @@ export default function AdminFeedbackPage() {
                   <div key={item.id} className="border rounded-xl p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm truncate">{item.feedback}</p>
+                        <p className="font-semibold text-sm truncate">{item.comment}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{item.session}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          From {item.giverName}{item.giverEmail ? ` · ${item.giverEmail}` : ""}
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -335,6 +342,7 @@ export default function AdminFeedbackPage() {
                   <tr className="border-b bg-gray-50/80">
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Feedback</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Session</th>
+                    <th className="text-left font-semibold text-gray-600 px-4 py-3.5">From</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Rating</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Status</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Submitted</th>
@@ -344,7 +352,7 @@ export default function AdminFeedbackPage() {
                 <tbody>
                   {filteredFeedback.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-12 text-gray-400">
+                      <td colSpan={7} className="text-center py-12 text-gray-400">
                         <MessageSquare size={40} className="mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No feedback found</p>
                       </td>
@@ -353,12 +361,20 @@ export default function AdminFeedbackPage() {
                     filteredFeedback.map((item) => (
                       <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-4">
-                          <span className="font-medium text-gray-900">{item.feedback}</span>
+                          <span className="font-medium text-gray-900">{item.comment}</span>
                         </td>
                         <td className="px-4 py-4">
                           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                             {item.session}
                           </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-900">{item.giverName}</span>
+                            {item.giverEmail && (
+                              <span className="text-xs text-gray-500">{item.giverEmail}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           <StarRating value={item.rating} />

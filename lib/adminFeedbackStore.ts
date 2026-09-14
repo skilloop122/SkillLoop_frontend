@@ -3,16 +3,52 @@ import { create } from "zustand";
 export interface ApiFeedback {
   id: string;
   rating: number;
-  comments?: string;
+  comment?: string;
   createdAt: string;
   status?: string;
+  giver?: {
+    id?: string;
+    email?: string;
+    profile?: { firstName?: string; lastName?: string; avatarUrl?: string };
+  };
+  receiver?: {
+    id?: string;
+    email?: string;
+    profile?: { firstName?: string; lastName?: string; avatarUrl?: string };
+  };
   session?: {
+    id?: string;
     sessionRequest?: {
       skillListing?: {
         title?: string;
       };
     };
+    request?: {
+      skillListing?: {
+        title?: string;
+      };
+    };
   };
+}
+
+export interface FeedbackUser {
+  id?: string;
+  email?: string;
+  profile?: { firstName?: string; lastName?: string; avatarUrl?: string };
+}
+
+export function feedbackUserName(u?: FeedbackUser): string {
+  if (!u) return "";
+  const name = [u.profile?.firstName, u.profile?.lastName].filter(Boolean).join(" ");
+  return name || u.email || "";
+}
+
+export function feedbackSessionTitle(f: ApiFeedback): string {
+  return (
+    f.session?.request?.skillListing?.title ||
+    f.session?.sessionRequest?.skillListing?.title ||
+    ""
+  );
 }
 
 export interface AdminFeedbackState {
@@ -52,6 +88,9 @@ export const useAdminFeedbackStore = create<AdminFeedbackState>()((set) => ({
       });
 
       const body = await response.json().catch(() => null);
+
+      console.log("GET /admin/feedback ->", response.status, body);
+
       if (!response.ok) {
         const errorMsg = body?.message || "Failed to load feedback";
         set({ error: errorMsg, loading: false });

@@ -273,7 +273,7 @@ export default function ProjectDetailsPage() {
   const params = useParams();
   const projectId = params?.id as string;
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-  const { getProjectById, updateProject, createProject, approveProject, getEligibleUsers, fetchProjectDeliverables } = useAdminProjectStore();
+  const { getProjectById, updateProject, createProject, approveProject, getEligibleUsers, fetchProjectDeliverables, getUserAssignments } = useAdminProjectStore();
   const { toastElement, showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -431,6 +431,44 @@ export default function ProjectDetailsPage() {
     }, 300);
     return () => { if (userSearchTimer.current) clearTimeout(userSearchTimer.current); };
   }, [userSearchQuery, token, editing, getEligibleUsers]);
+
+  // Fetch user assignments for this project when editing starts
+  useEffect(() => {
+    if (!editing || !token || !projectId) return;
+    let cancelled = false;
+    (async () => {
+      const result = await getUserAssignments(token, { projectId });
+      if (cancelled || !result.success || !result.data) return;
+      const raw = result.data;
+      const list: EligibleUser[] = Array.isArray(raw)
+        ? (raw as EligibleUser[])
+        : (raw.assignments ?? raw.data ?? raw.items ?? []) as EligibleUser[];
+      if (list.length === 0) return;
+      setEditUsers((prev) => {
+        const existingIds = new Set(prev.map((u) => u.id));
+        const enriched: EligibleUser[] = [];
+        for (const u of list) {
+          const rec = u as unknown as Record<string, unknown>;
+          const userObj = rec.user;
+          const obj = userObj && typeof userObj === "object"
+            ? userObj as Record<string, unknown>
+            : rec;
+          const profile = obj.profile && typeof obj.profile === "object"
+            ? obj.profile as Record<string, unknown>
+            : null;
+          const id = String(obj.id ?? u.id ?? "");
+          if (!id || existingIds.has(id)) continue;
+          const firstName = typeof obj.firstName === "string" ? obj.firstName : typeof profile?.firstName === "string" ? profile.firstName : undefined;
+          const lastName = typeof obj.lastName === "string" ? obj.lastName : typeof profile?.lastName === "string" ? profile.lastName : undefined;
+          const email = typeof obj.email === "string" ? obj.email : undefined;
+          const avatarUrl = typeof obj.avatarUrl === "string" ? obj.avatarUrl : typeof profile?.avatarUrl === "string" ? profile.avatarUrl : null;
+          enriched.push({ id, firstName, lastName, email, avatarUrl } satisfies EligibleUser);
+        }
+        return enriched.length > 0 ? [...prev, ...enriched] : prev;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [editing, token, projectId, getUserAssignments]);
 
   const startEditing = () => {
     populateEdit();
