@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import Script from "next/script";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
-  Apple,
   FileCode,
   Palette,
   Settings,
@@ -20,6 +20,25 @@ import {
 import { useAuthStore } from "@/lib/authStore";
 import { validatePassword } from "@/lib/utils";
 
+// Extend Window so TypeScript recognises the GSI library
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (cfg: {
+            client_id: string;
+            callback: (res: { credential: string }) => void;
+            auto_select?: boolean;
+          }) => void;
+          prompt: (notification?: (n: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
+          cancel: () => void;
+        };
+      };
+    };
+  }
+}
+
 export default function SignUp() {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
@@ -30,8 +49,10 @@ export default function SignUp() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const register = useAuthStore((state) => state.register);
   const login = useAuthStore((state) => state.login);
+  const googleAuth = useAuthStore((state) => state.googleAuth);
   const loading = useAuthStore((state) => state.loading);
   const remoteError = useAuthStore((state) => state.error);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [toasts, setToasts] = useState<{
     id: number;
     type: "success" | "error";
@@ -42,6 +63,61 @@ export default function SignUp() {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((t) => [...t, { id, type, message }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+  };
+
+  const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+  // Pre-initialise GSI once the script has loaded so the prompt is instant
+  const initGSI = () => {
+    if (!window.google || !GOOGLE_CLIENT_ID) return;
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: () => {}, // placeholder; real callback set per-click
+      auto_select: false,
+    });
+  };
+
+  const handleGoogleSignUp = () => {
+    if (!window.google) {
+      showToast("Google Sign-In is not available. Please try again.", "error");
+      return;
+    }
+    if (!GOOGLE_CLIENT_ID) {
+      showToast("Google Client ID is not configured.", "error");
+      return;
+    }
+
+    setGoogleLoading(true);
+
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        const idToken = response.credential;
+        console.log("GSI CREDENTIAL RECEIVED (idToken):", idToken ? idToken.substring(0, 30) + "..." : null);
+
+        const result = await googleAuth({ idToken });
+
+        setGoogleLoading(false);
+
+        if (!result.success) {
+          showToast(result.message || "Google sign-up failed.", "error");
+          return;
+        }
+
+        showToast(result.message || "Signed in with Google!", "success");
+        setTimeout(() => router.push("/signup/profile"), 800);
+      },
+      auto_select: false,
+    });
+
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // Fallback: GSI One Tap was blocked; stop loading spinner
+        setGoogleLoading(false);
+        showToast("Google sign-in was dismissed. Please try again.", "error");
+        window.google?.accounts.id.cancel();
+      }
+    });
   };
 
   // Background scattered icon layout positions (identical to sign-in for aesthetic symmetry)
@@ -108,6 +184,12 @@ export default function SignUp() {
   return (
     <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 overflow-hidden select-none">
 
+      {/* Load Google Identity Services */}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="lazyOnload"
+        onLoad={initGSI}
+      />
       {/* Toast container */}
       <div className="absolute top-6 right-6 z-50 flex flex-col gap-3">
         {toasts.map((t) => (
@@ -291,31 +373,25 @@ export default function SignUp() {
         {/* Social logins */}
         <div className="w-full grid grid-cols-2 gap-4">
 
-          <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.93 1 12 1 7.37 1 3.4 3.63 1.45 7.45l3.77 2.92C6.12 6.84 8.84 5.04 12 5.04z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.48c-.28 1.48-1.12 2.74-2.38 3.59l3.69 2.86c2.16-1.99 3.7-4.92 3.7-8.54z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.22 14.62c-.24-.72-.37-1.49-.37-2.28s.13-1.56.37-2.28L1.45 7.14C.52 9.07 0 11.23 0 13.5s.52 4.43 1.45 6.36l3.77-2.92c-.24-.44-.24-1.9-.24-2.32z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.69-2.86c-1.03.69-2.34 1.1-4.27 1.1-3.16 0-5.88-1.8-6.84-5.33L1.39 15.9C3.33 19.74 7.3 23 12 23z"
-              />
-            </svg>
-            Google
-          </button>
-
-          <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
-            <Apple size={16} className="text-slate-900 fill-slate-900" />
-            Apple
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            disabled={googleLoading || loading}
+            className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 disabled:opacity-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm"
+          >
+            {googleLoading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</>
+            ) : (
+              <>
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.93 1 12 1 7.37 1 3.4 3.63 1.45 7.45l3.77 2.92C6.12 6.84 8.84 5.04 12 5.04z" />
+                  <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.48c-.28 1.48-1.12 2.74-2.38 3.59l3.69 2.86c2.16-1.99 3.7-4.92 3.7-8.54z" />
+                  <path fill="#FBBC05" d="M5.22 14.62c-.24-.72-.37-1.49-.37-2.28s.13-1.56.37-2.28L1.45 7.14C.52 9.07 0 11.23 0 13.5s.52 4.43 1.45 6.36l3.77-2.92c-.24-.44-.24-1.9-.24-2.32z" />
+                  <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.69-2.86c-1.03.69-2.34 1.1-4.27 1.1-3.16 0-5.88-1.8-6.84-5.33L1.39 15.9C3.33 19.74 7.3 23 12 23z" />
+                </svg>
+                Google
+              </>
+            )}
           </button>
 
         </div>

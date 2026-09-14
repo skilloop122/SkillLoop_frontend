@@ -146,7 +146,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile Card */}
-          <section className="mb-8 rounded-3xl bg-linear-to-br from-sky-500 via-sky-400 to-blue-500 p-6 shadow-xl shadow-sky-500/20 text-white">
+          <section className="mb-8 rounded-3xl bg-linear-to-br from-[#2dbcf8] to-[#60cbf9] p-6 shadow-xl shadow-sky-500/20 text-white">
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="relative shrink-0">
                 <div className="relative h-28 w-28">

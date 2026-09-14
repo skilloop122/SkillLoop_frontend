@@ -47,7 +47,7 @@ export default function CreateProjectPage() {
   const { skills: apiSkills, fetchSkills } = useSkillsStore();
   const { toastElement, showToast } = useToast();
 
-  const [selectedUser, setSelectedUser] = useState<EligibleUser | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<EligibleUser[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userResults, setUserResults] = useState<EligibleUser[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
@@ -189,7 +189,7 @@ export default function CreateProjectPage() {
     [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
 
   const handleSubmit = async () => {
-    if (!token || !selectedUser) return;
+    if (!token || selectedUsers.length === 0) return;
     if (!title.trim()) {
       showToast("Title is required");
       return;
@@ -207,24 +207,41 @@ export default function CreateProjectPage() {
       return;
     }
     setSubmitting(true);
-    const result = await createProject(token, {
-      userId: selectedUser.id,
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      tasks,
-      attachments: attachments.map((a) => a.dataUrl),
-      startDate,
-      deadline,
-      deliverableTypes: deliverables,
-      additionalInstructions: instructions,
-    });
+    const count = selectedUsers.length;
+    let successCount = 0;
+    let lastError = "";
+    for (const u of selectedUsers) {
+      const result = await createProject(token, {
+        userIds: [u.id],
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        tasks,
+        attachments: attachments.map((a) => a.dataUrl),
+        startDate,
+        deadline,
+        deliverableTypes: deliverables,
+        additionalInstructions: instructions,
+      });
+      if (result.success) {
+        successCount += 1;
+      } else {
+        lastError = result.message || "Failed to create project";
+      }
+    }
     setSubmitting(false);
-    if (result.success) {
-      showToast("Project created");
+    if (successCount === count) {
+      showToast(
+        count > 1
+          ? `${count} projects created - one per user`
+          : "Project created",
+      );
+      router.push("/admin/projects");
+    } else if (successCount > 0) {
+      showToast(`Created ${successCount}/${count} projects. ${lastError}`);
       router.push("/admin/projects");
     } else {
-      showToast(result.message || "Failed to create project");
+      showToast(lastError || "Failed to create project");
     }
   };
 
@@ -261,34 +278,36 @@ export default function CreateProjectPage() {
           {/* Section 1: Assign a User */}
           <section className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Assign a User
+              Assign Users
             </h2>
 
-            {!selectedUser ? (
-              <div className="relative">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  value={userSearchQuery}
-                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                  onFocus={() => {
-                    if (userResults.length > 0) setShowUserDropdown(true);
-                  }}
-                  onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
-                  placeholder="Search users by name..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
-                />
-                {showUserDropdown && userResults.length > 0 && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {userResults.map((u) => (
+            {/* Search — always visible so more users can be added */}
+            <div className="relative mb-4">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (userResults.length > 0) setShowUserDropdown(true);
+                }}
+                onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
+                placeholder="Search users by name..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+              />
+              {showUserDropdown && userResults.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {userResults
+                    .filter((u) => !selectedUsers.some((s) => s.id === u.id))
+                    .map((u) => (
                       <button
                         key={u.id}
                         type="button"
                         onMouseDown={() => {
-                          setSelectedUser(u);
+                          setSelectedUsers((prev) => [...prev, u]);
                           setUserSearchQuery("");
                           setUserResults([]);
                           setShowUserDropdown(false);
@@ -313,41 +332,60 @@ export default function CreateProjectPage() {
                         </div>
                       </button>
                     ))}
-                  </div>
-                )}
-                {searchingUsers && (
-                  <Loader2
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-3 bg-sky-50 border border-sky-200 rounded-xl">
-                <UserAvatar
-                  avatarUrl={selectedUser.avatarUrl}
-                  firstName={selectedUser.firstName}
-                  lastName={selectedUser.lastName}
-                  className="w-10 h-10 rounded-full text-sm shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">
-                    {userFullName(selectedUser)}
-                  </p>
-                  {selectedUser.email && (
-                    <p className="text-xs text-gray-500 truncate">
-                      {selectedUser.email}
-                    </p>
-                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedUser(null)}
-                  className="p-1.5 rounded-lg hover:bg-sky-100 transition-colors text-gray-400 hover:text-red-500 shrink-0"
-                >
-                  <X size={16} />
-                </button>
+              )}
+              {searchingUsers && (
+                <Loader2
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+                />
+              )}
+            </div>
+
+            {/* Selected users as removable chips */}
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center gap-2 pl-1 pr-2 py-1 bg-sky-50 border border-sky-200 rounded-xl"
+                  >
+                    <UserAvatar
+                      avatarUrl={u.avatarUrl}
+                      firstName={u.firstName}
+                      lastName={u.lastName}
+                      className="w-7 h-7 rounded-full text-xs shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 truncate leading-tight">
+                        {userFullName(u)}
+                      </p>
+                      {u.email && (
+                        <p className="text-xs text-gray-400 truncate leading-tight">
+                          {u.email}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedUsers((prev) => prev.filter((s) => s.id !== u.id))
+                      }
+                      className="p-0.5 rounded-md hover:bg-sky-100 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                      aria-label={`Remove ${userFullName(u)}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
+            )}
+            {selectedUsers.length > 1 && (
+              <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                Each assigned user gets their own independent copy of this
+                project with separate deliverables and status.
+              </p>
             )}
           </section>
 
@@ -665,7 +703,7 @@ export default function CreateProjectPage() {
             </button>
             <button
               type="button"
-              disabled={submitting || !selectedUser}
+              disabled={submitting || selectedUsers.length === 0}
               onClick={handleSubmit}
               className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -36,11 +36,28 @@ function reasonLabel(reason: string): string {
     STREAK_REWARD: "🔥 Streak Reward",
     REFERRAL_REWARD: "🔗 Referral Reward",
     SESSION_DEDUCTED: "💸 Session Cost",
+    PROJECT_COMPLETED: "🏆 Project Completed",
+    PROJECT_FAILED: "❌ Project Failed",
     ESCROW_RELEASE: "🔓 Escrow Released",
     ESCROW_HOLD: "🔒 Escrow Hold",
   };
-  return map[reason] ?? reason.replace(/_/g, " ");
+  if (map[reason]) return map[reason];
+  const norm = reason.toUpperCase().replace(/[^A-Z]/g, "");
+  if (norm.includes("PROJECT")) {
+    return norm.includes("FAIL")
+      ? "❌ Project Failed"
+      : "🏆 Project Completed";
+  }
+  return reason.replace(/_/g, " ");
 }
+
+const normReason = (r: string) => (r ?? "").toUpperCase().replace(/[^A-Z]/g, "");
+
+const isProjectTx = (t: PointTransaction) => normReason(t.reason).includes("PROJECT");
+const isProjectCompletedTx = (t: PointTransaction) =>
+  isProjectTx(t) && !normReason(t.reason).includes("FAIL");
+const isProjectFailedTx = (t: PointTransaction) =>
+  isProjectTx(t) && normReason(t.reason).includes("FAIL");
 
 // ─── transaction row ─────────────────────────────────────────────────────────
 
@@ -85,6 +102,22 @@ export default function HistoryPage() {
     if (hydrated && token) {
       fetchPointsHistory();
     }
+  }, [hydrated, token, fetchPointsHistory]);
+
+  useEffect(() => {
+    if (!hydrated || !token) return;
+    const refresh = () => {
+      const visible =
+        document.visibilityState === undefined ||
+        document.visibilityState === "visible";
+      if (visible) fetchPointsHistory();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [hydrated, token, fetchPointsHistory]);
 
   const transactions = data?.transactions ?? [];
@@ -187,7 +220,7 @@ export default function HistoryPage() {
               {/* ── Your Activity ── */}
               <div className="mb-8">
                 <h2 className="text-[20px] font-semibold text-slate-800 mb-4">Your Activity</h2>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {/* Streak */}
                   <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
                     <div className="flex items-center gap-1 mb-1">
@@ -211,6 +244,22 @@ export default function HistoryPage() {
                       {transactions.filter(t => t.reason === "SESSION_COMPLETED").length}
                     </span>
                     <span className="text-[11px] font-medium text-slate-500 leading-tight">Sessions Done</span>
+                  </div>
+
+                  {/* Projects Completed */}
+                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                    <span className="text-[18px] font-bold text-slate-800 mb-1">
+                      {transactions.filter(isProjectCompletedTx).length}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-500 leading-tight">Projects Completed</span>
+                  </div>
+
+                  {/* Projects Failed */}
+                  <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-sm hover:bg-white/75 transition-all h-22.5">
+                    <span className="text-[18px] font-bold text-slate-800 mb-1">
+                      {transactions.filter(isProjectFailedTx).length}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-500 leading-tight">Projects Failed</span>
                   </div>
                 </div>
               </div>

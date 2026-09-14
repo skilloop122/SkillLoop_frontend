@@ -135,18 +135,24 @@ export const useProjectStore = create<ProjectState>((set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const url = API_BASE + "projects/" + id;
+      const url = API_BASE + "projects/" + id + "/deliverables";
+
+      const entries = payload.deliverables ?? [];
+      const byType: Record<string, string> = {};
+      entries.forEach((d) => {
+        if (d?.type && d?.value) byType[d.type] = d.value;
+      });
 
       const response = await fetch(url, {
-        method: "PUT",
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          status: "COMPLETED",
-          deliverables: payload.deliverables ?? [],
-          submissionNote: payload.note ?? "",
+          githubUrl: byType["github"] ?? "",
+          liveUrl: byType["live-url"] ?? byType["liveUrl"] ?? byType["live"] ?? "",
+          notes: payload.note ?? "",
         }),
       });
 
