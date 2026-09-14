@@ -9,6 +9,7 @@ import { useAuthStore } from "../../lib/authStore";
 import { useProfileStore } from "../../lib/profileStore";
 import { useRequestStore } from "../../lib/requestStore";
 import { usePointsStore } from "../../lib/pointsStore";
+import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 import { UserAvatar } from "../../components/UserAvatar";
 import { useRouter } from "next/navigation";
 
@@ -18,6 +19,7 @@ export default function HomePage() {
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
   const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
+  const { averageRating, totalCount, fetchMyFeedback } = useUserFeedbackStore();
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
@@ -25,8 +27,9 @@ export default function HomePage() {
       fetchRequests();
       fetchSessions();
       fetchPointsHistory();
+      fetchMyFeedback();
     }
-  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory]);
+  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback]);
 
   useEffect(() => {
     loadData();
@@ -106,10 +109,10 @@ export default function HomePage() {
               <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1 border border-white/40 rounded-full px-2.5 py-1 mb-1 bg-white/10">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-sm font-semibold text-white">4.7 Rating</span>
+                  <span className="text-sm font-semibold text-white">{averageRating !== null ? `${averageRating} Rating` : "New"}</span>
                 </div>
                 <span className="text-[12px] text-white/80 font-medium px-1">
-                  122 Reviews
+                  {totalCount} Review{totalCount === 1 ? "" : "s"}
                 </span>
               </div>
             </div>

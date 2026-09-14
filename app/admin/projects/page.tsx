@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Users,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -31,6 +32,7 @@ import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminProjectStore } from "@/lib/adminProjectStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/hooks/useToast";
 
 interface ProjectListing {
@@ -45,11 +47,42 @@ interface ProjectListing {
   created_at?: string;
   created?: string;
   userId?: string;
-  members?: number;
+  // members?: number;
+}
+
+interface AssignmentUser {
+  projectId: string;
+  userId?: string;
+  user?: { id: string; firstName?: string; lastName?: string; email?: string; avatarUrl?: string | null };
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  avatarUrl?: string | null;
 }
 
 function projectEndDate(item: ProjectListing): string {
   return (item.endDate ?? item.deadline ?? "") as string;
+}
+
+function getProjectUsers(projectId: string, assignments: AssignmentUser[]): { id: string; firstName?: string; lastName?: string; email?: string; avatarUrl?: string | null }[] {
+  const seen = new Set<string>();
+  const users: { id: string; firstName?: string; lastName?: string; email?: string; avatarUrl?: string | null }[] = [];
+  for (const a of assignments) {
+    if (a.projectId !== projectId) continue;
+    const u = a.user ?? a;
+    const id = String(u.id ?? a.userId ?? "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    users.push({
+      id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      avatarUrl: u.avatarUrl,
+    });
+  }
+  return users;
 }
 
 export function buildProjectTrends(items: ProjectListing[]): { day: string; projects: number }[] {
@@ -87,7 +120,7 @@ export function buildProjectTrends(items: ProjectListing[]): { day: string; proj
 export default function AdminProjectsPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-  const { getProjects, deleteProject } = useAdminProjectStore();
+  const { getProjects, deleteProject, getUserAssignments } = useAdminProjectStore();
   const { toastElement, showToast } = useToast();
   
   const [projectsList, setProjectsList] = useState<ProjectListing[]>([]);
@@ -104,6 +137,7 @@ export default function AdminProjectsPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [projectTrends, setProjectTrends] = useState<{ day: string; projects: number }[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentUser[]>([]);
 
   useEffect(() => {
     if (hydrated && !token) {
@@ -145,13 +179,7 @@ export default function AdminProjectsPage() {
     let cancelled = false;
     (async () => {
       if (!token) return;
-      const result = await getProjects(token, {
-        page,
-        limit,
-        search: search || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        category: categoryFilter !== "all" ? categoryFilter : undefined,
-      });
+      const result = await getProjects(token, { page: 1, limit: 100 });
       if (cancelled) return;
       if (result.success && result.data) {
         const raw = result.data;
@@ -173,6 +201,23 @@ export default function AdminProjectsPage() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, page, limit, search, statusFilter, categoryFilter, showToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!token) return;
+      const result = await getUserAssignments(token, { limit: 100 });
+      if (cancelled) return;
+      if (result.success && result.data) {
+        const raw = result.data;
+        const list: AssignmentUser[] = Array.isArray(raw)
+          ? raw as AssignmentUser[]
+          : (raw.assignments ?? raw.data ?? raw.items ?? []) as AssignmentUser[];
+        setAssignments(list);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token, getUserAssignments]);
 
   useEffect(() => {
     let cancelled = false;
@@ -443,49 +488,61 @@ export default function AdminProjectsPage() {
                   <p className="text-sm">No projects found</p>
                 </div>
               ) : (
-                projectsList.map((item) => (
-                  <div key={item.id} className="border rounded-xl p-4 space-y-2 bg-white">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm truncate">{item.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{item.id}</p>
+                projectsList.map((item) => {
+                  const itemUsers = getProjectUsers(item.id, assignments);
+                  return (
+                    <div key={item.id} className="border rounded-xl p-4 space-y-2 bg-white">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm truncate">{item.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{item.id}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/admin/projects/${item.id}`)}
+                            className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingId === item.id}
+                            onClick={() => handleDelete(item.id)}
+                            className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/admin/projects/${item.id}`)}
-                          className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-sky-600 transition-colors"
-                        >
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deletingId === item.id}
-                          onClick={() => handleDelete(item.id)}
-                          className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                        >
-                          {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                        </button>
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                          <Users size={12} />
+                          {itemUsers.length}
+                        </span>
+                        {itemUsers.slice(0, 3).map((u) => (
+                          <UserAvatar key={u.id} avatarUrl={u.avatarUrl} firstName={u.firstName} lastName={u.lastName} className="w-5 h-5 rounded-full text-[8px]" />
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          {item.category || "Uncategorized"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                          (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {item.status ? item.status.replace("_", " ") : "Pending"}
+                        </span>
+                        <span className="text-xs text-gray-500">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
+                        <span className="text-xs text-gray-500">
+                          {projectEndDate(item) ? `End: ${new Date(projectEndDate(item)).toLocaleDateString()}` : ""}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        {item.category || "Uncategorized"}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                        (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {item.status ? item.status.replace("_", " ") : "Pending"}
-                      </span>
-                      <span className="text-xs text-gray-500">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
-                      <span className="text-xs text-gray-500">
-                        {projectEndDate(item) ? `End: ${new Date(projectEndDate(item)).toLocaleDateString()}` : ""}
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -506,69 +563,82 @@ export default function AdminProjectsPage() {
                 <tbody>
                   {loadingProjects ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12">
+                      <td colSpan={8} className="text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin text-sky-500 mx-auto" />
                       </td>
                     </tr>
                   ) : projectsList.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-gray-400">
+                      <td colSpan={8} className="text-center py-12 text-gray-400">
                         <Folder size={40} className="mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No projects found</p>
                       </td>
                     </tr>
                   ) : (
-                    projectsList.map((item) => (
-                      <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-4">
-                          <span className="font-semibold text-gray-600">{item.id.substring(0,8)}...</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="font-medium text-gray-900">{item.title}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                            {item.category || "Uncategorized"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                            item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                            (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
-                            'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}>
-                            {item.status ? item.status.replace("_", " ") : "Pending"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="font-medium text-gray-800">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="font-medium text-gray-800">
-                            {projectEndDate(item) ? new Date(projectEndDate(item)).toLocaleDateString() : "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/admin/projects/${item.id}`)}
-                              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
-                            >
-                              View
-                            </button>
-                            <button
-                              type="button"
-                              disabled={deletingId === item.id}
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                    projectsList.map((item) => {
+                      // const itemUsers = getProjectUsers(item.id, assignments);
+                      return (
+                        <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-4">
+                            <span className="font-semibold text-gray-600">{item.id.substring(0,8)}...</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-medium text-gray-900">{item.title}</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                              {item.category || "Uncategorized"}
+                            </span>
+                          </td>
+                          {/* <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="flex -space-x-2">
+                                {itemUsers.slice(0, 3).map((u) => (
+                                  <UserAvatar key={u.id} avatarUrl={u.avatarUrl} firstName={u.firstName} lastName={u.lastName} className="w-7 h-7 rounded-full text-[9px] ring-2 ring-white" />
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-500">{itemUsers.length}</span>
+                            </div>
+                          </td> */}
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
+                              item.status?.toLowerCase() === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                              (item.status?.toLowerCase() === 'failed' || item.status?.toLowerCase() === 'canceled') ? 'bg-red-50 text-red-700 border-red-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {item.status ? item.status.replace("_", " ") : "Pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-medium text-gray-800">{item.startDate && new Date(item.startDate).toLocaleDateString()}</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-medium text-gray-800">
+                              {projectEndDate(item) ? new Date(projectEndDate(item)).toLocaleDateString() : "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/admin/projects/${item.id}`)}
+                                className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingId === item.id}
+                                onClick={() => handleDelete(item.id)}
+                                className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              >
+                                {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

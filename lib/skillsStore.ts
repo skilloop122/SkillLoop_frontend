@@ -14,10 +14,14 @@ export interface SkillListing {
   description?: string;
   category?: string;
   isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   user?: {
     id: string;
+    email?: string;
     profile?: { firstName?: string; lastName?: string; avatarUrl?: string | null };
   };
+  _count?: { requests?: number };
 }
 
 export function findListingForSkill(

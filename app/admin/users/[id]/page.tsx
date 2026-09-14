@@ -28,7 +28,7 @@ import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
-import { useAdminUserStore, AdminUserDetailsResponse } from "@/lib/adminUserStore";
+import { useAdminUserStore, AdminUserDetailsResponse, AdminTransaction } from "@/lib/adminUserStore";
 import { scheduleTime } from "@/lib/profileStore";
 import { useToast } from "@/hooks/useToast";
 
@@ -327,6 +327,8 @@ function OverviewTab({ details }: { details: AdminUserDetailsResponse }) {
             <DetailRow label="Role" value={user.role} />
             <DetailRow label="Status" value={user.status ?? "Active"} />
             <DetailRow label="Points" value={String(user.points ?? 0)} />
+            <DetailRow label="In Escrow" value={String(user.escrowPoints ?? 0)} />
+            <DetailRow label="Day Streak" value={String(user.streakCount ?? 0)} />
             <DetailRow label="Avg Rating" value={avgRating} />
             <DetailRow label="Joined" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-GB") : "—"} />
           </div>
@@ -416,6 +418,8 @@ function OverviewTab({ details }: { details: AdminUserDetailsResponse }) {
           )}
         </div>
       </div>
+
+      <PointsHistoryCard transactions={user.transactions || []} />
     </div>
   );
 }
@@ -541,6 +545,47 @@ function ReportsTab({ details }: { details: AdminUserDetailsResponse }) {
 }
 
 /* ───── Helpers ───── */
+const transactionReasonLabel: Record<string, string> = {
+  WELCOME_BONUS: "Welcome bonus",
+  FEEDBACK_REWARD: "Feedback reward",
+  SESSION_PAYOUT: "Session payout",
+  SESSION_ESCROW_LOCK: "Session escrow",
+  PROJECT_COMPLETED: "Project completed",
+  PROJECT_FAILED: "Project failed",
+};
+
+function PointsHistoryCard({ transactions }: { transactions: AdminTransaction[] }) {
+  if (!transactions?.length) {
+    return null;
+  }
+
+  const sorted = [...transactions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return (
+    <div className="bg-white border rounded-2xl p-6 shadow-sm text-black">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <Award size={18} className="text-amber-500" />
+        Points History
+      </h3>
+      <div className="space-y-2">
+        {sorted.map((t) => (
+          <div key={t.id} className="flex items-center gap-3 text-sm py-2 border-b border-slate-100 last:border-0">
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${t.amount >= 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+              {t.amount >= 0 ? `+${t.amount}` : t.amount}
+            </span>
+            <span className="flex-1 font-medium text-gray-700">{transactionReasonLabel[t.reason] || t.reason}</span>
+            <span className="text-xs text-gray-400 shrink-0">
+              {t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">

@@ -9,7 +9,7 @@ import {
   TrendingUp,
   ChartColumnBig,
   Hourglass,
-  Star,
+  // Star,
   CheckCircle2,
   Clock,
   XCircle,
@@ -29,6 +29,7 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { useAdminSkillsStore } from "@/lib/adminSkillsStore";
 import { useAdminTechnicalSkillsStore, TechnicalSkill } from "@/lib/adminTechnicalSkillsStore";
 import { SkillListing } from "@/lib/skillsStore";
+import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/hooks/useToast";
 
 interface UISkillListing {
@@ -38,12 +39,19 @@ interface UISkillListing {
   status: "approved" | "pending" | "failed";
   demand: "high" | "medium" | "low";
   request: number;
-  rating: number;
+  // rating: number;
   description?: string;
   tags?: string[];
   sessions?: number;
   completionRate?: number;
   growth?: number;
+  provider?: {
+    id: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string | null;
+  };
 }
 
 const STATUS_OPTIONS = ["all", "approved", "pending", "failed"] as const;
@@ -93,13 +101,22 @@ const mapToUI = (listing: SkillListing): UISkillListing => ({
   category: listing.category || "Other",
   status: listing.isActive !== false ? "approved" : "pending",
   demand: "medium", // Defaulting as demand isn't tracked in backend yet
-  request: 0,
-  rating: 0,
+  request: listing._count?.requests ?? 0,
+  // rating: 0,
   description: listing.description,
   tags: [listing.category || "Other"],
   sessions: 0,
   completionRate: 0,
   growth: 0,
+  provider: listing.user
+    ? {
+        id: listing.user.id,
+        email: listing.user.email,
+        firstName: listing.user.profile?.firstName,
+        lastName: listing.user.profile?.lastName,
+        avatarUrl: listing.user.profile?.avatarUrl ?? null,
+      }
+    : undefined,
 });
 
 export default function AdminSkillsPage() {
@@ -344,10 +361,10 @@ export default function AdminSkillsPage() {
                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${dc}`}>
                           {listing.demand.charAt(0).toUpperCase() + listing.demand.slice(1)}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                        {/* <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
                           <Star size={12} className="text-amber-400 fill-amber-400" />
                           {listing.rating.toFixed(1)}
-                        </span>
+                        </span> */}
                         <span className="text-xs text-gray-500">{listing.request} requests</span>
                       </div>
                     </div>
@@ -366,7 +383,7 @@ export default function AdminSkillsPage() {
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Status</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Demand</th>
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Request</th>
-                    <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Rating</th>
+                    {/* <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Rating</th> */}
                     <th className="text-left font-semibold text-gray-600 px-4 py-3.5">Action</th>
                   </tr>
                 </thead>
@@ -412,12 +429,12 @@ export default function AdminSkillsPage() {
                           <td className="px-4 py-4">
                             <span className="font-semibold text-gray-800">{listing.request}</span>
                           </td>
-                          <td className="px-4 py-4">
+                          {/* <td className="px-4 py-4">
                             <div className="flex items-center gap-1.5">
                               <Star size={14} className="text-amber-400 fill-amber-400" />
                               <span className="font-semibold text-gray-800">{listing.rating.toFixed(1)}</span>
                             </div>
-                          </td>
+                          </td> */}
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
                               <button
@@ -491,7 +508,30 @@ export default function AdminSkillsPage() {
                 </div>
               </div>
 
-              {/* Card 2: Category, tags and description */}
+              {/* Card 2: Provider */}
+              {selectedSkill.provider && (
+                <div className="bg-white p-5 rounded-2xl shadow-sm border">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Provider</h4>
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      avatarUrl={selectedSkill.provider.avatarUrl}
+                      firstName={selectedSkill.provider.firstName}
+                      lastName={selectedSkill.provider.lastName}
+                      className="w-11 h-11 rounded-full text-sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {[selectedSkill.provider.firstName, selectedSkill.provider.lastName].filter(Boolean).join(" ") || "User"}
+                      </p>
+                      {selectedSkill.provider.email && (
+                        <p className="text-xs text-gray-500 truncate">{selectedSkill.provider.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Card 3: Category, tags and description */}
               <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-5">
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
@@ -517,18 +557,18 @@ export default function AdminSkillsPage() {
                     <p className="text-xs text-gray-500 mb-1">Total Requests</p>
                     <p className="text-lg font-bold text-gray-900">{selectedSkill.request}</p>
                   </div>
-                  <div>
+                  {/* <div>
                     <p className="text-xs text-gray-500 mb-1">Sessions Held</p>
                     <p className="text-lg font-bold text-gray-900">{selectedSkill.sessions || 0}</p>
-                  </div>
-                  <div>
+                  </div> */}
+                  {/* <div>
                     <p className="text-xs text-gray-500 mb-1">Average Rating</p>
                     <div className="flex items-center gap-1.5">
                       <Star size={16} className="text-amber-400 fill-amber-400" />
                       <p className="text-lg font-bold text-gray-900">{selectedSkill.rating.toFixed(1)}</p>
                     </div>
-                  </div>
-                  <div>
+                  </div> */}
+                  {/* <div>
                     <p className="text-xs text-gray-500 mb-1">Completion Rate</p>
                     <p className="text-lg font-bold text-gray-900">{selectedSkill.completionRate || 0}%</p>
                   </div>
@@ -537,7 +577,7 @@ export default function AdminSkillsPage() {
                     <p className={`text-lg font-bold ${(selectedSkill.growth || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
                       {(selectedSkill.growth || 0) >= 0 ? "+" : ""}{selectedSkill.growth || 0}%
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>

@@ -5,12 +5,12 @@ import { Star, Clock, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { UserAvatar } from "../../components/UserAvatar";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useRequestStore } from "../../lib/requestStore";
 import { useAuthStore } from "../../lib/authStore";
 
 export default function SessionsPage() {
-  const router = useRouter();
+  // const router = useRouter();
   const { hydrated, token, user } = useAuthStore();
   const { sentRequests, receivedRequests, sessions, loading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
 
@@ -202,7 +202,7 @@ export default function SessionsPage() {
                                 {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
                               </button>
                             ) : null}
-                            {session.session?.zoomMeetingId ? (
+                            {/* {session.session?.zoomMeetingId ? (
                               <button
                                 onClick={() => {
                                   const params = new URLSearchParams();
@@ -220,7 +220,7 @@ export default function SessionsPage() {
                               >
                                 {session.isProvider ? "Start in App" : "Join in App"}
                               </button>
-                            ) : null}
+                            ) : null} */}
                           </>
                         )}
                         <button
@@ -230,12 +230,6 @@ export default function SessionsPage() {
                         >
                           {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                           Mark Complete
-                        </button>
-                        <button
-                          onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
-                          className="flex-1 min-w-32.5 py-2 border border-amber-300 text-amber-600 rounded-lg text-sm font-bold hover:bg-amber-50 transition-colors"
-                        >
-                          Leave Feedback
                         </button>
                       </div>
                     </div>
@@ -345,6 +339,13 @@ export default function SessionsPage() {
                       <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
                     </div>
                    </div>
+                   <button
+                     type="button"
+                     onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
+                     className="w-full mt-4 py-2.5 border border-amber-300 text-amber-600 rounded-xl text-sm font-bold hover:bg-amber-50 transition-colors"
+                   >
+                     Leave Feedback
+                   </button>
                 </div>
               ))}
               {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
