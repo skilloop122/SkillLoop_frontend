@@ -6,8 +6,18 @@ export interface AdminSkillsState {
   error: string | null;
   skills: SkillListing[];
   total: number;
-  fetchSkills: (token: string, params?: { page?: number; limit?: number; search?: string }) => Promise<{ success: boolean; data?: { skills: SkillListing[], total: number }; message?: string }>;
-  deleteSkill: (token: string, id: string) => Promise<{ success: boolean; message?: string }>;
+  fetchSkills: (
+    token: string,
+    params?: { page?: number; limit?: number; search?: string },
+  ) => Promise<{
+    success: boolean;
+    data?: { skills: SkillListing[]; total: number };
+    message?: string;
+  }>;
+  deleteSkill: (
+    token: string,
+    id: string,
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
@@ -26,7 +36,9 @@ export const useAdminSkillsStore = create<AdminSkillsState>()((set) => ({
       if (params.limit !== undefined) query.set("limit", String(params.limit));
       if (params.search) query.set("search", params.search);
 
-      const url = `${API_BASE}admin/skills` + (query.toString() ? "?" + query.toString() : "");
+      const url =
+        `${API_BASE}admin/skills` +
+        (query.toString() ? "?" + query.toString() : "");
 
       const response = await fetch(url, {
         method: "GET",
@@ -43,19 +55,12 @@ export const useAdminSkillsStore = create<AdminSkillsState>()((set) => ({
         return { success: false, message: errorMsg };
       }
 
-      const skills = Array.isArray(body) ? body : (body?.skills || body?.data || []);
+      const skills = Array.isArray(body)
+        ? body
+        : body?.skills || body?.data || [];
       const total = body?.total || skills.length;
 
-      if (skills.length) {
-        console.log(`ADMIN SKILL LISTINGS (${skills.length}):`);
-        skills.forEach((l: any, i: number) => {
-          const title = l?.title || l?.name || l?.skill || "Untitled";
-          const category = l?.category || l?.categoryName || "N/A";
-          console.log(`  ${i + 1}. "${title}" — category: ${category}`);
-        });
-      } else {
-        console.log("ADMIN SKILL LISTINGS: none");
-      }
+   
 
       set({ skills, total, loading: false });
       return { success: true, data: { skills, total } };

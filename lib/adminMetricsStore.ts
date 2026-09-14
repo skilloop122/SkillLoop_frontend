@@ -26,7 +26,7 @@ export interface AdminMetrics {
   overview: {
     totalUsers: number;
     totalInactiveUsers: number;
-    newUsers:number;
+    newUsers: number;
     totalSkillListings: number;
     totalRequests: number;
     totalSessions: number;
@@ -80,11 +80,12 @@ export const useAdminMetricsStore = create<AdminMetricsState>()((set) => ({
 
       const body = await response.json();
 
-      console.log("ADMIN METRICS STATUS:", response.status);
-      console.log("ADMIN METRICS RESPONSE:", body);
 
       if (!response.ok) {
-        set({ error: body?.message || "Failed to load metrics", loading: false });
+        set({
+          error: body?.message || "Failed to load metrics",
+          loading: false,
+        });
         return;
       }
 

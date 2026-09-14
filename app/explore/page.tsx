@@ -31,23 +31,23 @@ export default function ExplorePage() {
   };
 
   const skillNames = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  return (value as (string | { name?: string })[])
-    .map((s) => (typeof s === "string" ? s : s?.name || ""))
-    .filter(Boolean);
-};
+    if (!Array.isArray(value)) return [];
+    return (value as (string | { name?: string })[])
+      .map((s) => (typeof s === "string" ? s : s?.name || ""))
+      .filter(Boolean);
+  };
 
-const filteredMatches = matches.filter(m => {
-  const q = searchQuery.toLowerCase().trim();
-  if (!q) return true;
-  const fName = m.user?.profile?.firstName || m.firstName || "";
-  const lName = m.user?.profile?.lastName || m.lastName || "";
-  const name = (fName + " " + lName).toLowerCase();
-  const taught = skillNames(m.directSkills || m.teachSkills);
-  const learning = skillNames(m.reciprocalSkills || m.learnSkills);
-  const haystack = [name, ...taught, ...learning].join(" ").toLowerCase();
-  return haystack.includes(q);
-});
+  const filteredMatches = matches.filter(m => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const fName = m.user?.profile?.firstName || m.firstName || "";
+    const lName = m.user?.profile?.lastName || m.lastName || "";
+    const name = (fName + " " + lName).toLowerCase();
+    const taught = skillNames(m.directSkills || m.teachSkills);
+    const learning = skillNames(m.reciprocalSkills || m.learnSkills);
+    const haystack = [name, ...taught, ...learning].join(" ").toLowerCase();
+    return haystack.includes(q);
+  });
 
   return (
     <div className="min-h-screen bg-white font-sans flex text-black">
@@ -112,86 +112,85 @@ const filteredMatches = matches.filter(m => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
               {filteredMatches.map((match) => {
-                console.log("MATCH OBJECT:", JSON.stringify(match, null, 2));
                 return (
-                <div
-                  key={match.id}
-                  className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
-                >
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="relative w-13 h-13 rounded-lg overflow-hidden shrink-0 bg-sky-100 flex items-center justify-center">
-                      {(match.user?.profile?.avatarUrl || match.avatarUrl) ? (
-                        <Image
-                          src={match.user?.profile?.avatarUrl || match.avatarUrl}
-                          alt={match.user?.profile?.firstName || match.firstName || "User"}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="text-xl font-bold text-sky-600">
-                          {(match.user?.profile?.firstName?.[0] || match.firstName?.[0] || "?").toUpperCase()}
-                          {(match.user?.profile?.lastName?.[0] || match.lastName?.[0] || "").toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-lg font-semibold text-black truncate leading-tight">
-                          {match.user?.profile?.firstName || match.firstName} {match.user?.profile?.lastName || match.lastName}
-                        </h3>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span className="text-sm font-semibold text-black">
-                            4.7
+                  <div
+                    key={match.id}
+                    className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                  >
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="relative w-13 h-13 rounded-lg overflow-hidden shrink-0 bg-sky-100 flex items-center justify-center">
+                        {(match.user?.profile?.avatarUrl || match.avatarUrl) ? (
+                          <Image
+                            src={match.user?.profile?.avatarUrl || match.avatarUrl}
+                            alt={match.user?.profile?.firstName || match.firstName || "User"}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl font-bold text-sky-600">
+                            {(match.user?.profile?.firstName?.[0] || match.firstName?.[0] || "?").toUpperCase()}
+                            {(match.user?.profile?.lastName?.[0] || match.lastName?.[0] || "").toUpperCase()}
                           </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-lg font-semibold text-black truncate leading-tight">
+                            {match.user?.profile?.firstName || match.firstName} {match.user?.profile?.lastName || match.lastName}
+                          </h3>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span className="text-sm font-semibold text-black">
+                              4.7
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[13px] text-slate-500 mt-0.5 truncate">
+                          {match.user?.email || match.email || "No email available"}
+                        </p>
+                        <p className="text-[14px] text-black mt-0.5 truncate">
+                          {match.user?.profile?.bio || match.bio || "No bio available"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 mt-1">
+                      <div className="flex-1 min-w-0 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
+                            Teaches:
+                          </span>
+                          <p className="text-[14px] font-medium text-black truncate">
+                            {(match.directSkills || match.teachSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
+                            Learning:
+                          </span>
+                          <p className="text-[14px] font-medium text-black truncate">
+                            {(match.reciprocalSkills || match.learnSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
+                          </p>
                         </div>
                       </div>
-                      <p className="text-[13px] text-slate-500 mt-0.5 truncate">
-                        {match.user?.email || match.email || "No email available"}
-                      </p>
-                      <p className="text-[14px] text-black mt-0.5 truncate">
-                        {match.user?.profile?.bio || match.bio || "No bio available"}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-4 mt-1">
-                    <div className="flex-1 min-w-0 flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block bg-[#e0f2fe] text-[#0ea5e9] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
-                          Teaches:
-                        </span>
-                        <p className="text-[14px] font-medium text-black truncate">
-                          {(match.directSkills || match.teachSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block bg-[#dcfce7] text-[#22c55e] text-[13px] font-medium px-2.5 py-0.5 rounded-lg shrink-0">
-                          Learning:
-                        </span>
-                        <p className="text-[14px] font-medium text-black truncate">
-                          {(match.reciprocalSkills || match.learnSkills || []).map((s: string | { name?: string }) => typeof s === "string" ? s : s?.name).filter(Boolean).join(", ")}
-                        </p>
+                      <div className="flex gap-2 w-full lg:w-60 shrink-0">
+                        <Link href={"/explore/request?id=" + (match.user?.id || match.id)} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
+                          Request Session
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
+                          className="flex-1 bg-white border border-[#0ea5e9] text-black font-medium py-2 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
+                        >
+                          View Profile
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex gap-2 w-full lg:w-60 shrink-0">
-                      <Link href={"/explore/request?id=" + (match.user?.id || match.id)} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
-                        Request Session
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
-                        className="flex-1 bg-white border border-[#0ea5e9] text-black font-medium py-2 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
-                      >
-                        View Profile
-                      </button>
-                    </div>
                   </div>
-                </div>
-              );
+                );
               })}
             </div>
           )}

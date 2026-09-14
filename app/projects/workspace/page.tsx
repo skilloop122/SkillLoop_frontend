@@ -96,7 +96,7 @@ function ProjectWorkspaceContent() {
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="mb-5 flex h-9 w-11 items-center justify-center rounded-[4px] border border-[#0ea5e9] bg-sky-50 text-black"
+                    className="mb-5 flex h-9 w-11 items-center justify-center rounded-lg border border-[#0ea5e9] bg-sky-50 text-black"
                     aria-label="Go back"
                 >
                     <ArrowLeft className="h-6 w-6" strokeWidth={1.8} />
@@ -112,7 +112,7 @@ function ProjectWorkspaceContent() {
                     <div className="flex items-center gap-2 shrink-0">
                         <Tag className="h-5 w-5 fill-[#fb9f45] text-[#fb9f45]" />
                         <span
-                            className={`rounded-[4px] px-2 py-1 text-[14px] ${completed
+                            className={`rounded-lg px-2 py-1 text-[14px] ${completed
                                 ? "bg-emerald-100 text-emerald-700"
                                 : "bg-[#e8dfd7] text-slate-700"
                                 }`}
@@ -165,7 +165,7 @@ function ProjectWorkspaceContent() {
                         className="flex w-full items-center gap-3 rounded-[8px] bg-white px-5 py-5 text-left shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
                     >
                         <span
-                            className={`h-7 w-7 rounded-[4px] border-2 `}
+                            className={`h-7 w-7 rounded-lg border-2 `}
                         />
                         <span className="text-[16px]">Due on 16th May, at 04:00 PM</span>
                     </button>
@@ -175,7 +175,7 @@ function ProjectWorkspaceContent() {
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        className="absolute  top-0 w-[205px] rounded-[18px] bg-[#0ea5e9] py-3 text-[16px] font-medium text-white disabled:opacity-40"
+                        className="absolute  top-0 w-51.25 rounded-[18px] bg-[#0ea5e9] py-3 text-[16px] font-medium text-white disabled:opacity-40"
                     >
                         Submit
                     </button>
@@ -184,7 +184,7 @@ function ProjectWorkspaceContent() {
                 <div className="mb-8">
                     <h2 className="text-[25px] font-normal mt-2 mb-5">Your Role</h2>
 
-                    <span className="rounded-[4px] bg-[#ccebf8] px-2 py-1 text-[16px]">
+                    <span className="rounded-lg bg-[#ccebf8] px-2 py-1 text-[16px]">
                         Frontend Developer
                     </span>
 

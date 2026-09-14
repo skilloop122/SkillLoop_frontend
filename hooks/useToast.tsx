@@ -27,14 +27,14 @@ export function useToast() {
   }, []);
 
   const toastElement = toast ? (
-    <div className="fixed left-1/2 bottom-24 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+    <div className="fixed left-1/2 bottom-24 z-100 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
       <div
         key={toast.id}
         className={`flex items-start gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-2xl transition-transform ${
           toast.type === "success" ? "bg-emerald-600" : toast.type === "error" ? "bg-red-600" : "bg-sky-600"
         }`}
       >
-        <span className="flex-1 break-words">{toast.message}</span>
+        <span className="flex-1 wrap-break-word">{toast.message}</span>
         <button onClick={() => setToast(null)} className="shrink-0 rounded-md p-0.5 hover:bg-white/20 transition-colors" aria-label="Dismiss">
           <X size={16} />
         </button>

@@ -126,7 +126,7 @@ interface RequestState {
   }) => Promise<{ success: boolean; message?: string; data?: SessionRequest }>;
   completeSession: (
     sessionId: string,
-    status: "completed"
+    status: "completed",
   ) => Promise<{ success: boolean; message?: string }>;
   submitFeedback: (
     sessionId: string,
@@ -214,7 +214,6 @@ export const useRequestStore = create<RequestState>((set) => ({
         },
       });
       const data: ZoomStatus = await response.json();
-      console.log("ZOOM STATUS:", data);
       set({ zoomStatus: data });
       return { success: true, data };
     } catch (error: unknown) {
@@ -239,7 +238,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const raw = await response.json();
-      console.log("ZOOM SIGNATURE:", raw);
       if (!response.ok)
         throw new Error(raw.message || "Failed to get Zoom signature");
       const data: ZoomSignature = raw;
@@ -266,7 +264,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const raw = await response.json();
-      console.log("ZOOM ZAK:", raw);
       if (!response.ok)
         throw new Error(raw.message || "Failed to get Zoom host token");
 
@@ -292,7 +289,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH SESSIONS RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch sessions");
 
@@ -324,7 +320,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH REQUESTS RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch requests");
 
@@ -385,7 +380,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("UPDATE REQUEST STATUS RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to update request");
 
@@ -419,9 +413,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      console.log("CREATE REQUEST PAYLOAD:", JSON.stringify(payload));
-      console.log("CREATE REQUEST URL:", API_BASE + "requests");
-
       const response = await fetch(API_BASE + "requests", {
         method: "POST",
         headers: {
@@ -432,8 +423,7 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const rawResponse = await response.text();
-      console.log("CREATE REQUEST STATUS:", response.status);
-      console.log("CREATE REQUEST RAW RESPONSE:", rawResponse);
+
 
       let data;
       try {
@@ -441,7 +431,7 @@ export const useRequestStore = create<RequestState>((set) => ({
       } catch {
         data = rawResponse;
       }
-      console.log("CREATE REQUEST RESPONSE:", data);
+
       if (!response.ok)
         throw new Error(
           typeof data === "object"
@@ -474,13 +464,12 @@ export const useRequestStore = create<RequestState>((set) => ({
             Authorization: "Bearer " + token,
           },
           body: JSON.stringify({
-          status,
-        }),
+            status,
+          }),
         },
       );
 
       const data = await response.json();
-      console.log("COMPLETE SESSION RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to complete session");
 
@@ -516,7 +505,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       );
 
       const data = await response.json();
-      console.log("SUBMIT FEEDBACK RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to submit feedback");
 
@@ -541,7 +529,6 @@ export const useRequestStore = create<RequestState>((set) => ({
         skillId +
         "/slots" +
         (date ? "?date=" + encodeURIComponent(date) : "");
-      console.log("FETCH SLOTS URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -552,8 +539,6 @@ export const useRequestStore = create<RequestState>((set) => ({
       });
 
       const raw = await response.text();
-      console.log("FETCH SLOTS STATUS:", response.status);
-      console.log("FETCH SLOTS RAW RESPONSE:", raw);
 
       let data;
       try {
@@ -575,7 +560,6 @@ export const useRequestStore = create<RequestState>((set) => ({
             (data.date || Array.isArray(data.slots))
           ? [data]
           : data?.slots || [];
-      console.log("FETCH SLOTS PARSED:", slots);
       return { success: true, data: slots };
     } catch (error: unknown) {
       const message =

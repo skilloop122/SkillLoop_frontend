@@ -86,9 +86,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json();
 
-          console.log("REGISTER RESPONSE:", body);
-          console.log("REGISTER STATUS:", response.status);
-
           if (!response.ok) {
             return {
               success: false,
@@ -106,10 +103,6 @@ export const useAuthStore = create<AuthState>()(
             body?.result?.access_token ||
             null;
 
-          console.log(
-            "REGISTER TOKEN EXTRACTED:",
-            token ? token.substring(0, 20) + "..." : null,
-          );
 
           const registerUser = body?.user ||
             body?.data?.user || {
@@ -118,8 +111,6 @@ export const useAuthStore = create<AuthState>()(
               firstName: body?.profile?.firstName || body?.firstName,
               lastName: body?.profile?.lastName || body?.lastName,
             };
-
-          console.log("REGISTER USER:", registerUser);
 
           set({
             user: registerUser,
@@ -157,9 +148,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json();
 
-          console.log("LOGIN RESPONSE:", body);
-          console.log("LOGIN STATUS:", response.status);
-
           if (!response.ok) {
             return {
               success: false,
@@ -177,11 +165,6 @@ export const useAuthStore = create<AuthState>()(
             body?.result?.access_token ||
             null;
 
-          console.log(
-            "LOGIN TOKEN EXTRACTED:",
-            token ? token.substring(0, 20) + "..." : null,
-          );
-
           const loginUser = body?.user ||
             body?.data?.user || {
               id: body?.id,
@@ -189,8 +172,6 @@ export const useAuthStore = create<AuthState>()(
               firstName: body?.profile?.firstName || body?.firstName,
               lastName: body?.profile?.lastName || body?.lastName,
             };
-
-          console.log("LOGIN USER:", loginUser);
 
           set({
             user: loginUser,
@@ -232,8 +213,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json();
 
-          console.log("ME RESPONSE:", body);
-          console.log("ME STATUS:", response.status);
 
           if (!response.ok) {
             return {
@@ -282,9 +261,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json();
 
-          console.log("GOOGLE AUTH RESPONSE:", body);
-          console.log("GOOGLE AUTH STATUS:", response.status);
-          console.log("GOOGLE AUTH FULL BODY:", JSON.stringify(body, null, 2));
 
           if (!response.ok) {
             const errMsg = body?.message || "Google authentication failed";
@@ -302,10 +278,6 @@ export const useAuthStore = create<AuthState>()(
             body?.result?.access_token ||
             null;
 
-          console.log(
-            "GOOGLE AUTH TOKEN EXTRACTED:",
-            token ? token.substring(0, 20) + "..." : null,
-          );
 
           const googleUser = body?.user ||
             body?.data?.user || {
@@ -315,15 +287,7 @@ export const useAuthStore = create<AuthState>()(
               lastName: body?.profile?.lastName || body?.lastName,
             };
 
-          console.log("GOOGLE AUTH USER:", googleUser);
-          console.log(
-            "GOOGLE AUTH WELCOME POINTS:",
-            body?.welcomePoints ??
-            body?.data?.welcomePoints ??
-            body?.points ??
-            "(not returned in top-level body)",
-          );
-
+         
           set({ user: googleUser, token });
 
           return {

@@ -19,7 +19,11 @@ export interface SkillListing {
   user?: {
     id: string;
     email?: string;
-    profile?: { firstName?: string; lastName?: string; avatarUrl?: string | null };
+    profile?: {
+      firstName?: string;
+      lastName?: string;
+      avatarUrl?: string | null;
+    };
   };
   _count?: { requests?: number };
 }
@@ -60,7 +64,11 @@ interface SkillsState {
     limit?: number;
     page?: number;
     userId?: string;
-  }) => Promise<{ success: boolean; listings?: SkillListing[]; message?: string }>;
+  }) => Promise<{
+    success: boolean;
+    listings?: SkillListing[];
+    message?: string;
+  }>;
   createSkillListing: (payload: {
     title: string;
     description?: string;
@@ -86,8 +94,6 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
 
       // const token = useAuthStore.getState().token;
 
-      console.log("TOKEN:", token);
-      console.log("AUTH HEADER:", `Bearer ${token}`);
 
       const query = new URLSearchParams();
       if (params.category) query.set("category", params.category);
@@ -95,9 +101,10 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       if (params.limit) query.set("limit", params.limit);
 
       const url =
-        API_BASE + "technical-skills" + (query.toString() ? "?" + query.toString() : "");
+        API_BASE +
+        "technical-skills" +
+        (query.toString() ? "?" + query.toString() : "");
 
-      console.log("URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -108,7 +115,6 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH SKILLS RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch skills");
 
@@ -146,17 +152,14 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
 
       const data = await response.json();
       if (!response.ok)
-        throw new Error(data.message || data.error || "Failed to fetch listings");
+        throw new Error(
+          data.message || data.error || "Failed to fetch listings",
+        );
 
-      const listings: SkillListing[] = Array.isArray(data) ? data : (data?.data || []);
-      if (listings.length) {
-        console.log("SKILL LISTINGS (" + listings.length + "):");
-        listings.forEach((l, i) => {
-          console.log(`  ${i + 1}. "${l.title}" — category: ${l.category || "N/A"}${l.isActive === false ? " (inactive)" : ""}`);
-        });
-      } else {
-        console.log("SKILL LISTINGS: none");
-      }
+      const listings: SkillListing[] = Array.isArray(data)
+        ? data
+        : data?.data || [];
+
       set({ listings, loading: false });
       return { success: true, listings };
     } catch (error: unknown) {
@@ -185,9 +188,10 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       });
 
       const data = await response.json();
-      console.log("CREATE LISTING RESPONSE:", data);
       if (!response.ok)
-        throw new Error(data.message || data.error || "Failed to create listing");
+        throw new Error(
+          data.message || data.error || "Failed to create listing",
+        );
 
       set({ loading: false });
       return { success: true, listing: data };
@@ -208,9 +212,10 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
       const myId = me?.id;
 
       const existing = await get().fetchSkillListings({ limit: 200 });
-      const mine = existing.success && existing.listings && myId
-        ? existing.listings.filter((l) => l.userId === myId)
-        : [];
+      const mine =
+        existing.success && existing.listings && myId
+          ? existing.listings.filter((l) => l.userId === myId)
+          : [];
       const catalog = get().skills;
 
       const norm = (s: string) => s.toLowerCase().trim();

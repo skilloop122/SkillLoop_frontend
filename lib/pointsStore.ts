@@ -62,10 +62,12 @@ export const usePointsStore = create<PointsState>((set) => ({
 
       const body = await response.json();
 
-      console.log("GET /users/points/history ->", response.status, body);
 
       if (!response.ok) {
-        set({ error: body?.message || "Failed to load points history", loading: false });
+        set({
+          error: body?.message || "Failed to load points history",
+          loading: false,
+        });
         return;
       }
 

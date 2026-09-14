@@ -26,7 +26,7 @@ export default function JoinProjectPage() {
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="relative z-20 mb-auto md:absolute md:top-12 md:left-4 flex h-10 w-12 md:h-9 md:w-11 items-center justify-center rounded-[4px] border border-[#0ea5e9] bg-sky-50/80 text-black hover:bg-sky-100 transition-colors"
+                    className="relative z-20 mb-auto md:absolute md:top-12 md:left-4 flex h-10 w-12 md:h-9 md:w-11 items-center justify-center rounded-lg border border-[#0ea5e9] bg-sky-50/80 text-black hover:bg-sky-100 transition-colors"
                     aria-label="Go back"
                 >
                     <ArrowLeft className="h-6 w-6" strokeWidth={1.8} />
@@ -37,7 +37,7 @@ export default function JoinProjectPage() {
                         Frontend Project
                     </h1>
 
-                    <p className="mb-4 max-w-[340px] md:max-w-2xl text-[18px] md:text-[20px] leading-snug text-white md:text-slate-200">
+                    <p className="mb-4 max-w-85 md:max-w-2xl text-[18px] md:text-[20px] leading-snug text-white md:text-slate-200">
                         Build a desktop landing page for a hair salon brand that helps new
                         users looking to buy hair from the comfort of their home.
                     </p>
@@ -47,7 +47,7 @@ export default function JoinProjectPage() {
                         {["Frontend", "Web Development"].map((skill) => (
                             <span
                                 key={skill}
-                                className="rounded-[4px] bg-[#0ea5e9]/85 px-1.5 py-0.5 md:px-3 md:py-1 text-[14px] md:text-[15px] font-medium text-white"
+                                className="rounded-lg bg-[#0ea5e9]/85 px-1.5 py-0.5 md:px-3 md:py-1 text-[14px] md:text-[15px] font-medium text-white"
                             >
                                 {skill}
                             </span>
@@ -55,7 +55,7 @@ export default function JoinProjectPage() {
                     </div>
 
                     <h2 className="mb-1 text-[22px] md:text-[24px] font-medium md:mb-3">Project Goal</h2>
-                    <p className="mb-4 max-w-[340px] md:max-w-2xl text-[18px] md:text-[20px] leading-snug text-white md:text-slate-200 md:mb-8">
+                    <p className="mb-4 max-w-85 md:max-w-2xl text-[18px] md:text-[20px] leading-snug text-white md:text-slate-200 md:mb-8">
                         Build a simple, clear and user- friendly landing page that gives the
                         user clarity and earns their trust.
                     </p>
@@ -78,8 +78,8 @@ export default function JoinProjectPage() {
 
             {showSuccess && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-8">
-                    <div className="w-full max-w-[236px] rounded-[4px] bg-white px-4 py-6 text-center text-black shadow-2xl">
-                        <div className="mx-auto mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#0ea5e9] text-white">
+                    <div className="w-full max-w-59 rounded-lg bg-white px-4 py-6 text-center text-black shadow-2xl">
+                        <div className="mx-auto mb-5 flex h-19 w-19 items-center justify-center rounded-full bg-[#0ea5e9] text-white">
                             <Check className="h-12 w-12" strokeWidth={4} />
                         </div>
 
@@ -94,7 +94,7 @@ export default function JoinProjectPage() {
                         <button
                             type="button"
                             onClick={() => router.push("/projects")}
-                            className="rounded-[4px] bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
+                            className="rounded-lg bg-[#0ea5e9] px-3 py-2 text-[16px] font-medium text-white"
                         >
                             Back to Projects
                         </button>

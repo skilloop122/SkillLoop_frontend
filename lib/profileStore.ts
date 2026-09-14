@@ -156,7 +156,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH PROFILE RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch profile");
 
@@ -176,22 +175,10 @@ export const useProfileStore = create<ProfileState>((set) => ({
       const authState = useAuthStore.getState();
 
       const token = authState.token;
-      const user = authState.user;
-      const userId = user?.id;
+      // const user = authState.user;
+      // const userId = user?.id;
 
-      console.log("====================================");
-      console.log("CREATE PROFILE DEBUG");
-      console.log("====================================");
-      console.log("AUTH USER:", user);
-      console.log("AUTH USER ID:", userId);
-      console.log("AUTH TOKEN:", token);
-      console.log(
-        "TOKEN PREVIEW:",
-        token ? token.substring(0, 20) + "..." : "null",
-      );
-      console.log("AUTH HEADER:", `Bearer ${token}`);
-      console.log("PAYLOAD:", payload);
-      console.log("PAYLOAD JSON:", JSON.stringify(payload));
+     
 
       if (!token) {
         throw new Error("No authentication token found");
@@ -199,7 +186,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
 
       const profileUrl = API_BASE + "users/profile";
 
-      console.log("REQUEST URL:", profileUrl);
 
       const response = await fetch(profileUrl, {
         method: "PATCH",
@@ -210,13 +196,9 @@ export const useProfileStore = create<ProfileState>((set) => ({
         body: JSON.stringify(payload),
       });
 
-      console.log("RESPONSE STATUS:", response.status);
-      console.log("RESPONSE OK:", response.ok);
 
       const data = await response.json();
 
-      console.log("RESPONSE DATA:", data);
-      console.log("====================================");
 
       if (!response.ok) {
         throw new Error(
@@ -275,7 +257,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("UPDATE PROFILE RESPONSE:", data);
       if (!response.ok) {
         const message = profileUpdateErrorMessage(data) || "Failed to update profile";
         throw new Error(message);
@@ -306,7 +287,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH PUBLIC PROFILE RESPONSE:", JSON.stringify(data, null, 2));
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch public profile");
 
@@ -344,7 +324,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
       });
 
       const data = await response.json();
-      console.log("FETCH MATCHES RESPONSE:", data);
       if (!response.ok)
         throw new Error(data.message || "Failed to fetch matches");
 
