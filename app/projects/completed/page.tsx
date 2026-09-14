@@ -24,7 +24,7 @@ export default function ProjectCompletedPage() {
           Preview
         </span>
 
-        <div className="relative mb-8 h-[208px] overflow-hidden rounded-[8px] shadow-xl">
+        <div className="relative mb-8 h-52 overflow-hidden rounded-[8px] shadow-xl">
           <Image
             src="/images/Frame.png"
             alt="Completed project preview"
@@ -85,12 +85,12 @@ export default function ProjectCompletedPage() {
               Add comment (Optional)
             </label>
 
-            <textarea className="mb-4 h-24 w-full rounded-[4px] border border-[#0ea5e9] p-3 outline-none" />
+            <textarea className="mb-4 h-24 w-full rounded-lg border border-[#0ea5e9] p-3 outline-none" />
 
             <button
               type="button"
               onClick={() => setShowThanks(false)}
-              className="rounded-[4px] bg-[#0ea5e9] px-4 py-2 text-white"
+              className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white"
             >
               Submit
             </button>

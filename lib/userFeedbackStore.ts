@@ -8,7 +8,12 @@ interface FeedbackEntry {
   rating: number;
   comment?: string;
   createdAt: string;
-  giver?: { id?: string; firstName?: string; lastName?: string; avatarUrl?: string };
+  giver?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+  };
 }
 
 interface UserFeedbackState {
@@ -34,7 +39,6 @@ export const useUserFeedbackStore = create<UserFeedbackState>((set) => ({
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json();
-      console.log("GET /users/feedback ->", response.status, body);
 
       const list: FeedbackEntry[] = Array.isArray(body)
         ? body
@@ -42,7 +46,10 @@ export const useUserFeedbackStore = create<UserFeedbackState>((set) => ({
 
       const totalCount = list.length;
       const averageRating = totalCount
-        ? Math.round((list.reduce((sum, f) => sum + (f.rating || 0), 0) / totalCount) * 10) / 10
+        ? Math.round(
+            (list.reduce((sum, f) => sum + (f.rating || 0), 0) / totalCount) *
+              10,
+          ) / 10
         : null;
 
       set({ averageRating, totalCount, loading: false });

@@ -95,9 +95,6 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
           const body = await response.json();
 
-          console.log("ADMIN REGISTER RESPONSE:", body);
-          console.log("ADMIN REGISTER STATUS:", response.status);
-
           if (!response.ok) {
             return {
               success: false,
@@ -114,11 +111,6 @@ export const useAdminAuthStore = create<AdminAuthState>()(
             body?.data?.token ||
             body?.result?.access_token ||
             null;
-
-          console.log(
-            "ADMIN REGISTER TOKEN:",
-            token ? token.substring(0, 20) + "..." : null,
-          );
 
           const registerAdmin = body?.user ||
             body?.data?.user || {
@@ -159,9 +151,6 @@ export const useAdminAuthStore = create<AdminAuthState>()(
 
           const body = await response.json();
 
-          console.log("ADMIN LOGIN RESPONSE:", body);
-          console.log("ADMIN LOGIN STATUS:", response.status);
-
           if (!response.ok) {
             return {
               success: false,
@@ -179,11 +168,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
             body?.result?.access_token ||
             null;
 
-          console.log(
-            "ADMIN LOGIN TOKEN:",
-            token ? token.substring(0, 20) + "..." : null,
-          );
-
+          
           const loginAdmin = body?.user ||
             body?.data?.user || {
               id: body?.id,
@@ -226,9 +211,6 @@ export const useAdminAuthStore = create<AdminAuthState>()(
           });
 
           const body = await response.json();
-
-          console.log("ADMIN ME STATUS:", response.status);
-          console.log("ADMIN ME RESPONSE:", body);
 
           if (!response.ok) {
             return {

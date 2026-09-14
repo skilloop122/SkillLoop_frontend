@@ -72,7 +72,7 @@ export default function SignUp() {
     if (!window.google || !GOOGLE_CLIENT_ID) return;
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: () => {}, // placeholder; real callback set per-click
+      callback: () => { }, // placeholder; real callback set per-click
       auto_select: false,
     });
   };
@@ -93,7 +93,6 @@ export default function SignUp() {
       client_id: GOOGLE_CLIENT_ID,
       callback: async (response) => {
         const idToken = response.credential;
-        console.log("GSI CREDENTIAL RECEIVED (idToken):", idToken ? idToken.substring(0, 30) + "..." : null);
 
         const result = await googleAuth({ idToken });
 
@@ -196,8 +195,8 @@ export default function SignUp() {
           <div
             key={t.id}
             className={`max-w-xs px-4 py-2 rounded-lg shadow-md text-sm font-medium ${t.type === "success"
-                ? "bg-green-50 border border-green-200 text-green-800"
-                : "bg-red-50 border border-red-200 text-red-800"
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-200 text-red-800"
               }`}
           >
             {t.message}
@@ -371,7 +370,7 @@ export default function SignUp() {
         </div>
 
         {/* Social logins */}
-        <div className="w-full grid grid-cols-2 gap-4">
+        <div className="w-full grid grid-cols-1 gap-4">
 
           <button
             type="button"

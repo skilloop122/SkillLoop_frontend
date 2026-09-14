@@ -39,7 +39,9 @@ export interface FeedbackUser {
 
 export function feedbackUserName(u?: FeedbackUser): string {
   if (!u) return "";
-  const name = [u.profile?.firstName, u.profile?.lastName].filter(Boolean).join(" ");
+  const name = [u.profile?.firstName, u.profile?.lastName]
+    .filter(Boolean)
+    .join(" ");
   return name || u.email || "";
 }
 
@@ -58,8 +60,12 @@ export interface AdminFeedbackState {
   total: number;
   fetchFeedback: (
     token: string,
-    params?: { page?: number; limit?: number }
-  ) => Promise<{ success: boolean; data?: { feedbacks: ApiFeedback[]; total: number }; message?: string }>;
+    params?: { page?: number; limit?: number },
+  ) => Promise<{
+    success: boolean;
+    data?: { feedbacks: ApiFeedback[]; total: number };
+    message?: string;
+  }>;
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
@@ -77,7 +83,9 @@ export const useAdminFeedbackStore = create<AdminFeedbackState>()((set) => ({
       if (params.page !== undefined) query.set("page", String(params.page));
       if (params.limit !== undefined) query.set("limit", String(params.limit));
 
-      const url = `${API_BASE}admin/feedback` + (query.toString() ? "?" + query.toString() : "");
+      const url =
+        `${API_BASE}admin/feedback` +
+        (query.toString() ? "?" + query.toString() : "");
 
       const response = await fetch(url, {
         method: "GET",
@@ -89,7 +97,6 @@ export const useAdminFeedbackStore = create<AdminFeedbackState>()((set) => ({
 
       const body = await response.json().catch(() => null);
 
-      console.log("GET /admin/feedback ->", response.status, body);
 
       if (!response.ok) {
         const errorMsg = body?.message || "Failed to load feedback";
@@ -97,13 +104,16 @@ export const useAdminFeedbackStore = create<AdminFeedbackState>()((set) => ({
         return { success: false, message: errorMsg };
       }
 
-      const feedbacks = Array.isArray(body) ? body : (body?.feedbacks || body?.data || []);
+      const feedbacks = Array.isArray(body)
+        ? body
+        : body?.feedbacks || body?.data || [];
       const total = body?.total || feedbacks.length;
 
       set({ feedbacks, total, loading: false });
       return { success: true, data: { feedbacks, total } };
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred";
+      const errorMsg =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       set({ error: errorMsg, loading: false });
       return { success: false, message: errorMsg };
     }

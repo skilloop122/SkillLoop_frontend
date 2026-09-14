@@ -87,9 +87,25 @@ interface AdminUserState {
   error: string | null;
   details: AdminUserDetailsResponse | null;
   fetchUserDetails: (token: string, id: string) => Promise<void>;
-  deleteUser: (token: string, id: string) => Promise<{ success: boolean; message?: string }>;
-  createUser: (token: string, payload: { email: string; password: string; firstName: string; lastName: string; role: string }) => Promise<{ success: boolean; message?: string }>;
-  changeUserRole: (token: string, id: string, role: string) => Promise<{ success: boolean; message?: string }>;
+  deleteUser: (
+    token: string,
+    id: string,
+  ) => Promise<{ success: boolean; message?: string }>;
+  createUser: (
+    token: string,
+    payload: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+    },
+  ) => Promise<{ success: boolean; message?: string }>;
+  changeUserRole: (
+    token: string,
+    id: string,
+    role: string,
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
@@ -107,23 +123,35 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
       });
 
       const body = await response.json();
-      console.log("ADMIN USER DETAILS RESPONSE:", JSON.stringify(body, null, 2));
 
       if (!response.ok) {
-        set({ error: body?.message || "Failed to load user details", loading: false });
+        set({
+          error: body?.message || "Failed to load user details",
+          loading: false,
+        });
         return;
       }
 
-      const raw = body?.data?.user ? body.data : body?.result?.user ? body.result : body;
+      const raw = body?.data?.user
+        ? body.data
+        : body?.result?.user
+          ? body.result
+          : body;
 
       const rawProfile = raw.profile || {};
 
       const parseSkillList = (value: unknown) => {
-        if (Array.isArray(value)) return value.filter((s) => s && typeof s === "object" && s.id && s.name);
+        if (Array.isArray(value))
+          return value.filter(
+            (s) => s && typeof s === "object" && s.id && s.name,
+          );
         if (typeof value === "string") {
           try {
             const parsed = JSON.parse(value);
-            if (Array.isArray(parsed)) return parsed.filter((s) => s && typeof s === "object" && s.id && s.name);
+            if (Array.isArray(parsed))
+              return parsed.filter(
+                (s) => s && typeof s === "object" && s.id && s.name,
+              );
           } catch {
             /* ignore malformed string */
           }
@@ -132,11 +160,13 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
       };
 
       const parseSchedule = (value: unknown) => {
-        if (Array.isArray(value)) return value.filter((s) => s && typeof s === "object" && s.day);
+        if (Array.isArray(value))
+          return value.filter((s) => s && typeof s === "object" && s.day);
         if (typeof value === "string") {
           try {
             const parsed = JSON.parse(value);
-            if (Array.isArray(parsed)) return parsed.filter((s) => s && typeof s === "object" && s.day);
+            if (Array.isArray(parsed))
+              return parsed.filter((s) => s && typeof s === "object" && s.day);
           } catch {
             /* ignore malformed string */
           }
@@ -162,8 +192,14 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
         : ({} as AdminUserProfile);
 
       const mapRequest = (r: Record<string, unknown>): AdminUserRequest => {
-        const requester = (r.requester || r.fromUser || {}) as Record<string, unknown>;
-        const toUser = (r.toUser || r.receiver || r.recipient || {}) as Record<string, unknown>;
+        const requester = (r.requester || r.fromUser || {}) as Record<
+          string,
+          unknown
+        >;
+        const toUser = (r.toUser || r.receiver || r.recipient || {}) as Record<
+          string,
+          unknown
+        >;
         return {
           id: String(r.id || ""),
           status: String(r.status || ""),
@@ -171,8 +207,12 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
           createdAt: String(r.createdAt || ""),
           fromUser: {
             id: String(requester.id || ""),
-            firstName: requester.firstName ? String(requester.firstName) : undefined,
-            lastName: requester.lastName ? String(requester.lastName) : undefined,
+            firstName: requester.firstName
+              ? String(requester.firstName)
+              : undefined,
+            lastName: requester.lastName
+              ? String(requester.lastName)
+              : undefined,
           },
           toUser: {
             id: String(toUser.id || ""),
@@ -183,8 +223,14 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
       };
 
       const mapSession = (s: Record<string, unknown>): AdminUserSession => {
-        const other = (s.withUser || s.otherUser || s.requester || s.provider || {}) as Record<string, unknown>;
-        const skillListing = s.skillListing as Record<string, unknown> | undefined;
+        const other = (s.withUser ||
+          s.otherUser ||
+          s.requester ||
+          s.provider ||
+          {}) as Record<string, unknown>;
+        const skillListing = s.skillListing as
+          | Record<string, unknown>
+          | undefined;
         return {
           id: String(s.id || ""),
           status: String(s.status || ""),
@@ -204,11 +250,18 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
       };
 
       const mapFeedback = (f: Record<string, unknown>): AdminUserFeedback => {
-        const giver = (f.giver || f.fromUser || f.user || {}) as Record<string, unknown>;
+        const giver = (f.giver || f.fromUser || f.user || {}) as Record<
+          string,
+          unknown
+        >;
         return {
           id: String(f.id || ""),
           rating: Number(f.rating) || 0,
-          comment: f.comment ? String(f.comment) : f.comments ? String(f.comments) : undefined,
+          comment: f.comment
+            ? String(f.comment)
+            : f.comments
+              ? String(f.comments)
+              : undefined,
           createdAt: String(f.createdAt || ""),
           fromUser: {
             id: String(giver.id || ""),
@@ -228,17 +281,24 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
           role: raw.role,
           status: raw.status,
           createdAt: raw.createdAt,
-          projectIds: Array.isArray(raw.projectIds) ? raw.projectIds.map(String) : [],
+          projectIds: Array.isArray(raw.projectIds)
+            ? raw.projectIds.map(String)
+            : [],
           profile: Object.keys(rawProfile).length ? profile : undefined,
           transactions: Array.isArray(raw.transactions) ? raw.transactions : [],
         },
         profile,
-        requests: [...(raw.requestsSent || []), ...(raw.requestsReceived || [])].map(mapRequest),
-        sessions: [...(raw.sessionsAsProvider || []), ...(raw.sessionsAsRequester || [])].map(mapSession),
+        requests: [
+          ...(raw.requestsSent || []),
+          ...(raw.requestsReceived || []),
+        ].map(mapRequest),
+        sessions: [
+          ...(raw.sessionsAsProvider || []),
+          ...(raw.sessionsAsRequester || []),
+        ].map(mapSession),
         feedback: (raw.feedbackReceived || []).map(mapFeedback),
       };
 
-      console.log("ADMIN USER DETAILS NORMALIZED:", JSON.stringify(normalized, null, 2));
 
       set({ details: normalized, loading: false });
     } catch {
@@ -253,14 +313,27 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) return { success: false, message: body?.message || "Failed to delete user" };
+      if (!response.ok)
+        return {
+          success: false,
+          message: body?.message || "Failed to delete user",
+        };
       return { success: true, message: body?.message };
     } catch {
       return { success: false, message: "Network error deleting user" };
     }
   },
 
-  createUser: async (token: string, payload: { email: string; password: string; firstName: string; lastName: string; role: string }) => {
+  createUser: async (
+    token: string,
+    payload: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+    },
+  ) => {
     try {
       const response = await fetch(`${API_BASE}admin/users`, {
         method: "POST",
@@ -271,7 +344,11 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
         body: JSON.stringify(payload),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) return { success: false, message: body?.message || "Failed to create user" };
+      if (!response.ok)
+        return {
+          success: false,
+          message: body?.message || "Failed to create user",
+        };
       return { success: true, message: body?.message };
     } catch {
       return { success: false, message: "Network error creating user" };
@@ -289,8 +366,11 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
         body: JSON.stringify({ role }),
       });
       const body = await response.json().catch(() => ({}));
-      console.log("CHANGE ROLE RESPONSE:", response.status, JSON.stringify(body, null, 2));
-      if (!response.ok) return { success: false, message: body?.message || body?.error || "Failed to update role" };
+      if (!response.ok)
+        return {
+          success: false,
+          message: body?.message || body?.error || "Failed to update role",
+        };
       return { success: true, message: body?.message };
     } catch {
       return { success: false, message: "Network error updating role" };

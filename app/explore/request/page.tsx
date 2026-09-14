@@ -147,7 +147,6 @@ function RequestSessionContent() {
   const profile = publicProfile;
   const skillOptions = resolvedTeachSkills;
   const effectiveSkillListingId = skillListingId || (skillOptions.length ? skillOptions[0].id : "");
-  console.log("REQUEST PAGE - skillListingId:", skillListingId, "effectiveSkillListingId:", effectiveSkillListingId, "teachSkills:", profile?.teachSkills, "resolvedTeachSkills:", resolvedTeachSkills);
 
   const availabilityOptions = useMemo(() => {
     if (!profile?.schedule?.length) return [];
@@ -170,7 +169,6 @@ function RequestSessionContent() {
       showToast("Please select a time slot and fill in all required fields.");
       return;
     }
-    console.log("CREATING REQUEST WITH:", { skillListingId: effectiveSkillListingId, schedulingLink: sessionLink, message, proposedDate, proposedTime });
     const result = await createRequest({
       skillListingId: effectiveSkillListingId,
       schedulingLink: sessionLink,
@@ -192,48 +190,48 @@ function RequestSessionContent() {
     <>
       <SideNav />
       <div className="min-h-screen bg-white font-sans pb-10 md:ml-64">
-      <div className="w-full max-w-md md:max-w-6xl md:pt-16  mx-auto px-5 pt-12">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-10 h-10 border border-[#0ea5e9] rounded-lg flex items-center justify-center mb-6 hover:bg-sky-50 transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
-        </button>
+        <div className="w-full max-w-md md:max-w-6xl md:pt-16  mx-auto px-5 pt-12">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-10 h-10 border border-[#0ea5e9] rounded-lg flex items-center justify-center mb-6 hover:bg-sky-50 transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
+          </button>
 
-        {profileLoading ? (
-          <div className="flex justify-center py-20">
-            <span className="text-slate-500">Loading profile...</span>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="relative w-20 h-20 rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
-                {profile?.avatarUrl ? (
-                  <Image
-                    src={profile.avatarUrl}
-                    alt={fullName}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-sky-600">
-                    {(profile?.firstName?.[0] || "?").toUpperCase()}{(profile?.lastName?.[0] || "").toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div>
-                <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
-                  {fullName}
-                </h1>
-                <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-lg">
-                  Teaching
-                </span>
-              </div>
+          {profileLoading ? (
+            <div className="flex justify-center py-20">
+              <span className="text-slate-500">Loading profile...</span>
             </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
+                  {profile?.avatarUrl ? (
+                    <Image
+                      src={profile.avatarUrl}
+                      alt={fullName}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-sky-600">
+                      {(profile?.firstName?.[0] || "?").toUpperCase()}{(profile?.lastName?.[0] || "").toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
+                    {fullName}
+                  </h1>
+                  <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-lg">
+                    Teaching
+                  </span>
+                </div>
+              </div>
 
-            {/* <div className="mb-8 p-5 bg-sky-50 rounded-xl border border-sky-100">
+              {/* <div className="mb-8 p-5 bg-sky-50 rounded-xl border border-sky-100">
               <h2 className="text-lg font-semibold text-sky-800 mb-3">User&apos;s Availability</h2>
               {profile?.schedule && profile.schedule.length > 0 ? (
                 <ul className="space-y-2">
@@ -249,276 +247,274 @@ function RequestSessionContent() {
               )}
             </div> */}
 
-            {requestError && (
-              <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
-                {requestError}
-              </div>
-            )}
-
-            {zoomStatus && (
-              <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-3 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-amber-50 border-amber-100 text-amber-700"}`}>
-                <span className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-500" : "bg-amber-400"}`} />
-                <div>
-                  <p className="font-semibold mb-0.5">{zoomStatus.connected && zoomStatus.isConfigured ? "Zoom integration is active" : "Zoom not connected"}</p>
-                  <p className="font-normal">{zoomStatus.message}</p>
+              {requestError && (
+                <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+                  {requestError}
                 </div>
-              </div>
-            )}
-
-            <form onSubmit={handleConfirmSession}>
-              <div className="mb-6">
-              {skillOptions.length === 0 ? (
-                <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
-                  This user hasn&apos;t set up any available sessions yet. Ask them to save their profile to enable session requests.
-                </div>
-              ) : (
-                <>
-              <label className="block text-[15px] font-medium text-black mb-2">Skill to Learn *</label>
-              <select 
-                required
-                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
-                value={effectiveSkillListingId}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setSkillListingId(next);
-                  loadSlots(next, slotDate);
-                }}
-              >
-                <option value="" disabled>Select a skill...</option>
-                {skillOptions.map((skill) => (
-                  <option key={skill.id} value={skill.id}>
-                    {skill.name}
-                  </option>
-                ))}
-              </select>
-                </>
               )}
-            </div>
 
-            <div className="mb-6">
-              <label className="block text-[15px] font-medium text-black mb-2">Select an Available Slot *</label>
-
-              {availabilityOptions.length > 0 && (
-                <div className="mb-3">
-                  <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Available Days</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availabilityOptions.map((opt) => {
-                      const isActive = slotDate === opt.date;
-                      return (
-                        <button
-                          key={opt.day}
-                          type="button"
-                          onClick={() => {
-                            setSlotDate(opt.date);
-                            if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, opt.date);
-                          }}
-                          className={`px-3 py-2 rounded-lg border text-[13px] font-semibold transition-all ${
-                            isActive
-                              ? "bg-[#0ea5e9] border-[#0ea5e9] text-white"
-                              : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
-                          }`}
-                        >
-                          {opt.day} <span className="font-normal opacity-70">{opt.time}</span>
-                        </button>
-                      );
-                    })}
+              {zoomStatus && (
+                <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-3 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-amber-50 border-amber-100 text-amber-700"}`}>
+                  <span className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-500" : "bg-amber-400"}`} />
+                  <div>
+                    <p className="font-semibold mb-0.5">{zoomStatus.connected && zoomStatus.isConfigured ? "Zoom integration is active" : "Zoom not connected"}</p>
+                    <p className="font-normal">{zoomStatus.message}</p>
                   </div>
                 </div>
               )}
 
-              <div className="mb-3">
-                <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Date</label>
-                <input
-                  type="date"
-                  min={toLocalDate(new Date())}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
-                  value={slotDate}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setSlotDate(next);
-                    if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, next);
-                  }}
-                />
-              </div>
+              <form onSubmit={handleConfirmSession}>
+                <div className="mb-6">
+                  {skillOptions.length === 0 ? (
+                    <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
+                      This user hasn&apos;t set up any available sessions yet. Ask them to save their profile to enable session requests.
+                    </div>
+                  ) : (
+                    <>
+                      <label className="block text-[15px] font-medium text-black mb-2">Skill to Learn *</label>
+                      <select
+                        required
+                        className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                        value={effectiveSkillListingId}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setSkillListingId(next);
+                          loadSlots(next, slotDate);
+                        }}
+                      >
+                        <option value="" disabled>Select a skill...</option>
+                        {skillOptions.map((skill) => (
+                          <option key={skill.id} value={skill.id}>
+                            {skill.name}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
+                </div>
 
-              {slotsLoading ? (
-                <div className="flex items-center gap-2 text-slate-500 text-sm py-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading available slots...</span>
-                </div>
-              ) : slotsError ? (
-                <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
-                  {slotsError}
-                </div>
-              ) : slots.length === 0 ? (
-                <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
-                  No available slots on this date. Pick one of the available days above or another date.
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {slots.map((daySlots) => (
-                    <div key={daySlots.date}>
-                      <p className="text-sm font-semibold text-slate-700 mb-2 capitalize">
-                        {daySlots.day}, {daySlots.date}
-                      </p>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {daySlots.slots.map((slot) => {
-                          const isSelected = selectedSlot?.date === daySlots.date && selectedSlot?.startTime === slot.startTime;
+                <div className="mb-6">
+                  <label className="block text-[15px] font-medium text-black mb-2">Select an Available Slot *</label>
+
+                  {availabilityOptions.length > 0 && (
+                    <div className="mb-3">
+                      <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Available Days</label>
+                      <div className="flex flex-wrap gap-2">
+                        {availabilityOptions.map((opt) => {
+                          const isActive = slotDate === opt.date;
                           return (
                             <button
-                              key={slot.startTime}
+                              key={opt.day}
                               type="button"
-                              onClick={() => handleSlotSelect(daySlots.date, slot)}
-                              className={`px-2 py-2.5 rounded-lg border text-[13px] font-semibold transition-all ${
-                                isSelected
-                                  ? "bg-[#0ea5e9] border-[#0ea5e9] text-white shadow-sm"
+                              onClick={() => {
+                                setSlotDate(opt.date);
+                                if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, opt.date);
+                              }}
+                              className={`px-3 py-2 rounded-lg border text-[13px] font-semibold transition-all ${isActive
+                                  ? "bg-[#0ea5e9] border-[#0ea5e9] text-white"
                                   : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
-                              }`}
+                                }`}
                             >
-                              {slot.startTime} - {slot.endTime}
+                              {opt.day} <span className="font-normal opacity-70">{opt.time}</span>
                             </button>
                           );
                         })}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              {selectedSlot && (
-                <p className="text-xs text-slate-500 mt-3">
-                  Selected: {selectedSlot.startTime} - {selectedSlot.endTime} on {selectedSlot.date}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-[15px] font-medium text-black mb-2">Scheduling Link (Optional)</label>
-              <input
-                type="url"
-                value={sessionLink}
-                onChange={(e) => setSessionLink(e.target.value)}
-                placeholder="e.g. https://calendly.com/your-link"
-                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400"
-              />
-            </div>
-
-            <div className="mb-8">
-              <label className="block text-[15px] font-medium text-black mb-2">Message *</label>
-              <textarea 
-                required
-                placeholder="Hi, I'd like to learn more about..."
-                rows={4}
-                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400 resize-none"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-            </div>
-
-              <button
-                id="confirm-session-btn"
-                type="submit"
-                disabled={requestLoading}
-                className="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold py-4 rounded-xl text-[17px] shadow-sm transition-colors disabled:opacity-50"
-              >
-                {requestLoading ? "Sending..." : "Confirm Session"}
-              </button>
-            </form>
-          </>
-        )}
-
-        <AnimatePresence>
-          {showSuccess && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden"
-            >
-              <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                {bgIcons.map((item, idx) => {
-                  const IconComp = item.icon;
-                  return (
-                    <div
-                      key={idx}
-                      className="absolute text-sky-200/60 animate-pulse"
-                      style={{
-                        top: item.top,
-                        left: item.left,
-                        right: item.right,
-                        bottom: item.bottom,
-                        animationDelay: `${item.delay}s`,
-                        animationDuration: "4s",
+                  <div className="mb-3">
+                    <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Date</label>
+                    <input
+                      type="date"
+                      min={toLocalDate(new Date())}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
+                      value={slotDate}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setSlotDate(next);
+                        if (effectiveSkillListingId) loadSlots(effectiveSkillListingId, next);
                       }}
-                    >
-                      <IconComp size={item.size} strokeWidth={1.5} />
+                    />
+                  </div>
+
+                  {slotsLoading ? (
+                    <div className="flex items-center gap-2 text-slate-500 text-sm py-3">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading available slots...</span>
                     </div>
-                  );
-                })}
-              </div>
+                  ) : slotsError ? (
+                    <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+                      {slotsError}
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
+                      No available slots on this date. Pick one of the available days above or another date.
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {slots.map((daySlots) => (
+                        <div key={daySlots.date}>
+                          <p className="text-sm font-semibold text-slate-700 mb-2 capitalize">
+                            {daySlots.day}, {daySlots.date}
+                          </p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {daySlots.slots.map((slot) => {
+                              const isSelected = selectedSlot?.date === daySlots.date && selectedSlot?.startTime === slot.startTime;
+                              return (
+                                <button
+                                  key={slot.startTime}
+                                  type="button"
+                                  onClick={() => handleSlotSelect(daySlots.date, slot)}
+                                  className={`px-2 py-2.5 rounded-lg border text-[13px] font-semibold transition-all ${isSelected
+                                      ? "bg-[#0ea5e9] border-[#0ea5e9] text-white shadow-sm"
+                                      : "bg-white border-slate-200 text-slate-700 hover:border-[#0ea5e9] hover:text-[#0ea5e9]"
+                                    }`}
+                                >
+                                  {slot.startTime} - {slot.endTime}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center gap-5">
-                <motion.div
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 280,
-                    damping: 22,
-                    delay: 0.1,
-                  }}
-                  className="w-36 h-36 rounded-full bg-sky-500 shadow-2xl shadow-sky-300/50 flex items-center justify-center"
-                >
-                  <svg
-                    viewBox="0 0 52 52"
-                    className="w-20 h-20"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="10,28 21,39 42,16" />
-                  </svg>
-                </motion.div>
+                  {selectedSlot && (
+                    <p className="text-xs text-slate-500 mt-3">
+                      Selected: {selectedSlot.startTime} - {selectedSlot.endTime} on {selectedSlot.date}
+                    </p>
+                  )}
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.4 }}
-                  className="space-y-2"
-                >
-                  <h2 className="text-2xl font-extrabold text-slate-900">
-                    You are all set 🎉
-                  </h2>
-                  <p className="text-sm font-medium text-slate-500">
-                    Your session has been requested.
-                  </p>
-                </motion.div>
-              </div>
+                <div className="mb-6">
+                  <label className="block text-[15px] font-medium text-black mb-2">Scheduling Link (Optional)</label>
+                  <input
+                    type="url"
+                    value={sessionLink}
+                    onChange={(e) => setSessionLink(e.target.value)}
+                    placeholder="e.g. https://calendly.com/your-link"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400"
+                  />
+                </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45, duration: 0.4 }}
-                className="relative z-10 w-full max-w-107.5 mx-auto px-6 pb-10"
-              >
+                <div className="mb-8">
+                  <label className="block text-[15px] font-medium text-black mb-2">Message *</label>
+                  <textarea
+                    required
+                    placeholder="Hi, I'd like to learn more about..."
+                    rows={4}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400 resize-none"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => router.push("/explore")}
-                  className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-full shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base"
+                  id="confirm-session-btn"
+                  type="submit"
+                  disabled={requestLoading}
+                  className="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold py-4 rounded-xl text-[17px] shadow-sm transition-colors disabled:opacity-50"
                 >
-                  Back to Explore
+                  {requestLoading ? "Sending..." : "Confirm Session"}
                 </button>
-              </motion.div>
-            </motion.div>
+              </form>
+            </>
           )}
-        </AnimatePresence>
-      </div>
 
-      {toastElement}
-    </div>
+          <AnimatePresence>
+            {showSuccess && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 z-50 bg-white flex flex-col overflow-hidden"
+              >
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                  {bgIcons.map((item, idx) => {
+                    const IconComp = item.icon;
+                    return (
+                      <div
+                        key={idx}
+                        className="absolute text-sky-200/60 animate-pulse"
+                        style={{
+                          top: item.top,
+                          left: item.left,
+                          right: item.right,
+                          bottom: item.bottom,
+                          animationDelay: `${item.delay}s`,
+                          animationDuration: "4s",
+                        }}
+                      >
+                        <IconComp size={item.size} strokeWidth={1.5} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center gap-5">
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 280,
+                      damping: 22,
+                      delay: 0.1,
+                    }}
+                    className="w-36 h-36 rounded-full bg-sky-500 shadow-2xl shadow-sky-300/50 flex items-center justify-center"
+                  >
+                    <svg
+                      viewBox="0 0 52 52"
+                      className="w-20 h-20"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="10,28 21,39 42,16" />
+                    </svg>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="space-y-2"
+                  >
+                    <h2 className="text-2xl font-extrabold text-slate-900">
+                      You are all set 🎉
+                    </h2>
+                    <p className="text-sm font-medium text-slate-500">
+                      Your session has been requested.
+                    </p>
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45, duration: 0.4 }}
+                  className="relative z-10 w-full max-w-107.5 mx-auto px-6 pb-10"
+                >
+                  <button
+                    type="button"
+                    onClick={() => router.push("/explore")}
+                    className="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-4 rounded-full shadow-xl shadow-sky-400/30 active:scale-98 transition-all text-base"
+                  >
+                    Back to Explore
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {toastElement}
+      </div>
     </>
   );
 }
