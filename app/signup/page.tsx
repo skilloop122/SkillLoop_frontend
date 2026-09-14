@@ -371,7 +371,7 @@ export default function SignUp() {
         </div>
 
         {/* Social logins */}
-        <div className="w-full grid grid-cols-2 gap-4">
+        <div className="w-full grid grid-cols-1 gap-4">
 
           <button
             type="button"
