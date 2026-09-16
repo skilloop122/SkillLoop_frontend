@@ -7,6 +7,11 @@ export interface ApiSession {
   providerId: string;
   requesterId: string;
   requestId: string;
+  scheduledAt?: string;
+  duration?: number;
+  durationMinutes?: number;
+  startTime?: string;
+  endTime?: string;
   provider?: {
     id: string;
     email: string;

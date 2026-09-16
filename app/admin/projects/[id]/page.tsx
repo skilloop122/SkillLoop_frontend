@@ -22,6 +22,7 @@ import {
   X,
   Save,
   Search,
+  Award,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminProjectStore } from "@/lib/adminProjectStore";
@@ -273,7 +274,7 @@ export default function ProjectDetailsPage() {
   const params = useParams();
   const projectId = params?.id as string;
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-  const { getProjectById, updateProject, createProject, approveProject, getEligibleUsers, fetchProjectDeliverables, getUserAssignments } = useAdminProjectStore();
+  const { getProjectById, updateProject, createProject, approveProject, getEligibleUsers, fetchProjectDeliverables, fetchProjectRating, getUserAssignments } = useAdminProjectStore();
   const { toastElement, showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -287,12 +288,17 @@ export default function ProjectDetailsPage() {
   const [deliverableData, setDeliverableData] = useState<DeliverableData | null>(null);
   const [deliverableError, setDeliverableError] = useState("");
 
+  const [loadingRating, setLoadingRating] = useState(false);
+  const [ratingData, setRatingData] = useState<Record<string, unknown> | null>(null);
+  const [ratingError, setRatingError] = useState("");
+
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editStatus, setEditStatus] = useState("PENDING");
   const [editStartDate, setEditStartDate] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
+  const [editPoints, setEditPoints] = useState(0);
   const [editTasks, setEditTasks] = useState<string[]>([]);
   const [editDeliverables, setEditDeliverables] = useState<string[]>([]);
   const [taskInput, setTaskInput] = useState("");
@@ -353,6 +359,25 @@ export default function ProjectDetailsPage() {
     return () => { cancelled = true; };
   }, [token, projectId, activeTab, fetchProjectDeliverables]);
 
+  useEffect(() => {
+    if (!token || !projectId || activeTab !== "feedback") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingRating(true);
+      const result = await fetchProjectRating(token, projectId);
+      if (cancelled) return;
+      if (result.success && result.data) {
+        setRatingData(result.data);
+        setRatingError("");
+      } else {
+        setRatingData(null);
+        setRatingError(result.message || "Failed to load project rating");
+      }
+      setLoadingRating(false);
+    })();
+    return () => { cancelled = true; };
+  }, [token, projectId, activeTab, fetchProjectRating]);
+
   function populateEdit() {
     if (!project) return;
     const existingTasks = Array.isArray(project.tasks)
@@ -366,6 +391,7 @@ export default function ProjectDetailsPage() {
     setEditStatus(((project.status ?? "PENDING") as string).toUpperCase());
     setEditStartDate(((project.startDate ?? "") as string).slice(0, 10));
     setEditDeadline(((project.deadline ?? "") as string).slice(0, 10));
+    setEditPoints(Number(project.points ?? 0) || 0);
     setEditTasks(existingTasks);
     const existingDeliverables = Array.isArray(project.deliverableTypes)
       ? (project.deliverableTypes as unknown[]).map((d) => String(d))
@@ -529,6 +555,7 @@ export default function ProjectDetailsPage() {
       status: editStatus,
       startDate: editStartDate || "",
       deadline: editDeadline || "",
+      points: editPoints,
       tasks: editTasks,
       attachments: Array.isArray(project?.attachments)
         ? (project.attachments as string[])
@@ -645,6 +672,48 @@ export default function ProjectDetailsPage() {
   const feedbackList: { id: number; author?: string; text?: string; rating?: number; date?: string }[] = Array.isArray(p?.feedback)
     ? p.feedback as { id: number; author?: string; text?: string; rating?: number; date?: string }[]
     : [];
+
+  const ratingInfo = (() => {
+    const r0 = ratingData ?? {};
+    const r = (r0.data && typeof r0.data === "object" && !Array.isArray(r0.data)
+      ? r0.data
+      : r0) as Record<string, unknown>;
+    const entriesRaw: unknown[] = Array.isArray(r.feedback)
+      ? r.feedback as unknown[]
+      : Array.isArray(r.reviews)
+        ? r.reviews as unknown[]
+        : Array.isArray(r.ratings)
+          ? r.ratings as unknown[]
+          : Array.isArray(r.data)
+            ? r.data as unknown[]
+            : [];
+    const entries: { id: string | number; author: string; text: string; rating: number; date: string }[] =
+      entriesRaw.map((e) => {
+        const ob = (e ?? {}) as Record<string, unknown>;
+        const user = (ob.user ?? {}) as Record<string, unknown>;
+        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
+        return {
+          id: (ob.id ?? "") as string | number,
+          author: String(ob.author ?? ob.reviewer ?? ob.submitter ?? user.name ?? fullName ?? ""),
+          text: String(ob.feedback ?? ob.text ?? ob.comment ?? ob.review ?? ""),
+          rating: typeof ob.rating === "number" ? ob.rating : (Number(ob.rating ?? 0) || 0),
+          date: String(ob.date ?? ob.createdAt ?? ob.submittedAt ?? ""),
+        };
+      });
+    const parsedAverage = Number(
+      r.averageRating ?? r.avgRating ?? r.average ?? r.meanRating ?? r.averageScore ?? r.rating,
+    );
+    const average = Number.isFinite(parsedAverage)
+      ? parsedAverage
+      : entries.length > 0
+        ? entries.reduce((sum, e) => sum + e.rating, 0) / entries.length
+        : 0;
+    const parsedCount = Number(
+      r.count ?? r.totalCount ?? r.total ?? r.numRatings ?? r.totalRatings,
+    );
+    const count = Number.isFinite(parsedCount) ? parsedCount : entries.length;
+    return { average, count, entries };
+  })();
 
   const submissions: { id: number; file?: string; size?: string; submittedBy?: string; date?: string; status?: string }[] = Array.isArray(p?.submissions)
     ? p.submissions as { id: number; file?: string; size?: string; submittedBy?: string; date?: string; status?: string }[]
@@ -835,7 +904,7 @@ export default function ProjectDetailsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Status
@@ -850,6 +919,18 @@ export default function ProjectDetailsPage() {
                     <option value="COMPLETED">Completed</option>
                     <option value="FAILED">Failed</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Points (awarded on completion)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editPoints}
+                    onChange={(e) => setEditPoints(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -1041,12 +1122,20 @@ export default function ProjectDetailsPage() {
               <div className="bg-white border rounded-2xl p-6 shadow-sm mb-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <h2 className="text-sm font-semibold text-gray-700">Assigned Users</h2>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusCls}`}
-                  >
-                    <StatusIcon size={14} />
-                    {statusLabel}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {Number(p?.points ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+                        <Award size={14} />
+                        {Number(p?.points ?? 0)} pts
+                      </span>
+                    )}
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusCls}`}
+                    >
+                      <StatusIcon size={14} />
+                      {statusLabel}
+                    </span>
+                  </div>
                 </div>
                 {assignedUsers.length === 0 ? (
                   <p className="text-sm text-gray-400">No users assigned</p>
@@ -1212,43 +1301,102 @@ export default function ProjectDetailsPage() {
 
                   {activeTab === "feedback" && (
                     <div className="space-y-4">
-                      {feedbackList.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400">
-                          <MessageSquare
-                            size={36}
-                            className="mx-auto mb-2 opacity-40"
-                          />
-                          <p className="text-sm">No feedback yet</p>
+                      {loadingRating ? (
+                        <div className="flex items-center justify-center py-10 text-gray-400">
+                          <Loader2 size={28} className="mr-2 animate-spin" />
+                          <span className="text-sm">Loading feedback...</span>
                         </div>
                       ) : (
-                        feedbackList.map((fb) => (
-                          <div key={fb.id} className="p-4 bg-gray-50 rounded-xl">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-sm font-semibold text-gray-900">
-                                {fb.author ?? "Unknown"}
-                              </p>
-                              <div className="flex items-center gap-0.5">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    size={14}
-                                    className={
-                                      i < (fb.rating ?? 0)
-                                        ? "text-amber-400 fill-amber-400"
-                                        : "text-gray-300"
-                                    }
-                                  />
-                                ))}
+                        <>
+                          {(ratingInfo.count > 0 || ratingInfo.entries.length > 0) && (
+                            <div className="border border-gray-100 rounded-2xl p-5 bg-white shadow-sm">
+                              <div className="flex items-center gap-5">
+                                <div className="text-center shrink-0">
+                                  <p className="text-4xl font-bold text-gray-900">
+                                    {ratingInfo.count > 0
+                                      ? ratingInfo.average.toFixed(1)
+                                      : "-"}
+                                  </p>
+                                  <div className="flex items-center justify-center gap-0.5 mt-1">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        size={16}
+                                        className={
+                                          i < Math.round(ratingInfo.average)
+                                            ? "text-amber-400 fill-amber-400"
+                                            : "text-gray-300"
+                                        }
+                                      />
+                                    ))}
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {ratingInfo.count}{" "}
+                                    {ratingInfo.count === 1 ? "rating" : "ratings"}
+                                  </p>
+                                </div>
+                                <div className="h-16 w-px bg-gray-100" />
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                                    Feedback Summary
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Aggregate rating for this project based on
+                                    user submissions.
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <p className="text-sm text-gray-600">{fb.text}</p>
-                            {fb.date && (
-                              <p className="text-xs text-gray-400 mt-1.5">
-                                {fb.date}
-                              </p>
-                            )}
-                          </div>
-                        ))
+                          )}
+
+                          {ratingError && (
+                            <p className="text-xs text-red-500">{ratingError}</p>
+                          )}
+
+                          {ratingInfo.entries.length === 0 && feedbackList.length === 0 ? (
+                            <div className="text-center py-8 text-gray-400">
+                              <MessageSquare
+                                size={36}
+                                className="mx-auto mb-2 opacity-40"
+                              />
+                              <p className="text-sm">No feedback yet</p>
+                            </div>
+                          ) : (
+                            ([] as unknown[]).concat(
+                              ratingInfo.entries.length > 0 ? ratingInfo.entries : feedbackList,
+                            ).map((fb, idx) => {
+                              const item = fb as { id?: string | number; author?: string; text?: string; rating?: number; date?: string };
+                              return (
+                                <div key={(item.id?.toString() ?? "") || idx} className="p-4 bg-gray-50 rounded-xl">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-semibold text-gray-900">
+                                      {item.author ?? "Unknown"}
+                                    </p>
+                                    <div className="flex items-center gap-0.5">
+                                      {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          size={14}
+                                          className={
+                                            i < (item.rating ?? 0)
+                                              ? "text-amber-400 fill-amber-400"
+                                              : "text-gray-300"
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-gray-600">{item.text}</p>
+                                  {item.date && (
+                                    <p className="text-xs text-gray-400 mt-1.5">
+                                      {item.date}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </>
                       )}
                     </div>
                   )}

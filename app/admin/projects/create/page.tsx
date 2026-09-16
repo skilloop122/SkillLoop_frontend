@@ -62,6 +62,7 @@ export default function CreateProjectPage() {
   const [skill, setSkill] = useState("");
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [points, setPoints] = useState(0);
   const [deliverables, setDeliverables] = useState<string[]>([]);
   const [instructions, setInstructions] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -222,6 +223,7 @@ export default function CreateProjectPage() {
         deadline,
         deliverableTypes: deliverables,
         additionalInstructions: instructions,
+        points,
       });
       if (result.success) {
         successCount += 1;
@@ -604,7 +606,7 @@ export default function CreateProjectPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Project Timeline
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Start Date
@@ -640,6 +642,18 @@ export default function CreateProjectPage() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Points (awarded on completion)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={points}
+                  onChange={(e) => setPoints(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                />
+              </div>
             </div>
             <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <AlertCircle
@@ -647,7 +661,8 @@ export default function CreateProjectPage() {
                 className="text-blue-500 shrink-0 mt-0.5"
               />
               <p className="text-sm text-blue-700">
-                The user will see this deadline on their project dashboard.
+                When the project is marked as completed, the defined points
+                will be added to the skillpoints of the assigned users.
               </p>
             </div>
           </section>
