@@ -18,7 +18,36 @@ import {
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
-import { useAdminSessionStore } from "@/lib/adminSessionStore";
+import { useAdminSessionStore, ApiSession } from "@/lib/adminSessionStore";
+
+function minutesToLabel(min: number): string {
+  if (min < 1) return "< 1 minute";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  if (h === 0) return `${m} minute${m === 1 ? "" : "s"}`;
+  if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
+  return `${h} hour${h === 1 ? "" : "s"} ${m} min`;
+}
+
+function sessionDurationMinutes(s: ApiSession): number | null {
+  const raw = s as unknown as Record<string, unknown>;
+  const direct = Number(raw.duration ?? raw.durationMinutes ?? 0);
+  if (direct > 0) return direct;
+  if (typeof raw.startTime === "string" && typeof raw.endTime === "string") {
+    const start = new Date(`1970-01-01T${raw.startTime}`);
+    const end = new Date(`1970-01-01T${raw.endTime}`);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const ms = end.getTime() - start.getTime();
+      if (ms > 0) return ms / 60000;
+    }
+  }
+  if (s.createdAt && s.completedAt) {
+    const ms =
+      new Date(s.completedAt).getTime() - new Date(s.createdAt).getTime();
+    if (Number.isFinite(ms) && ms > 0) return ms / 60000;
+  }
+  return null;
+}
 
 export default function SessionDetailsPage() {
   const router = useRouter();
@@ -84,6 +113,9 @@ export default function SessionDetailsPage() {
   const provName = provider?.profile ? `${provider.profile.firstName} ${provider.profile.lastName}` : "Unknown Provider";
   const provEmail = provider?.email || "";
   const provAvatar = provider?.profile?.avatarUrl || "";
+
+  const durationMinutes = sessionDurationMinutes(session);
+  const durationLabel = durationMinutes !== null ? minutesToLabel(durationMinutes) : null;
 
   return (
     <div className="min-h-screen bg-sky-100 md:bg-gray-50 font-sans flex text-black">
@@ -151,8 +183,16 @@ export default function SessionDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Duration</p>
-                  <p className="text-sm font-bold text-gray-900">1 hour session.</p>
-                  <p className="text-xs text-gray-500">(60 minutes)</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {durationLabel ?? (isCompleted ? "N/A" : "Not started")}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {durationLabel
+                      ? isCompleted
+                        ? "Session ran in real time"
+                        : "Planned session length"
+                      : "No duration available yet"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-4 pt-4 sm:pt-0 sm:pl-6">

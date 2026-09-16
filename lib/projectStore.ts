@@ -52,6 +52,14 @@ interface ProjectState {
     deliverables?: { type?: string; value?: string }[];
     note?: string;
   }) => Promise<{ success: boolean; project?: Project; message?: string }>;
+  submitProjectFeedback: (id: string, payload: ProjectFeedbackPayload) => Promise<{ success: boolean; data?: unknown; message?: string }>;
+}
+
+export interface ProjectFeedbackPayload {
+  rating: number;
+  feedback?: string;
+  comment?: string;
+  deliverableId?: string;
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -165,6 +173,40 @@ export const useProjectStore = create<ProjectState>((set) => ({
         data?.project ?? data?.data ?? (data && typeof data === "object" ? data : {});
       set({ loading: false });
       return { success: true, project };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      set({ error: message, loading: false });
+      return { success: false, message };
+    }
+  },
+
+  submitProjectFeedback: async (id, payload) => {
+    set({ loading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      const url = API_BASE + "projects/" + id + "/feedback";
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => null);
+      console.log("POST /projects/" + id + "/feedback ->", response.status, JSON.stringify(payload));
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || "Failed to submit project feedback");
+      }
+
+      set({ loading: false });
+      return { success: true, data: data?.data ?? data };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";

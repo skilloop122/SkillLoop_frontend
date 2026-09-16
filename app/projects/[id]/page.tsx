@@ -13,6 +13,7 @@ import {
   MessagesSquare,
   Paperclip,
   Send,
+  Star,
 } from "lucide-react";
 import { useProjectStore, projectTitle, projectStatusLabel, Project } from "../../../lib/projectStore";
 import { useAuthStore } from "../../../lib/authStore";
@@ -49,12 +50,24 @@ function tasksAsArray(tasks?: string[] | string): string[] {
   return [];
 }
 
+const submittedStorageKey = (id: string) => `skillloop:project-submitted:${id}`;
+const feedbackStorageKey = (id: string) => `skillloop:project-feedback:${id}`;
+
+function readStoredFlag(key: string) {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function ProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params?.id as string;
   const token = useAuthStore((s) => s.token);
-  const { getProjectById, submitProject } = useProjectStore();
+  const { getProjectById, submitProject, submitProjectFeedback } = useProjectStore();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +76,17 @@ export default function ProjectDetailPage() {
   const [submissionNote, setSubmissionNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(() =>
+    readStoredFlag(submittedStorageKey(projectId)),
+  );
+
+  const [rating, setRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackDone, setFeedbackDone] = useState(() =>
+    readStoredFlag(feedbackStorageKey(projectId)),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +98,21 @@ export default function ProjectDetailPage() {
       if (result.success && result.project) {
         setProject(result.project);
         setError(null);
+        const p = result.project as Project & Record<string, unknown>;
+        if (
+          p?.submittedAt ||
+          p?.submittedDate ||
+          p?.submission ||
+          p?.deliverablesSubmission ||
+          p?.deliverablesSubmitted
+        ) {
+          setSubmitted(true);
+          try {
+            localStorage.setItem(submittedStorageKey(projectId), "1");
+          } catch {
+            // ignore storage errors
+          }
+        }
       } else {
         setError(result.message || "Failed to load project");
       }
@@ -105,12 +144,48 @@ export default function ProjectDetailPage() {
       note: submissionNote,
     });
     setSubmitting(false);
-    if (result.success && result.project) {
-      setProject(result.project);
+    if (result.success) {
+      setSubmitted(true);
+      try {
+        localStorage.setItem(submittedStorageKey(projectId), "1");
+      } catch {
+        // ignore storage errors
+      }
       setSubmitError(null);
-      router.push("/projects");
+      if (result.project) {
+        setProject(result.project);
+      } else {
+        const refreshed = await getProjectById(projectId);
+        if (refreshed.success && refreshed.project) setProject(refreshed.project);
+      }
     } else {
       setSubmitError(result.message || "Failed to submit project");
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!token || !projectId) return;
+    if (!rating) {
+      setFeedbackError("Please select a rating.");
+      return;
+    }
+    setFeedbackError(null);
+    setSubmittingFeedback(true);
+    const result = await submitProjectFeedback(projectId, {
+      rating,
+      feedback: feedbackText.trim() || undefined,
+      comment: feedbackText.trim() || undefined,
+    });
+    setSubmittingFeedback(false);
+    if (result.success) {
+      setFeedbackDone(true);
+      try {
+        localStorage.setItem(feedbackStorageKey(projectId), "1");
+      } catch {
+        // ignore storage errors
+      }
+    } else {
+      setFeedbackError(result.message || "Failed to submit feedback");
     }
   };
 
@@ -248,7 +323,7 @@ export default function ProjectDetailPage() {
               </div>
             ) : null}
 
-            {!isCompleted && (
+            {!isCompleted && !submitted && (
               <div className="bg-white border rounded-2xl p-6 shadow-sm mt-6">
                 <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-4">
                   <Paperclip size={18} className="text-sky-500" />
@@ -312,6 +387,84 @@ export default function ProjectDetailPage() {
                 <CheckCircle2 size={22} className="text-green-600 shrink-0" />
                 <p className="text-sm font-medium text-green-800">
                   This project has been submitted and marked as completed.
+                </p>
+              </div>
+            )}
+
+            {submitted && !isCompleted && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mt-6 flex items-center gap-3">
+                <CheckCircle2 size={22} className="text-emerald-600 shrink-0" />
+                <p className="text-sm font-medium text-emerald-800">
+                  Your deliverables have been submitted. Rate the project below.
+                </p>
+              </div>
+            )}
+
+            {(submitted || isCompleted) && !feedbackDone && (
+              <div className="bg-white border rounded-2xl p-6 shadow-sm mt-6">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 mb-1">
+                  <Star size={18} className="text-amber-500" />
+                  Rate This Project
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Share your feedback so we can improve future collaborations.
+                </p>
+
+                <div className="flex items-center gap-1 mb-5">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRating(value)}
+                      aria-label={`Rate ${value} star${value === 1 ? "" : "s"}`}
+                      className={value <= rating ? "text-amber-400" : "text-gray-300 hover:text-amber-300 transition-colors"}
+                    >
+                      <Star size={26} className={value <= rating ? "fill-amber-400" : ""} />
+                    </button>
+                  ))}
+                  <span className="text-sm font-semibold text-gray-700 ml-2">
+                    {rating ? `${rating}/5` : "Select a rating"}
+                  </span>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Feedback (optional)
+                  </label>
+                  <textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    rows={3}
+                    placeholder="How was your experience working on this project?"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm resize-none"
+                  />
+                </div>
+
+                {feedbackError && (
+                  <p className="mb-4 text-sm text-red-500">{feedbackError}</p>
+                )}
+
+                <button
+                  type="button"
+                  disabled={submittingFeedback}
+                  onClick={handleFeedbackSubmit}
+                  className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingFeedback ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Star size={16} />
+                  )}
+                  Submit Feedback
+                </button>
+              </div>
+            )}
+
+            {feedbackDone && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mt-6 flex items-center gap-3">
+                <CheckCircle2 size={22} className="text-emerald-600 shrink-0" />
+                <p className="text-sm font-medium text-emerald-800">
+                  Thanks! Your feedback has been recorded.
                 </p>
               </div>
             )}

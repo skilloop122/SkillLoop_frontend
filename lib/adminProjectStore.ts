@@ -13,6 +13,7 @@ export interface ProjectPayload {
   deadline: string;
   deliverableTypes: string[];
   additionalInstructions: string;
+  points?: number;
 }
 
 export interface ProjectUpdatePayload extends Partial<ProjectPayload> {
@@ -76,6 +77,14 @@ interface AdminProjectState {
     message?: string;
   }>;
   fetchProjectDeliverables: (
+    token: string,
+    id: string,
+  ) => Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    message?: string;
+  }>;
+  fetchProjectRating: (
     token: string,
     id: string,
   ) => Promise<{
@@ -310,6 +319,36 @@ export const useAdminProjectStore = create<AdminProjectState>((set) => ({
 
       set({ loading: false });
       return { success: true, data };
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      set({ loading: false, error: msg });
+      return { success: false, message: msg };
+    }
+  },
+
+  fetchProjectRating: async (token: string, id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await fetch(`${API_BASE}projects/${id}/rating`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      console.log("GET /projects/" + id + "/rating ->", response.status, JSON.stringify(data));
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || data?.error || "Failed to fetch project rating",
+        );
+      }
+
+      set({ loading: false });
+      return { success: true, data: data ?? {} };
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : "An unknown error occurred";
