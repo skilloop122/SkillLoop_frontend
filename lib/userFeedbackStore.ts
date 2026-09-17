@@ -3,9 +3,32 @@ import { useAuthStore } from "./authStore";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 
+export interface ReviewGiver {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+}
+
+export interface ReviewItem {
+  id?: string;
+  sourceType?: string;
+  rating: number;
+  comment?: string;
+  giver?: ReviewGiver;
+  sessionId?: string;
+  projectId?: string;
+  projectCode?: string;
+  projectTitle?: string;
+  createdAt?: string;
+}
+
 export interface FeedbackSummary {
   averageRating: number | null;
   totalCount: number;
+  reviews: ReviewItem[];
+  ratingDistribution?: Record<string, number>;
 }
 
 function feedbackSummary(body: unknown): FeedbackSummary {
@@ -48,6 +71,49 @@ function feedbackSummary(body: unknown): FeedbackSummary {
     })
     .filter((n) => Number.isFinite(n) && n > 0);
 
+  const reviews: ReviewItem[] = list.map((f) => {
+    const entry = (f ?? {}) as Record<string, unknown>;
+    const giverRaw = (entry.giver ?? {}) as Record<string, unknown>;
+    const giver: ReviewGiver = {
+      id: String(giverRaw.id ?? ""),
+      email: String(giverRaw.email ?? ""),
+      firstName: String(giverRaw.firstName ?? ""),
+      lastName: String(giverRaw.lastName ?? ""),
+      avatarUrl:
+        giverRaw.avatarUrl === null || giverRaw.avatarUrl === undefined
+          ? null
+          : String(giverRaw.avatarUrl),
+    };
+    return {
+      id: String(entry.id ?? ""),
+      sourceType: String(entry.sourceType ?? ""),
+      rating: Number(entry.rating ?? 0) || 0,
+      comment: entry.comment
+        ? String(entry.comment)
+        : entry.feedback
+          ? String(entry.feedback)
+          : String(entry.text ?? ""),
+      giver,
+      sessionId: entry.sessionId ? String(entry.sessionId) : undefined,
+      projectId: entry.projectId ? String(entry.projectId) : undefined,
+      projectCode: entry.projectCode ? String(entry.projectCode) : undefined,
+      projectTitle: entry.projectTitle
+        ? String(entry.projectTitle)
+        : undefined,
+      createdAt: entry.createdAt ? String(entry.createdAt) : undefined,
+    };
+  });
+
+  const distRaw = summary.ratingDistribution as
+    | Record<string, unknown>
+    | undefined;
+  const ratingDistribution: Record<string, number> | undefined =
+    distRaw && typeof distRaw === "object"
+      ? Object.fromEntries(
+          Object.entries(distRaw).map(([k, v]) => [k, Number(v) || 0]),
+        )
+      : undefined;
+
   let averageRating: number | null = null;
   let totalCount = 0;
 
@@ -67,6 +133,8 @@ function feedbackSummary(body: unknown): FeedbackSummary {
     averageRating:
       averageRating !== null ? Math.round(averageRating * 10) / 10 : null,
     totalCount: Math.max(0, Math.round(totalCount)),
+    reviews,
+    ratingDistribution,
   };
 }
 
@@ -74,6 +142,7 @@ interface UserFeedbackState {
   loading: boolean;
   averageRating: number | null;
   totalCount: number;
+  summary: FeedbackSummary | null;
   byUser: Record<string, FeedbackSummary | undefined>;
   fetchMyFeedback: () => Promise<void>;
   fetchFeedbackForUser: (userId: string) => Promise<FeedbackSummary | null>;
@@ -83,6 +152,7 @@ export const useUserFeedbackStore = create<UserFeedbackState>((set) => ({
   loading: false,
   averageRating: null,
   totalCount: 0,
+  summary: null,
   byUser: {},
 
   fetchMyFeedback: async () => {
@@ -97,14 +167,9 @@ export const useUserFeedbackStore = create<UserFeedbackState>((set) => ({
       });
       const body = await response.json();
 
-      console.log(
-        "GET /users/me/reviews ->",
-        response.status,
-        JSON.stringify(body),
-      );
 
       const summary = feedbackSummary(body);
-      set({ ...summary, loading: false });
+      set({ summary, ...summary, loading: false });
     } catch {
       set({ loading: false });
     }
@@ -123,11 +188,6 @@ export const useUserFeedbackStore = create<UserFeedbackState>((set) => ({
       );
       const body = await response.json().catch(() => null);
 
-      console.log(
-        "GET /users/" + userId + "/reviews ->",
-        response.status,
-        JSON.stringify(body),
-      );
 
       const summary = feedbackSummary(body);
       set((s) => ({ byUser: { ...s.byUser, [userId]: summary } }));

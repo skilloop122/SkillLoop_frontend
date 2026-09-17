@@ -199,7 +199,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
       });
 
       const data = await response.json().catch(() => null);
-      console.log("POST /projects/" + id + "/feedback ->", response.status, JSON.stringify(payload));
 
       if (!response.ok) {
         throw new Error(data?.message || data?.error || "Failed to submit project feedback");

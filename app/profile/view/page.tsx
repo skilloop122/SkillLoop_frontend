@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, useCallback, useMemo } from "reac
 import Image from "next/image";
 import { ArrowLeft, Check, Star, Loader2, Globe, ExternalLink } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
@@ -191,11 +192,15 @@ function ProfileContent() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[14px]">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-medium text-slate-700">{viewedRating !== null ? `${viewedRating} Rating` : "New"}</span>
-              </div>
-              <span className="text-[14px] text-slate-400">{viewedCount} Review{viewedCount === 1 ? "" : "s"}</span>
+              <Link href={`/reviews${userId ? `?id=${encodeURIComponent(userId)}` : ""}`}>
+                <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[14px] hover:border-slate-300 transition-colors">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  <span className="font-medium text-slate-700">{viewedRating !== null ? `${viewedRating} Rating` : "New"}</span>
+                </div>
+              </Link>
+              <Link href={`/reviews${userId ? `?id=${encodeURIComponent(userId)}` : ""}`}>
+                <span className="text-[14px] text-slate-400 underline-offset-4 hover:underline">{viewedCount} Review{viewedCount === 1 ? "" : "s"}</span>
+              </Link>
             </div>
           </div>
 
