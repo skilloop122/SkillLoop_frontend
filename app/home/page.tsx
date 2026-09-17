@@ -127,7 +127,7 @@ export default function HomePage() {
               <h2 className="text-lg font-medium leading-snug max-w-47.5">
                 What are you learning or teaching today?
               </h2>
-              <div className="flex flex-col items-end">
+              <Link href="/reviews" className="flex flex-col items-end">
                 <div className="flex items-center gap-1 border border-white/40 rounded-full px-2.5 py-1 mb-1 bg-white/10">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span className="text-sm font-semibold text-white">{averageRating !== null ? `${averageRating} Rating` : "New"}</span>
@@ -135,7 +135,7 @@ export default function HomePage() {
                 <span className="text-[12px] text-white/80 font-medium px-1">
                   {totalCount} Review{totalCount === 1 ? "" : "s"}
                 </span>
-              </div>
+              </Link>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
