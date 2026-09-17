@@ -25,6 +25,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useProfileStore } from "../../../lib/profileStore";
 import { useAuthStore } from "../../../lib/authStore";
+import { useUserFeedbackStore } from "../../../lib/userFeedbackStore";
 
 const bgIcons = [
   { icon: Atom, top: "8%", left: "10%", size: 36, delay: 0 },
@@ -42,16 +43,18 @@ export default function PreviewProfilePage() {
   const router = useRouter();
   const { profile, loading, fetchProfile } = useProfileStore();
   const { hydrated, token } = useAuthStore();
+  const { averageRating, totalCount, fetchMyFeedback } = useUserFeedbackStore();
 
   useEffect(() => {
     if (hydrated) {
       if (token) {
         if (!profile) fetchProfile();
+        fetchMyFeedback();
       } else {
         router.push("/signin");
       }
     }
-  }, [hydrated, token, profile, fetchProfile, router]);
+  }, [hydrated, token, profile, fetchProfile, fetchMyFeedback, router]);
 
   if (!hydrated || (loading && !profile)) {
     return (
@@ -117,9 +120,9 @@ export default function PreviewProfilePage() {
             <div className="mt-2 flex items-center gap-3">
               <span className="inline-flex items-center gap-1 rounded-lg bg-white/90 backdrop-blur px-2.5 py-1 text-sm">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-medium text-slate-700">4.7 Rating</span>
+                <span className="font-medium text-slate-700">{averageRating !== null ? `${averageRating} Rating` : "New"}</span>
               </span>
-              <span className="text-sm text-white/80">122 Reviews</span>
+              <span className="text-sm text-white/80">{totalCount} Review{totalCount === 1 ? "" : "s"}</span>
             </div>
           </div>
         </div>

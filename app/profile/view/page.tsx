@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
+import { useUserFeedbackStore } from "../../../lib/userFeedbackStore";
 import type { SkillSlotsResponse } from "../../../lib/requestStore";
 
 function toLocalDate(d: Date): string {
@@ -49,7 +50,14 @@ function ProfileContent() {
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, fetchSkillSlots } = useRequestStore();
   const { fetchSkillListings } = useSkillsStore();
+  const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
   const [resolvedTeachSkills, setResolvedTeachSkills] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchFeedbackForUser(userId);
+    }
+  }, [userId, fetchFeedbackForUser]);
 
   useEffect(() => {
     if (userId) {
@@ -128,6 +136,9 @@ function ProfileContent() {
   const profile = publicProfile;
   const fullName = profile ? (profile.firstName + " " + profile.lastName) : "User";
   const bio = profile?.bio || "No bio provided.";
+  const viewedFeedback = userId ? byUser[userId] : undefined;
+  const viewedRating = viewedFeedback?.averageRating ?? null;
+  const viewedCount = viewedFeedback?.totalCount ?? 0;
   const extractNames = (arr: unknown) =>
     (Array.isArray(arr) ? arr : []).map((s: unknown) => (typeof s === "string" ? s : (s as { name?: string })?.name || "")).filter(Boolean);
   const teachSkills = extractNames(profile?.teachSkills);
@@ -182,9 +193,9 @@ function ProfileContent() {
             <div className="flex items-center gap-3">
               <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[14px]">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-medium text-slate-700">4.7 Rating</span>
+                <span className="font-medium text-slate-700">{viewedRating !== null ? `${viewedRating} Rating` : "New"}</span>
               </div>
-              <span className="text-[14px] text-slate-400">122 Reviews</span>
+              <span className="text-[14px] text-slate-400">{viewedCount} Review{viewedCount === 1 ? "" : "s"}</span>
             </div>
           </div>
 

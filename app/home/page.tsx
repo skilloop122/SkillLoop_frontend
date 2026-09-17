@@ -19,7 +19,7 @@ export default function HomePage() {
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
   const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
-  const { averageRating, totalCount, fetchMyFeedback } = useUserFeedbackStore();
+  const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
@@ -60,6 +60,27 @@ export default function HomePage() {
   const pendingReceived = receivedRequests.filter(r => r.status?.toLowerCase() === "pending");
   const pendingSent = sentRequests.filter(r => r.status?.toLowerCase() === "pending");
   const totalPending = pendingReceived.length + pendingSent.length;
+
+  useEffect(() => {
+    if (!hydrated || !token) return;
+    const ids = new Set<string>();
+    upcomingSessions.forEach((s) => {
+      const peerId = s.type === "sent" ? s.provider?.id : s.requester?.id;
+      if (peerId) ids.add(peerId);
+    });
+    pendingReceived.forEach((r) => {
+      if (r.requester?.id) ids.add(r.requester.id);
+    });
+    ids.forEach((id) => {
+      if (!byUser[id]) fetchFeedbackForUser(id);
+    });
+  }, [hydrated, token, upcomingSessions, pendingReceived, byUser, fetchFeedbackForUser]);
+
+  const feedbackOf = (id?: string) =>
+    (id ? byUser[id] : undefined);
+
+  const ratingLabel = (value: number | null | undefined) =>
+    value !== null && value !== undefined ? `${value}` : "New";
 
   const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
     const result = await updateRequestStatus(id, status);
@@ -176,7 +197,9 @@ export default function HomePage() {
                         </span>
                         <div className="flex items-center gap-1">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span className="text-[13px] font-semibold text-black">4.8</span>
+                          <span className="text-[13px] font-semibold text-black">
+                            {ratingLabel(feedbackOf(session.type === "sent" ? session.provider?.id : session.requester?.id)?.averageRating)}
+                          </span>
                         </div>
                       </div>
                       <h3 className="text-[15px] font-semibold text-black leading-snug">
@@ -262,7 +285,9 @@ export default function HomePage() {
                         </span>
                         <div className="flex items-center gap-1">
                           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span className="text-[13px] font-semibold text-black">4.8</span>
+                          <span className="text-[13px] font-semibold text-black">
+                            {ratingLabel(feedbackOf(request.requester?.id)?.averageRating)}
+                          </span>
                         </div>
                       </div>
                       <h3 className="text-[15px] font-semibold text-black leading-snug">

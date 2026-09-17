@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProfileStore } from "../../lib/profileStore";
 import { useAuthStore } from "../../lib/authStore";
+import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,6 +18,7 @@ export default function ExplorePage() {
 
   const { matches, loading, error, fetchMatches, profile, fetchProfile } = useProfileStore();
   const { hydrated, token } = useAuthStore();
+  const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
 
   useEffect(() => {
     if (hydrated && token) {
@@ -24,6 +26,23 @@ export default function ExplorePage() {
       fetchMatches("20", selectedSkillId);
     }
   }, [hydrated, token, selectedSkillId, fetchMatches, profile, fetchProfile]);
+
+  useEffect(() => {
+    if (!hydrated || !token) return;
+    const ids = new Set<string>();
+    matches.forEach((m) => {
+      const id = m.user?.id || m.id;
+      if (id) ids.add(id);
+    });
+    ids.forEach((id) => {
+      if (!byUser[id]) fetchFeedbackForUser(id);
+    });
+  }, [hydrated, token, matches, byUser, fetchFeedbackForUser]);
+
+  const feedbackOf = (id?: string) => (id ? byUser[id] : undefined);
+
+  const ratingLabel = (value: number | null | undefined) =>
+    value !== null && value !== undefined ? `${value}` : "New";
 
   const handleSkillChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -142,7 +161,7 @@ export default function ExplorePage() {
                           <div className="flex items-center gap-1 shrink-0">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                             <span className="text-sm font-semibold text-black">
-                              4.7
+                              {ratingLabel(feedbackOf(match.user?.id || match.id)?.averageRating)}
                             </span>
                           </div>
                         </div>
