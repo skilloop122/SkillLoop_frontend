@@ -8,11 +8,13 @@ import { UserAvatar } from "../../components/UserAvatar";
 // import { useRouter } from "next/navigation";
 import { useRequestStore } from "../../lib/requestStore";
 import { useAuthStore } from "../../lib/authStore";
+import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 
 export default function SessionsPage() {
   // const router = useRouter();
   const { hydrated, token, user } = useAuthStore();
   const { sentRequests, receivedRequests, sessions, loading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
+  const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
 
   const [activeTab, setActiveTab] = useState("Pending");
   const [toast, setToast] = useState("");
@@ -90,8 +92,14 @@ export default function SessionsPage() {
     const firstName = other?.profile?.firstName || "";
     const lastName = other?.profile?.lastName || "";
     const name = [firstName, lastName].filter(Boolean).join(" ") || other?.email || "User";
-    return { name, email: other?.email || "", firstName, lastName, avatarUrl: other?.profile?.avatarUrl || "" };
+    return { id: other?.id || "", name, email: other?.email || "", firstName, lastName, avatarUrl: other?.profile?.avatarUrl || "" };
   };
+
+  const ratingLabel = (value: number | null | undefined) =>
+    value !== null && value !== undefined ? `${value}` : "New";
+
+  const ratingOf = (item: Parameters<typeof getOtherParty>[0]) =>
+    ratingLabel(byUser[getOtherParty(item).id]?.averageRating);
 
   const pendingRequests = [
     ...sentRequests.filter(r => r.status?.toLowerCase() === "pending").map(r => ({ ...r, type: "sent" })),
@@ -129,6 +137,23 @@ export default function SessionsPage() {
     ...sentRequests.filter(r => r.session?.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "sent" })),
     ...receivedRequests.filter(r => r.session?.status?.toLowerCase() === "completed").map(r => ({ ...r, type: "received" }))
   ];
+
+  useEffect(() => {
+    if (!hydrated || !token) return;
+    const ids = new Set<string>();
+    [...sentRequests, ...receivedRequests].forEach((r) => {
+      const isRelevant =
+        r.status?.toLowerCase() === "pending" ||
+        (r.status?.toLowerCase() === "accepted" &&
+          r.session?.status?.toLowerCase() !== "completed");
+      if (!isRelevant) return;
+      const id = r.type === "sent" ? r.provider?.id : r.requester?.id;
+      if (id) ids.add(id);
+    });
+    ids.forEach((id) => {
+      if (!byUser[id]) fetchFeedbackForUser(id);
+    });
+  }, [hydrated, token, sentRequests, receivedRequests, byUser, fetchFeedbackForUser]);
 
   if (!hydrated || (loading && pendingRequests.length === 0 && upcomingSessions.length === 0)) {
     return (
@@ -178,7 +203,7 @@ export default function SessionsPage() {
                         <span className="bg-sky-50 text-sky-500 text-xs font-bold px-2 py-1 rounded">Confirmed</span>
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold">4.8</span>
+                          <span className="text-xs font-bold">{ratingOf(session)}</span>
                         </div>
                       </div>
                       <h3 className="font-bold text-slate-900 mb-1 wrap-break-word">{session.skillListing?.title || "Skill Session"}</h3>
@@ -258,7 +283,7 @@ export default function SessionsPage() {
                         </span>
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold">4.8</span>
+                          <span className="text-xs font-bold">{ratingOf(request)}</span>
                         </div>
                       </div>
                       <h3 className="font-bold text-slate-900 mb-0.5">{request.skillListing?.title || "Skill Session"}</h3>

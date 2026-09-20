@@ -35,6 +35,12 @@ export interface AdminMetrics {
     totalPointsAwarded: number;
     averageRating: number;
   };
+  summary?: {
+    total: number;
+    active: number;
+    inactive: number;
+    newUsers: number;
+  };
   requests: {
     pending: number;
     accepted: number;

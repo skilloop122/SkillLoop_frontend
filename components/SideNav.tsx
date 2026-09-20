@@ -12,8 +12,14 @@ import { UserAvatar } from "./UserAvatar";
 export function SideNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, token, logout } = useAuthStore();
+  const { user, token, hydrated, logout } = useAuthStore();
   const { profile, fetchProfile } = useProfileStore();
+
+  useEffect(() => {
+    if (hydrated && !token) {
+      router.replace("/signin");
+    }
+  }, [hydrated, token, router]);
 
   useEffect(() => {
     if (token && !profile) {
@@ -99,7 +105,7 @@ export function SideNav() {
         <button
           onClick={async () => {
             await logout();
-            router.push("/signin");
+            router.replace("/signin");
           }}
           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-[14px] font-semibold text-red-400 hover:bg-red-50 transition-colors"
         >
