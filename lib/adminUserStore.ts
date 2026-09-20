@@ -82,10 +82,44 @@ export interface AdminUserDetailsResponse {
   feedback: AdminUserFeedback[];
 }
 
+export interface AdminUserListing {
+  id: string;
+  email: string;
+  points: number;
+  role: string;
+  status?: string;
+  createdAt?: string;
+  avatarUrl?: string | null;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string | null;
+    teachSkills?: AdminUserSkill[];
+    learnSkills?: AdminUserSkill[];
+  };
+  teachSkills?: AdminUserSkill[];
+  learnSkills?: AdminUserSkill[];
+}
+
+export interface GetUsersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+}
+
 interface AdminUserState {
   loading: boolean;
   error: string | null;
   details: AdminUserDetailsResponse | null;
+  getUsers: (
+    token: string,
+    params?: GetUsersParams,
+  ) => Promise<{
+    success: boolean;
+    data?: Record<string, unknown>;
+    message?: string;
+  }>;
   fetchUserDetails: (token: string, id: string) => Promise<void>;
   deleteUser: (
     token: string,
@@ -114,6 +148,44 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
   loading: false,
   error: null,
   details: null,
+
+  getUsers: async (token: string, params?: GetUsersParams) => {
+    set({ loading: true, error: null });
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page !== undefined) queryParams.append("page", String(params.page));
+      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
+      if (params?.search) queryParams.append("search", params.search);
+      if (params?.role) queryParams.append("role", params.role);
+
+      const queryString = queryParams.toString()
+        ? `?${queryParams.toString()}`
+        : "";
+
+      const response = await fetch(`${API_BASE}admin/users${queryString}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          (data as Record<string, unknown>)?.message?.toString() ||
+            (data as Record<string, unknown>)?.error?.toString() ||
+            "Failed to fetch users",
+        );
+      }
+
+      set({ loading: false });
+      return { success: true, data: data ?? {} };
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      set({ loading: false, error: msg });
+      return { success: false, message: msg };
+    }
+  },
 
   fetchUserDetails: async (token: string, id: string) => {
     set({ loading: true, error: null });

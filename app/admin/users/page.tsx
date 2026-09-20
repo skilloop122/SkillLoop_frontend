@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -17,26 +17,101 @@ import {
   MoreVertical,
   Download,
   X,
+  Trophy,
+  BarChart3,
+  PieChart as PieChartIcon,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
+} from "recharts";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
 import { useAdminUserStore } from "@/lib/adminUserStore";
+import { useAdminSkillsStore } from "@/lib/adminSkillsStore";
+import type { AdminUserListing } from "@/lib/adminUserStore";
+import type { SkillListing } from "@/lib/skillsStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/hooks/useToast";
 
+const TABLE_PAGE_SIZE = 10;
+const PIE_COLORS = ["#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#6366f1"];
+
+function displayName(u: AdminUserListing): string {
+  const name = [u.profile?.firstName, u.profile?.lastName].filter(Boolean).join(" ");
+  return name || u.email || u.id || "Unknown";
+}
+
+function listingOwnerName(l: SkillListing): string {
+  const name = [l.user?.profile?.firstName, l.user?.profile?.lastName].filter(Boolean).join(" ");
+  return name || l.user?.email || "Unknown";
+}
+
+function parseListing(raw: unknown): AdminUserListing {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const profile = (r.profile ?? {}) as Record<string, unknown>;
+  const parseSkills = (v: unknown): { id: string; name: string }[] =>
+    Array.isArray(v)
+      ? v.filter((s) => s && typeof s === "object").map((s) => {
+          const skill = s as Record<string, unknown>;
+          return { id: String(skill.id ?? ""), name: String(skill.name ?? "") };
+        })
+      : [];
+  return {
+    id: String(r.id ?? ""),
+    email: String(r.email ?? ""),
+    points: Number(r.points) || 0,
+    role: String(r.role ?? "USER"),
+    status: r.status ? String(r.status) : undefined,
+    createdAt: r.createdAt ? String(r.createdAt) : undefined,
+    avatarUrl:
+      r.avatarUrl === null || r.avatarUrl === undefined
+        ? null
+        : String(r.avatarUrl),
+    profile: {
+      firstName: profile.firstName ? String(profile.firstName) : undefined,
+      lastName: profile.lastName ? String(profile.lastName) : undefined,
+      avatarUrl:
+        profile.avatarUrl === null || profile.avatarUrl === undefined
+          ? null
+          : String(profile.avatarUrl),
+      teachSkills: parseSkills(profile.teachSkills),
+      learnSkills: parseSkills(profile.learnSkills),
+    },
+    teachSkills: parseSkills(r.teachSkills),
+    learnSkills: parseSkills(r.learnSkills),
+  };
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
   const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
-  const { createUser } = useAdminUserStore();
+  const { createUser, getUsers } = useAdminUserStore();
+  const { fetchSkills } = useAdminSkillsStore();
   const { toastElement, showToast } = useToast();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
+  const [allUsers, setAllUsers] = useState<AdminUserListing[]>([]);
+  const [skillListings, setSkillListings] = useState<SkillListing[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [skillsLoading, setSkillsLoading] = useState(true);
+  const [usersPage, setUsersPage] = useState(1);
+  const [userSummary, setUserSummary] = useState<{ total?: number; active?: number; inactive?: number; newUsers?: number } | null>(null);
 
   useEffect(() => {
     if (hydrated && token) {
@@ -50,7 +125,66 @@ export default function AdminUsersPage() {
     }
   }, [hydrated, token, router]);
 
-  const users = useMemo(() => metrics?.topUsers ?? [], [metrics?.topUsers]);
+  const fetchAllUsers = useCallback(async () => {
+    if (!token) return;
+    setUsersLoading(true);
+    const collected: AdminUserListing[] = [];
+    let pageNum = 1;
+    let shownTotal = 0;
+    while (true) {
+      const result = await getUsers(token, { page: pageNum, limit: 100 });
+      if (!result.success || !result.data) {
+        if (pageNum === 1) {
+          showToast(result.message || "Failed to fetch users");
+        }
+        break;
+      }
+      const raw = result.data;
+      if (pageNum === 1 && raw.summary) {
+        setUserSummary(raw.summary as { total?: number; active?: number; inactive?: number; newUsers?: number });
+      }
+      const items: unknown[] = Array.isArray(raw)
+        ? raw
+        : (raw.users ?? raw.data ?? raw.items ?? []) as unknown[];
+      const parsed = items.map(parseListing).filter((u) => u.id || u.email);
+      collected.push(...parsed);
+      const total = Number(raw.total ?? raw.count ?? collected.length);
+      shownTotal = total || collected.length;
+      if (parsed.length === 0 || collected.length >= shownTotal) break;
+      pageNum += 1;
+      if (pageNum > 100) break;
+    }
+    setAllUsers(collected);
+    setUsersLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  const fetchAllSkills = useCallback(async () => {
+    if (!token) return;
+    setSkillsLoading(true);
+    const collected: SkillListing[] = [];
+    let pageNum = 1;
+    while (true) {
+      const result = await fetchSkills(token, { page: pageNum, limit: 100 });
+      if (!result.success || !result.data) break;
+      const items = result.data.skills ?? [];
+      collected.push(...items);
+      if (items.length === 0 || collected.length >= result.data.total) break;
+      pageNum += 1;
+      if (pageNum > 100) break;
+    }
+    setSkillListings(collected);
+    setSkillsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => {
+    (async () => {
+      await Promise.all([fetchAllUsers(), fetchAllSkills()]);
+    })();
+  }, [fetchAllUsers, fetchAllSkills]);
+
+  const users = useMemo(() => allUsers, [allUsers]);
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -63,6 +197,50 @@ export default function AdminUsersPage() {
   }, [users, search, roleFilter]);
 
   const roles = ["All", ...Array.from(new Set(users.map((u) => u.role)))];
+
+  // const activeUsersCount = users.filter((u) => u.status === "active").length;
+
+  const topByPoints = useMemo(
+    () =>
+      [...allUsers]
+        .map((u) => ({ name: displayName(u), points: u.points || 0 }))
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 10),
+    [allUsers],
+  );
+
+  const topBySkills = useMemo(() => {
+    const byUser = new Map<string, { name: string; skills: number }>();
+    skillListings.forEach((l) => {
+      const userId = l.user?.id ?? l.userId;
+      if (!userId) return;
+      const existing = byUser.get(userId);
+      const name = listingOwnerName(l);
+      if (existing) {
+        existing.skills += 1;
+        if (existing.name === "Unknown") existing.name = name;
+      } else {
+        byUser.set(userId, { name, skills: 1 });
+      }
+    });
+    return [...byUser.values()].sort((a, b) => b.skills - a.skills).slice(0, 10);
+  }, [skillListings]);
+
+  const roleDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    allUsers.forEach((u) => {
+      const role = u.role || "USER";
+      counts.set(role, (counts.get(role) ?? 0) + 1);
+    });
+    return [...counts.entries()].map(([role, value]) => ({ role, value }));
+  }, [allUsers]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / TABLE_PAGE_SIZE));
+  const safePage = Math.min(usersPage, pageCount);
+  const pagedUsers = filtered.slice(
+    (safePage - 1) * TABLE_PAGE_SIZE,
+    safePage * TABLE_PAGE_SIZE,
+  );
 
   const handleExport = () => {
     const headers = ["Name", "Email", "Role", "Status", "Date Joined", "Points"];
@@ -107,9 +285,9 @@ export default function AdminUsersPage() {
           >
             <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
               <Users size={18} className="text-sky-500" />
-              <span className="text-sky-700 font-semibold text-sm">
-                {metrics?.overview?.totalUsers ?? "—"} Total
-              </span>
+<span className="text-sky-700 font-semibold text-sm">
+                 {userSummary?.total ?? metrics?.summary?.total ?? "—"} Total
+               </span>
             </div>
             <button
               onClick={handleExport}
@@ -129,12 +307,12 @@ export default function AdminUsersPage() {
 
           {/* Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            {[
-              { label: "Total Users", value: metrics?.overview?.totalUsers, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
-              { label: "Active Users", value: metrics?.topUsers?.length, icon: UserCheck, color: "text-green-500", bg: "bg-green-50" },
-              { label: "New Users", value: metrics?.overview.newUsers, icon: UserPlus, color: "text-blue-500", bg: "bg-blue-50" },
-              { label: "Inactive Users", value: metrics?.overview?.totalInactiveUsers, icon: UserRoundMinus, color: "text-red-500", bg: "bg-red-50" },
-            ].map((card) => (
+{[
+               { label: "Total Users", value: userSummary?.total ?? metrics?.summary?.total, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
+               { label: "Active Users", value: userSummary?.active ?? metrics?.summary?.active, icon: UserCheck, color: "text-green-500", bg: "bg-green-50" },
+               { label: "New Users", value: userSummary?.newUsers ?? metrics?.summary?.newUsers, icon: UserPlus, color: "text-blue-500", bg: "bg-blue-50" },
+               { label: "Inactive Users", value: userSummary?.inactive ?? metrics?.summary?.inactive, icon: UserRoundMinus, color: "text-red-500", bg: "bg-red-50" },
+             ].map((card) => (
               <div key={card.label} className="bg-white border rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.bg}`}>
@@ -151,6 +329,101 @@ export default function AdminUsersPage() {
             ))}
           </div>
 
+          {/* Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-6">
+            {/* Top Users by Points */}
+            <div className="bg-white border rounded-2xl p-5 shadow-sm">
+              <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                <Trophy size={20} className="text-amber-500" />
+                Top Users by Points
+              </h2>
+              {usersLoading && allUsers.length === 0 ? (
+                <div className="flex items-center justify-center h-60 text-gray-300">
+                  <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                </div>
+              ) : topByPoints.length === 0 ? (
+                <div className="flex items-center justify-center h-60 text-gray-300">
+                  <BarChart3 size={32} className="opacity-40" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={topByPoints} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: "#0ea5e908" }} />
+                    <Bar dataKey="points" fill="#0ea5e9" radius={[6, 6, 0, 0]} name="Points" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Top Users by Skills */}
+            <div className="bg-white border rounded-2xl p-5 shadow-sm">
+              <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                <Award size={20} className="text-violet-500" />
+                Top Users by Skills
+              </h2>
+              {skillsLoading && skillListings.length === 0 ? (
+                <div className="flex items-center justify-center h-60 text-gray-300">
+                  <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                </div>
+              ) : topBySkills.length === 0 || topBySkills.every((d) => d.skills === 0) ? (
+                <div className="flex flex-col items-center justify-center h-60 text-gray-300">
+                  <BarChart3 size={32} className="opacity-40" />
+                  <p className="mt-2 text-xs text-gray-400">No skill listings found</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={topBySkills} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={50} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: "#0ea5e908" }} />
+                    <Bar dataKey="skills" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="Skills" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Role Distribution */}
+            <div className="bg-white border rounded-2xl p-5 shadow-sm md:col-span-2 xl:col-span-1">
+              <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                <PieChartIcon size={20} className="text-sky-500" />
+                Role Distribution
+              </h2>
+              {usersLoading && allUsers.length === 0 ? (
+                <div className="flex items-center justify-center h-60 text-gray-300">
+                  <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                </div>
+              ) : roleDistribution.length === 0 ? (
+                <div className="flex items-center justify-center h-60 text-gray-300">
+                  <PieChartIcon size={32} className="opacity-40" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={roleDistribution}
+                      dataKey="value"
+                      nameKey="role"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label={({ role, value }) => `${role} (${value})`}
+                    >
+                      {roleDistribution.map((entry, i) => (
+                        <Cell key={entry.role} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
           {/* Search & Filter */}
           <div className="bg-white border rounded-2xl shadow-sm overflow-hidden mb-6">
             <div className="flex flex-col sm:flex-row gap-3 p-4 border-b">
@@ -160,7 +433,7 @@ export default function AdminUsersPage() {
                   type="text"
                   placeholder="Search by name or email…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value); setUsersPage(1); }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                 />
               </div>
@@ -168,7 +441,7 @@ export default function AdminUsersPage() {
                 <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <select
                   value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
+                  onChange={(e) => { setRoleFilter(e.target.value); setUsersPage(1); }}
                   className="appearance-none pl-9 pr-8 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white"
                 >
                   {roles.map((r) => (
@@ -181,16 +454,16 @@ export default function AdminUsersPage() {
 
             {/* Mobile Cards */}
             <div className="lg:hidden p-4 space-y-3">
-              {metricsLoading ? (
+              {usersLoading && allUsers.length === 0 ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
                 </div>
-              ) : filtered.length === 0 ? (
+              ) : pagedUsers.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <Users size={40} className="mx-auto mb-2 opacity-40" />
                   <p className="text-sm">No users found</p>
                 </div>
-              ) : filtered.map((user) => (
+              ) : pagedUsers.map((user) => (
                 <div key={user.id} className="border rounded-xl p-4 flex items-start gap-3">
                   <UserAvatar
                     avatarUrl={user.profile?.avatarUrl ?? user.avatarUrl}
@@ -255,20 +528,20 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {metricsLoading ? (
+                  {usersLoading && allUsers.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center">
                         <Loader2 className="w-6 h-6 animate-spin text-sky-500 mx-auto" />
                       </td>
                     </tr>
-                  ) : filtered.length === 0 ? (
+                  ) : pagedUsers.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-gray-400">
                         <Users size={36} className="mx-auto mb-2 opacity-40" />
                         <p className="text-sm">No users found</p>
                       </td>
                     </tr>
-                  ) : filtered.map((user) => (
+                  ) : pagedUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4 flex items-center gap-3">
                         <UserAvatar
@@ -332,12 +605,31 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Footer */}
-            {!metricsLoading && filtered.length > 0 && (
+            {!usersLoading && filtered.length > 0 && (
               <div className="px-5 py-3 border-t flex items-center justify-between text-sm text-gray-500">
-                <span>Showing {filtered.length} of {users.length} users</span>
+                <span>
+                  Showing {(safePage - 1) * TABLE_PAGE_SIZE + 1} to{" "}
+                  {Math.min(safePage * TABLE_PAGE_SIZE, filtered.length)} of{" "}
+                  {filtered.length} users
+                </span>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40 text-xs">Prev</button>
-                  <button className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40 text-xs">Next</button>
+                  <button
+                    onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                  >
+                    Prev
+                  </button>
+                  <span className="px-2 text-xs font-medium">
+                    {safePage} / {pageCount}
+                  </span>
+                  <button
+                    onClick={() => setUsersPage((p) => Math.min(pageCount, p + 1))}
+                    disabled={safePage >= pageCount}
+                    className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
             )}
@@ -385,6 +677,7 @@ export default function AdminUsersPage() {
                 setCreatingUser(false);
                 if (result.success) {
                   fetchMetrics(token);
+                  fetchAllUsers();
                   setShowCreateModal(false);
                   setNewUser({ firstName: "", lastName: "", email: "", password: "", role: "USER" });
                 } else {

@@ -10,6 +10,7 @@ import { useProfileStore } from "../../lib/profileStore";
 import { useRequestStore } from "../../lib/requestStore";
 import { usePointsStore } from "../../lib/pointsStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
+import { useNotificationStore } from "../../lib/notificationStore";
 import { UserAvatar } from "../../components/UserAvatar";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +21,7 @@ export default function HomePage() {
   const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
   const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
@@ -28,8 +30,9 @@ export default function HomePage() {
       fetchSessions();
       fetchPointsHistory();
       fetchMyFeedback();
+      fetchNotifications();
     }
-  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback]);
+  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
 
   useEffect(() => {
     loadData();
@@ -110,12 +113,14 @@ export default function HomePage() {
               Hello, {firstName}
             </h1>
             <div className="flex items-center gap-4">
-              <div className="relative cursor-pointer">
+              <Link href="/notifications" className="relative cursor-pointer" aria-label="Notifications">
                 <Bell className="w-6 h-6 text-[#0ea5e9]" strokeWidth={2} />
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#0ea5e9] text-[10px] font-bold text-white border border-white">
-                  {totalPending}
-                </span>
-              </div>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0ea5e9] px-1 text-[10px] font-bold text-white border border-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
               <button onClick={() => router.push("/profile")} className="cursor-pointer">
                 <Settings className="w-6 h-6 text-[#0ea5e9]" strokeWidth={2} />
               </button>

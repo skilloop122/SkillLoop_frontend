@@ -266,7 +266,7 @@ export default function AdminProjectsPage() {
 
   // Derived metrics from the current paginated view
   const totalProjects = totalProjectsCount;
-  const activeProjects = projectsList.filter((p) => p.status?.toLowerCase() === "active" || p.status?.toLowerCase() === "in_progress").length;
+  const pendingProjects = projectsList.filter((p) => p.status?.toLowerCase() === "pending" || p.status?.toLowerCase() === "in_progress").length;
   const completedProjects = projectsList.filter((p) => p.status?.toLowerCase() === "completed").length;
   const canceledProjects = projectsList.filter((p) => p.status?.toLowerCase() === "canceled" || p.status?.toLowerCase() === "failed").length;
 
@@ -325,8 +325,8 @@ export default function AdminProjectsPage() {
                 border: "border-sky-200",
               },
               {
-                label: "Active / Pending",
-                value: activeProjects,
+                label: "Pending / In Progress",
+                value: pendingProjects,
                 icon: Clock,
                 color: "text-amber-500",
                 bg: "bg-amber-50",
@@ -418,7 +418,7 @@ export default function AdminProjectsPage() {
 
                 <div className="space-y-0 divide-y divide-gray-100">
                   {[
-                    { label: "Active Projects", value: activeProjects },
+                    { label: "Pending Projects", value: pendingProjects },
                     { label: "Completed Projects", value: completedProjects },
                     { label: "Canceled Projects", value: canceledProjects },
                     { label: "Completion Rate", value: `${completionRate}%` },

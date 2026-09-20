@@ -51,6 +51,15 @@ interface AuthState {
     payload: GoogleAuthPayload,
   ) => Promise<{ success: boolean; message: string }>;
 
+  forgotPassword: (
+    email: string,
+  ) => Promise<{ success: boolean; message: string }>;
+
+  resetPassword: (
+    token: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>;
+
   logout: () => Promise<void>;
 }
 
@@ -146,12 +155,24 @@ export const useAuthStore = create<AuthState>()(
             }),
           });
 
-          const body = await response.json();
+          const body = await response.json().catch(() => null);
+
+          // console.log(
+          //   "POST /auth/login ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
 
           if (!response.ok) {
+            const message =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "Invalid credentials";
+            set({ error: message });
             return {
               success: false,
-              message: body?.message || "Login failed",
+              message,
             };
           }
 
@@ -182,10 +203,15 @@ export const useAuthStore = create<AuthState>()(
             success: true,
             message: body?.message || "Login successful",
           };
-        } catch {
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message
+              ? `Login failed: ${err.message}`
+              : "Login failed";
+          set({ error: message });
           return {
             success: false,
-            message: "Login failed",
+            message,
           };
         } finally {
           set({ loading: false });
@@ -259,11 +285,20 @@ export const useAuthStore = create<AuthState>()(
             body: JSON.stringify({ idToken }),
           });
 
-          const body = await response.json();
+          const body = await response.json().catch(() => null);
 
+          console.log(
+            "POST /auth/google ->",
+            response.status,
+            JSON.stringify(body),
+          );
 
           if (!response.ok) {
-            const errMsg = body?.message || "Google authentication failed";
+            const errMsg =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "Google authentication failed";
             set({ error: errMsg });
             return { success: false, message: errMsg };
           }
@@ -296,7 +331,108 @@ export const useAuthStore = create<AuthState>()(
           };
         } catch (err) {
           console.error("GOOGLE AUTH ERROR:", err);
-          return { success: false, message: "Google authentication failed" };
+          const message =
+            err instanceof Error && err.message
+              ? `Google authentication failed: ${err.message}`
+              : "Google authentication failed";
+          set({ error: message });
+          return { success: false, message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      forgotPassword: async (email) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await fetch(`${API_BASE}auth/forgot-password`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }),
+          });
+
+          const body = await response.json().catch(() => null);
+
+          // console.log(
+          //   "POST /auth/forgot-password ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
+
+          if (!response.ok) {
+            const message =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "Failed to request password reset";
+            set({ error: message });
+            return { success: false, message };
+          }
+
+          set({ error: null });
+          return {
+            success: true,
+            message:
+              body?.message ||
+              "If an account exists for that email, a reset link has been sent.",
+          };
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message
+              ? `Failed to request password reset: ${err.message}`
+              : "Failed to request password reset";
+          set({ error: message });
+          return { success: false, message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      resetPassword: async (token, newPassword) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await fetch(`${API_BASE}auth/reset-password`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token, newPassword }),
+          });
+
+          const body = await response.json().catch(() => null);
+
+          // console.log(
+          //   "POST /auth/reset-password ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
+
+          if (!response.ok) {
+            const message =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "Password reset failed";
+            set({ error: message });
+            return { success: false, message };
+          }
+
+          set({ error: null });
+          return {
+            success: true,
+            message: body?.message || "Password reset successful",
+          };
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message
+              ? `Password reset failed: ${err.message}`
+              : "Password reset failed";
+          set({ error: message });
+          return { success: false, message };
         } finally {
           set({ loading: false });
         }

@@ -20,14 +20,20 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { validatePassword } from "@/lib/utils";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [formError, setFormError] = useState("");
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.loading);
+  const googleAuth = useAuthStore((s) => s.googleAuth);
   const remoteError = useAuthStore((s) => s.error);
   const router = useRouter();
   const [toasts, setToasts] = useState<{
@@ -55,24 +61,36 @@ export default function SignIn() {
     { icon: Atom, bottom: "8%", left: "20%", size: 28, delay: 2 }
   ];
 
+  const handleGoogleSuccess = async (idToken: string) => {
+    const result = await googleAuth({ idToken });
+    if (!result.success) {
+      setFormError(result.message || "Google authentication failed");
+      return;
+    }
+
+    showToast("Signed in with Google!", "success");
+    setTimeout(() => router.push("/home"), 600);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      showToast("Please enter a valid email.", "error");
+      setFormError("Please enter a valid email.");
       return;
     }
 
     const pwCheck = validatePassword(password);
     if (!pwCheck.ok) {
-      showToast(pwCheck.message || "Please enter a valid password.", "error");
+      setFormError(pwCheck.message || "Please enter a valid password.");
       return;
     }
 
     const result = await login({ email, password });
     if (!result.success) {
-      showToast(result.message || "Login failed.", "error");
+      setFormError(result.message || "Invalid credentials");
       return;
     }
 
@@ -80,7 +98,7 @@ export default function SignIn() {
     setTimeout(() => router.push("/home"), 600);
   };
 
-  return (
+  const content = (
     <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 overflow-hidden select-none">
 
       {/* Toast container */}
@@ -155,7 +173,7 @@ export default function SignIn() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); if (formError) setFormError(""); }}
                 placeholder="Enter your email"
                 className="w-full bg-transparent px-5 py-4.5 rounded-2xl text-slate-800 font-medium text-base outline-hidden placeholder:text-slate-300"
               />
@@ -172,7 +190,7 @@ export default function SignIn() {
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); if (formError) setFormError(""); }}
                 placeholder="Enter your password"
                 className="w-full bg-transparent px-5 py-4.5 rounded-2xl text-slate-800 font-medium text-base outline-hidden placeholder:text-slate-300"
               />
@@ -185,6 +203,13 @@ export default function SignIn() {
               </button>
             </div>
           </div>
+
+          {/* Inline error (kept close to the form fields) */}
+          {(formError || remoteError) ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {formError || remoteError}
+            </div>
+          ) : null}
 
           {/* Remember Me and Forgot Password */}
           <div className="flex items-center justify-between pt-1">
@@ -202,21 +227,15 @@ export default function SignIn() {
                 Remember Me
               </span>
             </label>
-            <a
-              href="#"
-              className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-slate-400 hover:text-sky-600 transition-colors"
             >
               Forgot Password?
-            </a>
+            </Link>
           </div>
 
           {/* Primary Action Sign In Button */}
-          {remoteError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {remoteError}
-            </div>
-          ) : null}
-
           <button
             type="submit"
             disabled={loading}
@@ -237,27 +256,40 @@ export default function SignIn() {
         {/* Social logins */}
         <div className="w-full grid grid-cols-1 gap-4">
 
-          <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.93 1 12 1 7.37 1 3.4 3.63 1.45 7.45l3.77 2.92C6.12 6.84 8.84 5.04 12 5.04z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.48c-.28 1.48-1.12 2.74-2.38 3.59l3.69 2.86c2.16-1.99 3.7-4.92 3.7-8.54z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.22 14.62c-.24-.72-.37-1.49-.37-2.28s.13-1.56.37-2.28L1.45 7.14C.52 9.07 0 11.23 0 13.5s.52 4.43 1.45 6.36l3.77-2.92c-.24-.44-.24-1.9-.24-2.32z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.69-2.86c-1.03.69-2.34 1.1-4.27 1.1-3.16 0-5.88-1.8-6.84-5.33L1.39 15.9C3.33 19.74 7.3 23 12 23z"
-              />
-            </svg>
-            Google
-          </button>
+          {GOOGLE_CLIENT_ID ? (
+            <GoogleSignInButton
+              onCredential={handleGoogleSuccess}
+              onError={(m) => setFormError(m)}
+              disabled={loading}
+            />
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your env files to enable Google sign-in."
+              className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] text-slate-700 font-semibold text-sm disabled:cursor-not-allowed w-full"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.93 1 12 1 7.37 1 3.4 3.63 1.45 7.45l3.77 2.92C6.12 6.84 8.84 5.04 12 5.04z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.48c-.28 1.48-1.12 2.74-2.38 3.59l3.69 2.86c2.16-1.99 3.7-4.92 3.7-8.54z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.22 14.62c-.24-.72-.37-1.49-.37-2.28s.13-1.56.37-2.28L1.45 7.14C.52 9.07 0 11.23 0 13.5s.52 4.43 1.45 6.36l3.77-2.92c-.24-.44-.24-1.9-.24-2.32z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.69-2.86c-1.03.69-2.34 1.1-4.27 1.1-3.16 0-5.88-1.8-6.84-5.33L1.39 15.9C3.33 19.74 7.3 23 12 23z"
+                />
+              </svg>
+              Google
+            </button>
+          )}
 
           {/* <button className="flex items-center justify-center gap-2.5 bg-white border border-slate-200 py-3.5 rounded-xl shadow-[0_4px_12px_rgb(0,0,0,0.03)] hover:bg-slate-50 transition-colors active:scale-95 text-slate-700 font-semibold text-sm">
             <Apple size={16} className="text-slate-900 fill-slate-900" />
@@ -276,5 +308,13 @@ export default function SignIn() {
 
       </div>
     </div>
+  );
+
+  if (!GOOGLE_CLIENT_ID) return content;
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {content}
+    </GoogleOAuthProvider>
   );
 }
