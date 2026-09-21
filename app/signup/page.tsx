@@ -111,14 +111,13 @@ export default function SignUp() {
 
     const loginResult = await login({ email, password });
     if (!loginResult.success) {
-      showToast("Account created. Please sign in.", "success");
-      setTimeout(() => router.push("/signin"), 800);
+      showToast("Account created successfully!", "success");
+     setTimeout(() => router.push("/signup/otp?email=" + email), 200);
+   };
       return;
     }
 
-    showToast("Account created successfully!", "success");
-    setTimeout(() => router.push("/signup/profile"), 800);
-  };
+
 
   const content = (
     <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-6 overflow-hidden select-none">

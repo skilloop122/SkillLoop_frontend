@@ -339,7 +339,7 @@ export const useAdminProjectStore = create<AdminProjectState>((set) => ({
 
       const data = await response.json().catch(() => null);
 
-      console.log("GET /projects/" + id + "/rating ->", response.status, JSON.stringify(data));
+      // console.log("GET /projects/" + id + "/rating ->", response.status, JSON.stringify(data));
 
       if (!response.ok) {
         throw new Error(

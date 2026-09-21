@@ -60,7 +60,7 @@ function RequestSessionContent() {
   const [skillListingId, setSkillListingId] = useState("");
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("");
-  const [sessionLink, setSessionLink] = useState("");
+  // const [sessionLink, setSessionLink] = useState("");
   const [message, setMessage] = useState("");
 
   const [slots, setSlots] = useState<SkillSlotsResponse[]>([]);
@@ -171,7 +171,7 @@ function RequestSessionContent() {
     }
     const result = await createRequest({
       skillListingId: effectiveSkillListingId,
-      schedulingLink: sessionLink,
+      // schedulingLink: sessionLink,
       message,
       proposedDate,
       proposedTime
@@ -388,7 +388,7 @@ function RequestSessionContent() {
                   )}
                 </div>
 
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <label className="block text-[15px] font-medium text-black mb-2">Scheduling Link (Optional)</label>
                   <input
                     type="url"
@@ -397,7 +397,7 @@ function RequestSessionContent() {
                     placeholder="e.g. https://calendly.com/your-link"
                     className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all placeholder:text-slate-400"
                   />
-                </div>
+                </div> */}
 
                 <div className="mb-8">
                   <label className="block text-[15px] font-medium text-black mb-2">Message *</label>

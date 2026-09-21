@@ -60,6 +60,15 @@ interface AuthState {
     newPassword: string,
   ) => Promise<{ success: boolean; message: string }>;
 
+  verifyOtp: (
+    email: string,
+    otp: string,
+  ) => Promise<{ success: boolean; message: string }>;
+
+  resendOtp: (
+    email: string,
+  ) => Promise<{ success: boolean; message: string }>;
+
   logout: () => Promise<void>;
 }
 
@@ -287,11 +296,11 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json().catch(() => null);
 
-          console.log(
-            "POST /auth/google ->",
-            response.status,
-            JSON.stringify(body),
-          );
+          // console.log(
+          //   "POST /auth/google ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
 
           if (!response.ok) {
             const errMsg =
@@ -405,12 +414,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json().catch(() => null);
 
-          // console.log(
-          //   "POST /auth/reset-password ->",
-          //   response.status,
-          //   JSON.stringify(body),
-          // );
-
           if (!response.ok) {
             const message =
               body?.message ||
@@ -431,6 +434,100 @@ export const useAuthStore = create<AuthState>()(
             err instanceof Error && err.message
               ? `Password reset failed: ${err.message}`
               : "Password reset failed";
+          set({ error: message });
+          return { success: false, message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      verifyOtp: async (email, otp) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await fetch(`${API_BASE}auth/verify-otp`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, otp }),
+          });
+
+          const body = await response.json().catch(() => null);
+
+          // console.log(
+          //   "POST /auth/verify-otp ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
+
+          if (!response.ok) {
+            const message =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "OTP verification failed";
+            set({ error: message });
+            return { success: false, message };
+          }
+
+          set({ error: null });
+          return {
+            success: true,
+            message: body?.message || "OTP verified successfully",
+          };
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message
+              ? `OTP verification failed: ${err.message}`
+              : "OTP verification failed";
+          set({ error: message });
+          return { success: false, message };
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      resendOtp: async (email) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await fetch(`${API_BASE}auth/resend-otp`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }),
+          });
+
+          const body = await response.json().catch(() => null);
+
+          // console.log(
+          //   "POST /auth/resend-otp ->",
+          //   response.status,
+          //   JSON.stringify(body),
+          // );
+
+          if (!response.ok) {
+            const message =
+              body?.message ||
+              body?.error ||
+              body?.detail ||
+              "Failed to resend OTP";
+            set({ error: message });
+            return { success: false, message };
+          }
+
+          set({ error: null });
+          return {
+            success: true,
+            message: body?.message || "OTP resent successfully",
+          };
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message
+              ? `Failed to resend OTP: ${err.message}`
+              : "Failed to resend OTP";
           set({ error: message });
           return { success: false, message };
         } finally {

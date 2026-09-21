@@ -28,12 +28,31 @@ interface AdminUser {
   lastName?: string;
 }
 
+export interface SkillPointSettings {
+  id?: string;
+  welcomeBonusPoints: number;
+  baseSessionCost: number;
+  reciprocalDiscountPercent: number;
+  feedbackRewardPoints: number;
+  firstSessionBonus: number;
+  streakBonusPerCount: number;
+  maxStreakBonus: number;
+  dailyPayoutCap: number;
+  ratingFiveMultiplier: number;
+  ratingFourMultiplier: number;
+  ratingThreeMultiplier: number;
+  ratingTwoMultiplier: number;
+  ratingOneMultiplier: number;
+  updatedAt?: string;
+}
+
 interface AdminAuthState {
   loading: boolean;
   error: string | null;
   admin: AdminUser | null;
   token: string | null;
   hydrated: boolean;
+  skillPointSettings: SkillPointSettings | null;
 
   setHydrated: (state: boolean) => void;
 
@@ -51,6 +70,16 @@ interface AdminAuthState {
     admin?: AdminUser;
   }>;
 
+  getSkillPointSettings: () => Promise<{
+    success: boolean;
+    message: string;
+    settings?: SkillPointSettings;
+  }>;
+
+  updateSkillPointSettings: (
+    data: Partial<SkillPointSettings>,
+  ) => Promise<{ success: boolean; message: string }>;
+
   logout: () => void;
 }
 
@@ -59,11 +88,12 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 export const useAdminAuthStore = create<AdminAuthState>()(
   persist(
     (set, get) => ({
-      loading: false,
-      error: null,
-      admin: null,
-      token: null,
-      hydrated: false,
+loading: false,
+  error: null,
+  admin: null,
+  token: null,
+  hydrated: false,
+  skillPointSettings: null,
 
       setHydrated: (state) => set({ hydrated: state }),
 
@@ -233,6 +263,80 @@ export const useAdminAuthStore = create<AdminAuthState>()(
           return { success: false, message: "Error loading admin" };
         } finally {
           set({ loading: false });
+        }
+      },
+
+      getSkillPointSettings: async () => {
+        set({ loading: true });
+
+        try {
+          const token = get().token;
+          const response = await fetch(`${API_BASE}admin/skillpoint-settings`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const body = await response.json();
+
+          if (!response.ok) {
+            return {
+              success: false,
+              message: body?.message || "Failed to fetch SkillPoint settings",
+            };
+          }
+
+          const settings: SkillPointSettings = body?.settings || body?.data?.settings || body;
+
+          set({ skillPointSettings: settings, loading: false });
+
+          return {
+            success: true,
+            message: body?.message || "SkillPoint settings retrieved successfully",
+            settings,
+          };
+        } catch {
+          set({ loading: false });
+          return {
+            success: false,
+            message: "Failed to fetch SkillPoint settings",
+          };
+        }
+      },
+
+      updateSkillPointSettings: async (data) => {
+        set({ loading: true });
+
+        try {
+          const token = get().token;
+          const response = await fetch(`${API_BASE}admin/skillpoint-settings`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+          });
+
+          const body = await response.json();
+
+          if (!response.ok) {
+            return {
+              success: false,
+              message: body?.message || "Failed to update SkillPoint settings",
+            };
+          }
+
+          set({ skillPointSettings: body?.settings || body?.data?.settings || null, loading: false });
+
+          return {
+            success: true,
+            message: body?.message || "SkillPoint settings updated successfully",
+          };
+        } catch {
+          set({ loading: false });
+          return {
+            success: false,
+            message: "Failed to update SkillPoint settings",
+          };
         }
       },
 

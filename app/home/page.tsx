@@ -230,7 +230,7 @@ export default function HomePage() {
                             {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
                           </button>
                         ) : null}
-                        {session.session?.zoomMeetingId ? (
+                        {/* {session.session?.zoomMeetingId ? (
                           <button
                             onClick={() => {
                               const params = new URLSearchParams();
@@ -248,7 +248,7 @@ export default function HomePage() {
                           >
                             {session.isProvider ? "Start in App" : "Join in App"}
                           </button>
-                        ) : null}
+                        ) : null} */}
                       </div>
                     ) : null}
                   </div>

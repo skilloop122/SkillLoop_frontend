@@ -13,20 +13,36 @@ import {
   Eye,
   EyeOff,
   LogOut,
+  Award,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { AdminSideNav } from "@/components/AdminSideNav";
 import { AdminHeader } from "@/components/AdminHeader";
+import type { SkillPointSettings } from "@/lib/adminAuthStore";
 
-type SettingsTab = "profile" | "security" | "notifications";
+type SettingsTab = "profile" | "security" | "notifications" | "skillPoint";
 
 export default function AdminSettingsPage() {
   const router = useRouter();
-  const { token, admin, hydrated, loading: authLoading, logout } = useAdminAuthStore();
+  const { token, admin, hydrated, loading: authLoading, logout, skillPointSettings, getSkillPointSettings, updateSkillPointSettings } = useAdminAuthStore();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [draft, setDraft] = useState<SkillPointSettings | null>(null);
+
+  useEffect(() => {
+    if (hydrated && token && activeTab === "skillPoint") {
+      getSkillPointSettings();
+    }
+  }, [hydrated, token, activeTab, getSkillPointSettings]);
+
+  const current = draft || skillPointSettings;
+
+  const updateField = (key: keyof SkillPointSettings, value: number) => {
+    setDraft((prev) => prev ? { ...prev, [key]: value } : { ...(skillPointSettings || {} as SkillPointSettings), [key]: value });
+  };
 
   // Profile form state — seeded from admin once hydration completes.
   // No sync effect needed: the loading guard below ensures admin is
@@ -51,6 +67,18 @@ export default function AdminSettingsPage() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const handleSaveSkillPoint = async () => {
+    setUpdating(true);
+    const data = draft || skillPointSettings;
+    if (!data) return;
+    const result = await updateSkillPointSettings(data);
+    setUpdating(false);
+    if (result.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     router.push("/admin/login");
@@ -70,6 +98,7 @@ export default function AdminSettingsPage() {
     { key: "profile", label: "Profile", icon: User },
     { key: "security", label: "Security", icon: ShieldCheck },
     { key: "notifications", label: "Notifications", icon: Bell },
+    { key: "skillPoint", label: "SkillPoint", icon: Award },
   ];
 
   return (
@@ -77,7 +106,7 @@ export default function AdminSettingsPage() {
       <AdminSideNav />
 
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12 min-w-0">
-        <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
+        <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 pt-20 md:pt-10">
 
           <AdminHeader
             title={<><Settings size={28} className="text-sky-500" /> Settings</>}
@@ -330,10 +359,142 @@ export default function AdminSettingsPage() {
                       {saved ? "Saved!" : "Save Preferences"}
                     </button>
                   </div>
-                </div>
-              )}
+</div>
+                )}
+
+                {activeTab === "skillPoint" && (
+                  <div className="bg-white border rounded-2xl shadow-sm p-6">
+                    <h2 className="font-semibold text-lg mb-1">SkillPoint Settings</h2>
+                    <p className="text-sm text-gray-500 mb-6">
+                      Manage system-wide SkillPoint rules and rewards
+                    </p>
+
+                    {!current ? (
+                      <div className="flex justify-center py-10">
+                        <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                        {[
+                          {
+                            label: "Welcome Bonus Points",
+                            value: current?.welcomeBonusPoints ?? 100,
+                            onChange: (v: number) => updateField("welcomeBonusPoints", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Base Session Cost",
+                            value: current?.baseSessionCost ?? 20,
+                            onChange: (v: number) => updateField("baseSessionCost", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Reciprocal Discount %",
+                            value: current?.reciprocalDiscountPercent ?? 20,
+                            onChange: (v: number) => updateField("reciprocalDiscountPercent", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Feedback Reward Points",
+                            value: current?.feedbackRewardPoints ?? 5,
+                            onChange: (v: number) => updateField("feedbackRewardPoints", v),
+                            type: "number",
+                          },
+                          {
+                            label: "First Session Bonus",
+                            value: current?.firstSessionBonus ?? 10,
+                            onChange: (v: number) => updateField("firstSessionBonus", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Streak Bonus Per Count",
+                            value: current?.streakBonusPerCount ?? 5,
+                            onChange: (v: number) => updateField("streakBonusPerCount", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Max Streak Bonus",
+                            value: current?.maxStreakBonus ?? 25,
+                            onChange: (v: number) => updateField("maxStreakBonus", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Daily Payout Cap",
+                            value: current?.dailyPayoutCap ?? 200,
+                            onChange: (v: number) => updateField("dailyPayoutCap", v),
+                            type: "number",
+                          },
+                          {
+                            label: "Rating 5× Multiplier",
+                            value: current?.ratingFiveMultiplier ?? 1.2,
+                            onChange: (v: number) => updateField("ratingFiveMultiplier", v),
+                            type: "number",
+                            step: "0.1",
+                          },
+                          {
+                            label: "Rating 4× Multiplier",
+                            value: current?.ratingFourMultiplier ?? 1,
+                            onChange: (v: number) => updateField("ratingFourMultiplier", v),
+                            type: "number",
+                            step: "0.1",
+                          },
+                          {
+                            label: "Rating 3× Multiplier",
+                            value: current?.ratingThreeMultiplier ?? 0.8,
+                            onChange: (v: number) => updateField("ratingThreeMultiplier", v),
+                            type: "number",
+                            step: "0.1",
+                          },
+                          {
+                            label: "Rating 2× Multiplier",
+                            value: current?.ratingTwoMultiplier ?? 0.5,
+                            onChange: (v: number) => updateField("ratingTwoMultiplier", v),
+                            type: "number",
+                            step: "0.1",
+                          },
+                          {
+                            label: "Rating 1× Multiplier",
+                            value: current?.ratingOneMultiplier ?? 0,
+                            onChange: (v: number) => updateField("ratingOneMultiplier", v),
+                            type: "number",
+                            step: "0.1",
+                          },
+                        ].map((field) => (
+                          <div key={field.label}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {field.label}
+                            </label>
+                            <input
+                              type="number"
+                              step={field.step || "1"}
+                              value={field.value}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
+                            />
+                          </div>
+                        ))}
+
+                        <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                          <button
+                            onClick={handleSaveSkillPoint}
+                            disabled={updating}
+                            className="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                          >
+                            {updating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            {updating ? "Saving..." : "Save Settings"}
+                          </button>
+                          {saved && (
+                            <span className="text-green-600 text-sm font-medium animate-pulse">
+                              ✓ Settings saved
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
         </div>
       </div>
