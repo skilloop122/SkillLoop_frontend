@@ -57,11 +57,10 @@ export default function SessionsPage() {
 
   const handleCompleteSession = async (sessionId: string, status: "completed") => {
     setCompletingId(sessionId);
-    const result = await completeSession(sessionId,status);
+    const result = await completeSession(sessionId, status);
     setCompletingId(null);
     if (result.success) {
-      showToast("Session marked as completed!");
-      loadData();
+      setFeedbackModal({ sessionId });
     } else {
       showToast(result.message || "Failed to complete session.");
     }
@@ -363,27 +362,20 @@ export default function SessionsPage() {
                       <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
                       <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
                     </div>
-                   </div>
-                   <button
-                     type="button"
-                     onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
-                     className="w-full mt-4 py-2.5 border border-amber-300 text-amber-600 rounded-xl text-sm font-bold hover:bg-amber-50 transition-colors"
-                   >
-                     Leave Feedback
-                   </button>
-                </div>
-              ))}
-              {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
-            </div>
-          )}
-        </div>
-      </div>
+                    </div>
+                 </div>
+               ))}
+               {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
+             </div>
+           )}
+         </div>
+       </div>
 
-      {toast && (
-        <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-2xl">{toast}</div>
-      )}
+       {toast && (
+         <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-2xl">{toast}</div>
+       )}
 
-      {feedbackModal && (
+       {feedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Leave Feedback</h2>
