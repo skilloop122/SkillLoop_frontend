@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Atom,
@@ -15,9 +15,8 @@ import {
 import { useAuthStore } from "@/lib/authStore";
 
 export default function VerifyOtp() {
+  const [email, setEmail] = useState("");
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
   const verifyOtp = useAuthStore((state) => state.verifyOtp);
   const resendOtp = useAuthStore((state) => state.resendOtp);
   const loading = useAuthStore((state) => state.loading);
@@ -38,6 +37,14 @@ export default function VerifyOtp() {
     setToasts((t) => [...t, { id, type, message }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      setEmail(params.get("email") || "");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (inputRefs.current[0]) inputRefs.current[0].focus();
