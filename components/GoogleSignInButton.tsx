@@ -82,10 +82,6 @@ export default function GoogleSignInButton({
           setBusy(false);
           return;
         }
-        // console.log(
-        //   "GOOGLE AUTH SUCCESS ->",
-        //   JSON.stringify({ idToken: `${idToken.slice(0, 16)}...` }),
-        // );
         void onCredential(idToken);
       },
       auto_select: false,

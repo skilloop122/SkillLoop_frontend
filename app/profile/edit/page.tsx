@@ -320,6 +320,7 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
                 {user?.firstName ?? "Profile"} {user?.lastName ?? ""}
               </h2>
               <p className="text-sm text-slate-500 mt-1">Tap the camera icon to change your photo</p>
+              <p className="text-sm font-medium p-1 rounded-lg text-sky-500 mt-1">Max image size: 2mb</p>
             </div>
           </div>
         </section>

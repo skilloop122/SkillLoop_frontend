@@ -19,7 +19,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
-import { useToast } from "../../../hooks/useToast";
 import { SideNav } from "../../../components/SideNav";
 import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
@@ -51,7 +50,12 @@ function RequestSessionContent() {
   const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus, fetchSkillSlots } = useRequestStore();
   const { fetchSkillListings } = useSkillsStore();
-  const { toastElement, showToast } = useToast();
+  const [toastMsg, setToastMsg] = useState("");
+
+  const showToastLocal = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3500);
+  };
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
@@ -83,10 +87,18 @@ function RequestSessionContent() {
       return;
     }
     fetchSkillSlots(skillId, targetDate).then(res => {
-      if (res.success && res.data) {
-        setSlots(res.data);
+      if (res.success && res.data && res.data.length > 0) {
+        const slotData = res.data[0];
+        if (slotData.slots && slotData.slots.length === 0) {
+          setSlotsError("No matching time available — Your availability doesn’t overlap with theirs. Try adjusting your availability or choosing another time.");
+        } else {
+          setSlots(res.data);
+          setSlotsError("");
+        }
       } else {
-        setSlotsError(res.message || "Failed to load available slots.");
+        showToastLocal("No available time slots found for this date. Please try a different date.");
+        setSlotsError("No slots available for this date.");
+        setSlots([]);
       }
       setSlotsLoading(false);
     });
@@ -166,7 +178,7 @@ function RequestSessionContent() {
   const handleConfirmSession = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!proposedDate || !proposedTime || !effectiveSkillListingId || !message) {
-      showToast("Please select a time slot and fill in all required fields.");
+      showToastLocal("Please select a time slot and fill in all required fields.");
       return;
     }
     const result = await createRequest({
@@ -513,7 +525,11 @@ function RequestSessionContent() {
           </AnimatePresence>
         </div>
 
-        {toastElement}
+        {toastMsg && (
+          <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-2xl">
+            {toastMsg}
+          </div>
+        )}
       </div>
     </>
   );
