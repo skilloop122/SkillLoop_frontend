@@ -784,21 +784,31 @@ export default function Home() {
                 </div>
             </section>
 
-            <footer className="bg-slate-950 border-t border-white/5 py-12 px-6 z-10 relative">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-6 mb-12">
-                    <div className="md:col-span-2 space-y-4">
-                        <div className="flex items-center gap-2">
-                            <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
-                            <span className="text-lg font-bold tracking-tight text-white">
-                                Skil<span className="text-sky-400">Loop</span>
-                            </span>
-                        </div>
-                        <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-                            SkilLoop is a peer-to-peer exchange community where African talent trades what they know for what they need. No long tutorials, no expensive fees—just 15-minute live loops and collaborative projects to build the portfolio that gets you hired.            </p>
-                        <p className="text-xs text-slate-500">© {new Date().getFullYear()} SkilLoop, Inc. All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
+<footer className="bg-slate-950 border-t border-white/5 py-12 px-6 z-10 relative">
+                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-6 mb-12">
+                     <div className="md:col-span-2 space-y-4">
+                         <div className="flex items-center gap-2">
+                             <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
+                             <span className="text-lg font-bold tracking-tight text-white">
+                                 Skil<span className="text-sky-400">Loop</span>
+                             </span>
+                         </div>
+                         <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                             SkilLoop is a peer-to-peer exchange community where African talent trades what they know for what they need. No long tutorials, no expensive fees—just 15-minute live loops and collaborative projects to build the portfolio that gets you hired.
+                         </p>
+                         <p className="text-xs text-slate-500">© {new Date().getFullYear()} SkilLoop, Inc. All rights reserved.</p>
+                     </div>
+                     <div>
+                         <h4 className="text-sm font-bold text-white mb-4">Legal</h4>
+                         <ul className="space-y-2">
+                             <li><Link href="/terms" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Terms of Service</Link></li>
+                             <li><Link href="/privacy" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Privacy Policy</Link></li>
+                             <li><Link href="/cookies" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Cookie Policy</Link></li>
+                             <li><Link href="/community" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Community Guidelines</Link></li>
+                         </ul>
+                     </div>
+                 </div>
+             </footer>
         </div>
     );
 }

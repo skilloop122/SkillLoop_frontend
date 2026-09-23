@@ -214,6 +214,7 @@ export default function SessionsPage() {
                         <Clock size={14} />
                         <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
                       </div>
+                      <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
                       <div className="flex flex-wrap gap-2 mt-4">
                         {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
                           <>
@@ -294,6 +295,7 @@ export default function SessionsPage() {
                         <Clock size={14} />
                         <span className="text-xs font-medium">{request.proposedDate} at {request.proposedTime}</span>
                       </div>
+                      <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
                     </div>
                   </div>
                   <div className="flex gap-2">

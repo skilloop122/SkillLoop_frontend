@@ -111,30 +111,6 @@ export const useAuthStore = create<AuthState>()(
             };
           }
 
-          const token =
-            body?.access_token ||
-            body?.accessToken ||
-            body?.token ||
-            body?.data?.access_token ||
-            body?.data?.accessToken ||
-            body?.data?.token ||
-            body?.result?.access_token ||
-            null;
-
-
-          const registerUser = body?.user ||
-            body?.data?.user || {
-              id: body?.id,
-              email: body?.email,
-              firstName: body?.profile?.firstName || body?.firstName,
-              lastName: body?.profile?.lastName || body?.lastName,
-            };
-
-          set({
-            user: registerUser,
-            token,
-          });
-
           return {
             success: true,
             message: body?.message || "Registration successful",
@@ -472,6 +448,30 @@ export const useAuthStore = create<AuthState>()(
           }
 
           set({ error: null });
+
+          const token =
+            body?.access_token ||
+            body?.accessToken ||
+            body?.token ||
+            body?.data?.access_token ||
+            body?.data?.accessToken ||
+            body?.data?.token ||
+            body?.result?.access_token ||
+            null;
+
+          const verifyUser = body?.user ||
+            body?.data?.user || {
+              id: body?.id,
+              email: email,
+              firstName: body?.profile?.firstName,
+              lastName: body?.profile?.lastName,
+            };
+
+          set({
+            user: verifyUser,
+            token,
+          });
+
           return {
             success: true,
             message: body?.message || "OTP verified successfully",

@@ -51,6 +51,12 @@ function ProfileContent() {
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
   const { createRequest, loading: requestLoading, error: requestError, fetchSkillSlots } = useRequestStore();
   const { fetchSkillListings } = useSkillsStore();
+  const [toastMsg, setToastMsg] = useState("");
+
+  const showToastLocal = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3500);
+  };
   const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
   const [resolvedTeachSkills, setResolvedTeachSkills] = useState<{ id: string; name: string }[]>([]);
 
@@ -103,10 +109,18 @@ function ProfileContent() {
     setSelectedSlot(null);
     setFormData(prev => ({ ...prev, proposedDate: "", proposedTime: "" }));
     fetchSkillSlots(skillId, targetDate).then(res => {
-      if (res.success && res.data) {
-        setSlots(res.data);
+      if (res.success && res.data && res.data.length > 0) {
+        const slotData = res.data[0];
+        if (slotData.slots && slotData.slots.length === 0) {
+          setSlotsError("No matching time available — Your availability doesn’t overlap with theirs. Try adjusting your availability or choosing another time.");
+        } else {
+          setSlots(res.data);
+          setSlotsError("");
+        }
       } else {
-        setSlotsError(res.message || "Failed to load available slots.");
+        showToastLocal("No available time slots found for this date. Please try a different date.");
+        setSlotsError("No slots available for this date.");
+        setSlots([]);
       }
       setSlotsLoading(false);
     });
@@ -446,7 +460,7 @@ function ProfileContent() {
                 )}
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Scheduling Link (Optional)</label>
                 <input 
                   type="url" 
@@ -455,7 +469,7 @@ function ProfileContent() {
                   value={formData.schedulingLink}
                   onChange={(e) => setFormData({...formData, schedulingLink: e.target.value})}
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
@@ -510,6 +524,12 @@ function ProfileContent() {
               Close
             </button>
           </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-2xl">
+          {toastMsg}
         </div>
       )}
     </div>
