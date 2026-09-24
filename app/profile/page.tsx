@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Clock,
   Loader2,
@@ -45,6 +45,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { profile, loading, error, fetchProfile } = useProfileStore();
+  const [refreshing, setRefreshing] = useState(false);
   const { hydrated, token } = useAuthStore();
 
   useEffect(() => {
@@ -69,12 +70,13 @@ export default function ProfilePage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 text-black p-5 text-center">
         <p className="text-red-500 mb-4">{error}</p>
-        <button
-          onClick={() => fetchProfile()}
-          className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white"
-        >
-          Retry
-        </button>
+<button
+           onClick={async () => { setRefreshing(true); await fetchProfile(); setRefreshing(false); }}
+           disabled={refreshing}
+           className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white disabled:opacity-50"
+         >
+           {refreshing ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Retry"}
+         </button>
       </div>
     );
   }

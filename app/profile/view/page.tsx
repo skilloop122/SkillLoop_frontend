@@ -49,6 +49,7 @@ function ProfileContent() {
   const [selectedSlot, setSelectedSlot] = useState<{ date: string; startTime: string; endTime: string } | null>(null);
 
   const { publicProfile, loading, error, fetchPublicProfile } = useProfileStore();
+  const [refreshing, setRefreshing] = useState(false);
   const { createRequest, loading: requestLoading, error: requestError, fetchSkillSlots } = useRequestStore();
   const { fetchSkillListings } = useSkillsStore();
   const [toastMsg, setToastMsg] = useState("");
@@ -138,12 +139,13 @@ function ProfileContent() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-sky-50 text-black p-5 text-center">
         <p className="text-red-400 mb-4">{error}</p>
-        <button
-          onClick={() => userId && fetchPublicProfile(userId)}
-          className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white"
-        >
-          Retry
-        </button>
+<button
+           onClick={async () => { setRefreshing(true); if (userId) await fetchPublicProfile(userId); setRefreshing(false); }}
+           disabled={refreshing}
+           className="rounded-lg bg-[#0ea5e9] px-4 py-2 text-white disabled:opacity-50"
+         >
+           {refreshing ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Retry"}
+         </button>
       </div>
     );
   }
@@ -268,21 +270,22 @@ function ProfileContent() {
 
           {/* Actions */}
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                const defaultSkillId = skillOptions[0]?.id || "";
-                const firstDay = profile?.schedule && profile.schedule.length > 0 ? profile.schedule[0].day : "";
-                const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
-                setFormData(prev => ({ ...prev, skillListingId: defaultSkillId }));
-                setSlotDate(initialDate);
-                setShowRequestForm(true);
-                loadSlots(defaultSkillId, initialDate);
-              }}
-              className="flex-1 rounded-[12px] bg-[#0ea5e9] py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 transition-colors"
-            >
-              Request Session
-            </button>
+<button
+               type="button"
+               onClick={() => {
+                 const defaultSkillId = skillOptions[0]?.id || "";
+                 const firstDay = profile?.schedule && profile.schedule.length > 0 ? profile.schedule[0].day : "";
+                 const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
+                 setFormData(prev => ({ ...prev, skillListingId: defaultSkillId }));
+                 setSlotDate(initialDate);
+                 setShowRequestForm(true);
+                 loadSlots(defaultSkillId, initialDate);
+               }}
+               disabled={slotsLoading}
+               className="flex-1 rounded-[12px] bg-[#0ea5e9] py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-sky-500/25 hover:bg-sky-500 transition-colors disabled:opacity-50"
+             >
+               {slotsLoading ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Request Session"}
+             </button>
             <button
               type="button"
               onClick={() => router.back()}

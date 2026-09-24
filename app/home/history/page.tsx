@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Star, Flame, Loader2, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SideNav } from "../../../components/SideNav";
@@ -96,6 +96,7 @@ function TransactionRow({ tx, runningTotal }: { tx: PointTransaction; runningTot
 export default function HistoryPage() {
   const router = useRouter();
   const { data, loading, error, fetchPointsHistory } = usePointsStore();
+  const [refreshing, setRefreshing] = useState(false);
   const { hydrated, token } = useAuthStore();
 
   useEffect(() => {
@@ -169,12 +170,13 @@ export default function HistoryPage() {
               <div className="bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white/70 shadow-lg flex flex-col items-center gap-4">
                 <AlertCircle className="w-10 h-10 text-red-400" />
                 <p className="text-[15px] text-red-500 text-center font-medium">{error}</p>
-                <button
-                  onClick={fetchPointsHistory}
-                  className="rounded-xl bg-sky-500 hover:bg-sky-400 px-6 py-2.5 text-white text-[14px] font-semibold transition-all shadow-md shadow-sky-200"
-                >
-                  Retry
-                </button>
+<button
+                   onClick={async () => { setRefreshing(true); await fetchPointsHistory(); setRefreshing(false); }}
+                   disabled={refreshing}
+                   className="rounded-xl bg-sky-500 hover:bg-sky-400 px-6 py-2.5 text-white text-[14px] font-semibold transition-all shadow-md shadow-sky-200 disabled:opacity-50"
+                 >
+                   {refreshing ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Retry"}
+                 </button>
               </div>
             </div>
           )}
