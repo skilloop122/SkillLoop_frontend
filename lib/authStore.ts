@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { dedupFetch } from "./requestCache";
 
 interface RegisterPayload {
   email: string;
@@ -258,19 +259,22 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      googleAuth: async ({ idToken }) => {
-        set({ loading: true, error: null });
+googleAuth: async ({ idToken }) => {
+         set({ loading: true, error: null });
 
-        try {
-          const response = await fetch(`${API_BASE}auth/google`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ idToken }),
-          });
+         try {
+           const response = await dedupFetch(`auth-google-${idToken}`, async () => {
+             const res = await fetch(`${API_BASE}auth/google`, {
+               method: "POST",
+               headers: {
+                 "Content-Type": "application/json",
+               },
+               body: JSON.stringify({ idToken }),
+             });
+             return res;
+           });
 
-          const body = await response.json().catch(() => null);
+           const body = await response.json().catch(() => null);
 
           // console.log(
           //   "POST /auth/google ->",

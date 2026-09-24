@@ -11,6 +11,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Search,
+  Trash2,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
@@ -59,8 +60,9 @@ function StarRating({ value }: { value: number }) {
 export default function AdminFeedbackPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-  const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
-  const { feedbacks: apiFeedbacks, fetchFeedback } = useAdminFeedbackStore();
+const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
+   const { feedbacks: apiFeedbacks, fetchFeedback, deleteFeedback } = useAdminFeedbackStore();
+   const [deletingId, setDeletingId] = useState<string | null>(null);
   
   const feedbackList = useMemo(() => apiFeedbacks.map(mapFeedbackToUI), [apiFeedbacks]);
   const [search, setSearch] = useState("");
@@ -311,13 +313,26 @@ export default function AdminFeedbackPage() {
                           From {item.giverName}{item.giverEmail ? ` · ${item.giverEmail}` : ""}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/admin/feedback/${item.id}`)}
-                        className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
-                      >
-                        View
-                      </button>
+<button
+                         type="button"
+                         onClick={() => router.push(`/admin/feedback/${item.id}`)}
+                         className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                       >
+                         View
+                       </button>
+                       <button
+                         type="button"
+                         onClick={async () => {
+                           if (!confirm("Delete this feedback?")) return;
+                           setDeletingId(item.id);
+                           const result = await deleteFeedback(token, item.id);
+                           setDeletingId(null);
+                         }}
+                         disabled={deletingId === item.id}
+                         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
+                       >
+                         {deletingId === item.id ? "…" : <Trash2 size={14} />}
+                       </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <StarRating value={item.rating} />
@@ -391,15 +406,28 @@ export default function AdminFeedbackPage() {
                         <td className="px-4 py-4">
                           <span className="font-medium text-gray-800">{item.submitted}</span>
                         </td>
-                        <td className="px-4 py-4">
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/admin/feedback/${item.id}`)}
-                            className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
-                          >
-                            View
-                          </button>
-                        </td>
+<td className="px-4 py-4">
+                           <button
+                             type="button"
+                             onClick={() => router.push(`/admin/feedback/${item.id}`)}
+                             className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                           >
+                             View
+                           </button>
+                           <button
+                             type="button"
+                             onClick={async () => {
+                               if (!confirm("Delete this feedback?")) return;
+                               setDeletingId(item.id);
+                               const result = await deleteFeedback(token, item.id);
+                               setDeletingId(null);
+                             }}
+                             disabled={deletingId === item.id}
+                             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors ml-2"
+                           >
+                             {deletingId === item.id ? "…" : <Trash2 size={14} />}
+                           </button>
+                         </td>
                       </tr>
                     ))
                   )}

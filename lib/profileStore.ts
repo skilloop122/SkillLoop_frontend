@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useAuthStore } from "./authStore";
+import { dedupFetch } from "./requestCache";
 
 export interface Skill {
   id: string;
@@ -141,33 +142,36 @@ export const useProfileStore = create<ProfileState>((set) => ({
   publicProfile: null,
   matches: [],
 
-  fetchProfile: async () => {
-    set({ loading: true, error: null });
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) throw new Error("No authentication token found");
+fetchProfile: async () => {
+     set({ loading: true, error: null });
+     try {
+       const token = useAuthStore.getState().token;
+       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "users/profile", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-      });
+       const response = await dedupFetch("users-profile", async () => {
+         const res = await fetch(API_BASE + "users/profile", {
+           method: "GET",
+           headers: {
+             "Content-Type": "application/json",
+             Authorization: "Bearer " + token,
+           },
+         });
+         return res;
+       });
 
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Failed to fetch profile");
+       const data = await response.json();
+       if (!response.ok)
+         throw new Error(data.message || "Failed to fetch profile");
 
-      set({ profile: data, loading: false });
-      return { success: true, profile: data };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      set({ error: message, loading: false });
-      return { success: false, message };
-    }
-  },
+       set({ profile: data, loading: false });
+       return { success: true, profile: data };
+     } catch (error: unknown) {
+       const message =
+         error instanceof Error ? error.message : "An unknown error occurred";
+       set({ error: message, loading: false });
+       return { success: false, message };
+     }
+   },
   createProfile: async (payload: CreateProfilePayload) => {
     set({ loading: true, error: null });
 

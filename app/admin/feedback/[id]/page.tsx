@@ -27,7 +27,8 @@ export default function FeedbackDetailsPage() {
   const params = useParams();
   const id = params?.id as string;
   const { hydrated, token } = useAdminAuthStore();
-  const { feedbacks, fetchFeedback } = useAdminFeedbackStore();
+  const { feedbacks, fetchFeedback, deleteFeedback } = useAdminFeedbackStore();
+  const [deleting, setDeleting] = useState(false);
   const [localLoading, setLocalLoading] = useState(() => feedbacks.length === 0);
 
   useEffect(() => {
@@ -315,10 +316,19 @@ export default function FeedbackDetailsPage() {
                       <Users size={16} className="text-sky-400" />
                       View users profile.
                     </button>
-                    <button className="flex items-center gap-3 text-red-600 hover:text-red-700 transition w-full text-left font-medium">
-                      <Trash2 size={16} />
-                      Delete feedback history.
-                    </button>
+<button className="flex items-center gap-3 text-red-600 hover:text-red-700 transition w-full text-left font-medium"
+                        onClick={async () => {
+                          if (!confirm("Delete this feedback?")) return;
+                          setDeleting(true);
+                          const result = await deleteFeedback(token, id);
+                          setDeleting(false);
+                          if (result.success) router.push("/admin/feedback");
+                        }}
+                        disabled={deleting}
+                      >
+                        <Trash2 size={16} />
+                        {deleting ? "Deleting…" : "Delete feedback history."}
+                      </button>
                   </div>
                 </div>
               </div>

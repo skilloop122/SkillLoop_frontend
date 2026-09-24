@@ -130,10 +130,10 @@ export default function ExplorePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
-              {filteredMatches.map((match) => {
+              {filteredMatches.map((match, index) => {
                 return (
                   <div
-                    key={match.id}
+                    key={match.id || `match-${index}`}
                     className="bg-white border border-slate-200 rounded-[12px] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col"
                   >
                     <div className="flex items-start gap-3 mb-4">

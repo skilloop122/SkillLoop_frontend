@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { dedupFetch } from "./requestCache";
 
 export interface AdminUserSkill {
   id: string;
@@ -149,23 +150,28 @@ export const useAdminUserStore = create<AdminUserState>()((set) => ({
   error: null,
   details: null,
 
-  getUsers: async (token: string, params?: GetUsersParams) => {
-    set({ loading: true, error: null });
-    try {
-      const queryParams = new URLSearchParams();
-      if (params?.page !== undefined) queryParams.append("page", String(params.page));
-      if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
-      if (params?.search) queryParams.append("search", params.search);
-      if (params?.role) queryParams.append("role", params.role);
+getUsers: async (token: string, params?: GetUsersParams) => {
+     set({ loading: true, error: null });
+     try {
+       const queryParams = new URLSearchParams();
+       if (params?.page !== undefined) queryParams.append("page", String(params.page));
+       if (params?.limit !== undefined) queryParams.append("limit", String(params.limit));
+       if (params?.search) queryParams.append("search", params.search);
+       if (params?.role) queryParams.append("role", params.role);
 
-      const queryString = queryParams.toString()
-        ? `?${queryParams.toString()}`
-        : "";
+       const queryString = queryParams.toString()
+         ? `?${queryParams.toString()}`
+         : "";
 
-      const response = await fetch(`${API_BASE}admin/users${queryString}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+       const cacheKey = `admin-users${queryString}`;
+
+       const response = await dedupFetch(cacheKey, async () => {
+         const res = await fetch(`${API_BASE}admin/users${queryString}`, {
+           method: "GET",
+           headers: { Authorization: `Bearer ${token}` },
+         });
+         return res;
+       });
 
       const data = await response.json().catch(() => null);
 

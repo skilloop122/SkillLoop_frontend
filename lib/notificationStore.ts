@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useAuthStore } from "./authStore";
+import { dedupFetch } from "./requestCache";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
 
@@ -107,55 +108,54 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   loading: false,
   error: null,
 
-  fetchNotifications: async (opts = {}) => {
-    const token = useAuthStore.getState().token;
-    if (!token) {
-      set({ error: "Not authenticated", loading: false });
-      return;
-    }
+fetchNotifications: async (opts = {}) => {
+     const token = useAuthStore.getState().token;
+     if (!token) {
+       set({ error: "Not authenticated", loading: false });
+       return;
+     }
 
-    const page = opts.page ?? 1;
-    const limit = opts.limit ?? 10;
-    const unreadOnly = opts.unreadOnly ?? false;
+     const page = opts.page ?? 1;
+     const limit = opts.limit ?? 10;
+     const unreadOnly = opts.unreadOnly ?? false;
 
-    set({ loading: true, error: null, unreadOnly });
+     const cacheKey = `notifications-${page}-${limit}-${unreadOnly}`;
 
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-        unreadOnly: String(unreadOnly),
-      });
-      const response = await fetch(`${API_BASE}notifications?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const body = await response.json().catch(() => null);
+     set({ loading: true, error: null, unreadOnly });
 
-      // console.log(
-      //   "GET /notifications?page=" + page + "&limit=" + limit + "&unreadOnly=" + unreadOnly + " ->",
-      //   response.status,
-      //   JSON.stringify(body),
-      // );
+     try {
+       const response = await dedupFetch(cacheKey, async () => {
+         const params = new URLSearchParams({
+           page: String(page),
+           limit: String(limit),
+           unreadOnly: String(unreadOnly),
+         });
+         const res = await fetch(`${API_BASE}notifications?${params}`, {
+           headers: { Authorization: `Bearer ${token}` },
+         });
+         return res;
+       });
+       const body = await response.json().catch(() => null);
 
-      if (!response.ok) {
-        const message =
-          (body as Record<string, unknown>)?.message?.toString() ||
-          "Failed to load notifications";
-        set({ error: message, loading: false });
-        return;
-      }
+       if (!response.ok) {
+         const message =
+           (body as Record<string, unknown>)?.message?.toString() ||
+           "Failed to load notifications";
+         set({ error: message, loading: false });
+         return;
+       }
 
-      const parsed = parseList(body);
-      set({
-        notifications: parsed.notifications,
-        unreadCount: parsed.unreadCount,
-        pagination: parsed.pagination,
-        loading: false,
-      });
-    } catch {
-      set({ error: "Failed to load notifications", loading: false });
-    }
-  },
+       const parsed = parseList(body);
+       set({
+         notifications: parsed.notifications,
+         unreadCount: parsed.unreadCount,
+         pagination: parsed.pagination,
+         loading: false,
+       });
+     } catch {
+       set({ error: "Failed to load notifications", loading: false });
+     }
+   },
 
   fetchNotification: async (id) => {
     const token = useAuthStore.getState().token;
