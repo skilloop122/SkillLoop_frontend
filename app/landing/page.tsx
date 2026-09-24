@@ -36,11 +36,11 @@ type ExploreSkill = {
 const sessionCards = [
     {
         id: "james-teaches",
-        name: "James Klin",
+        name: "Bella Ezinne",
         rating: "4.8",
         role: ["Frontend", "Word Press"],
         skills: ["UI/UX", "Motion Design"],
-        image: "/james_klin.png",
+        image: "/images/Bella.jpeg",
     },
     {
         id: "james-learns",
@@ -62,18 +62,18 @@ const sessionCards = [
 
 const actionCards = [
     {
-        name: "James Klin",
+        name: "Bella Ezinne",
         rating: "4.8",
         teaches: ["Frontend", "Word Press"],
         learning: ["UI/UX", "Motion Design"],
-        image: "/james_klin.png",
+        image: "/images/Bella.jpeg",
     },
     {
-        name: "Maya Stone",
+        name: "Tony Elizeu",
         rating: "4.9",
         teaches: ["Brand Design", "Figma"],
         learning: ["React", "Next.js"],
-        image: "/james_klin.png",
+        image: "/images/elizeu.jpg",
     },
 ];
 
@@ -534,19 +534,19 @@ export default function Home() {
                                 </div>
                                 <div className="w-full bg-sky-500 rounded-3xl p-4 flex items-center gap-4 shadow-lg shadow-sky-400/25">
                                     <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-sky-400">
-                                        <Image src={actionCards[actionSlide].image} alt={actionCards[actionSlide].name} fill className="object-cover opacity-90" />
+                                        <Image src={actionCards[(actionSlide + 1) % actionCards.length].image} alt={actionCards[(actionSlide + 1) % actionCards.length].name} fill className="object-cover opacity-90" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <span className="text-base font-extrabold text-white">{actionCards[actionSlide].name}</span>
+                                            <span className="text-base font-extrabold text-white">{actionCards[(actionSlide + 1) % actionCards.length].name}</span>
                                             <span className="flex items-center gap-1 text-sm font-bold text-amber-300">
                                                 <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
-                                                {actionCards[actionSlide].rating}
+                                                {actionCards[(actionSlide + 1) % actionCards.length].rating}
                                             </span>
                                         </div>
                                         <div className="text-xs font-semibold text-sky-100 mb-2">Learning</div>
                                         <div className="flex gap-2 flex-wrap">
-                                            {actionCards[actionSlide].learning.map((skill) => (
+                                            {actionCards[(actionSlide + 1) % actionCards.length].learning.map((skill) => (
                                                 <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white">{skill}</span>
                                             ))}
                                         </div>
@@ -558,7 +558,7 @@ export default function Home() {
 
                     {/* Desktop: all cards in a grid */}
                     <div className="hidden md:grid md:grid-cols-2 gap-8">
-                        {actionCards.map((card) => (
+                        {actionCards.map((card, index) => (
                             <div key={card.name} className="flex flex-col gap-3 bg-slate-50 rounded-3xl p-6 border border-slate-100 hover:shadow-md transition-shadow">
                                 {/* Teaching card */}
                                 <div className="bg-sky-100 rounded-2xl p-4 flex items-center gap-4">
@@ -590,26 +590,31 @@ export default function Home() {
                                 </div>
 
                                 {/* Learning card */}
-                                <div className="bg-sky-500 rounded-2xl p-4 flex items-center gap-4 shadow-md shadow-sky-400/20">
-                                    <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-sky-400">
-                                        <Image src={card.image} alt={card.name} fill className="object-cover opacity-90" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-base font-extrabold text-white">{card.name}</span>
-                                            <span className="flex items-center gap-1 text-sm font-bold text-amber-300">
-                                                <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
-                                                {card.rating}
-                                            </span>
+                                {(() => {
+                                    const learningCard = actionCards[(index + 1) % actionCards.length];
+                                    return (
+                                        <div className="bg-sky-500 rounded-2xl p-4 flex items-center gap-4 shadow-md shadow-sky-400/20">
+                                            <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-sky-400">
+                                                <Image src={learningCard.image} alt={learningCard.name} fill className="object-cover opacity-90" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-base font-extrabold text-white">{learningCard.name}</span>
+                                                    <span className="flex items-center gap-1 text-sm font-bold text-amber-300">
+                                                        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-amber-300"><path d="M8 1l1.8 3.6L14 5.3l-3 2.9.7 4.1L8 10.4l-3.7 1.9.7-4.1-3-2.9 4.2-.7z" /></svg>
+                                                        {learningCard.rating}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs font-semibold text-sky-100 mb-2">Learning</p>
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {learningCard.learning.map((skill) => (
+                                                        <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white">{skill}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p className="text-xs font-semibold text-sky-100 mb-2">Learning</p>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {card.learning.map((skill) => (
-                                                <span key={skill} className="text-xs font-bold px-3 py-1 rounded-full bg-sky-400/60 text-white">{skill}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
                             </div>
                         ))}
                     </div>
@@ -784,33 +789,33 @@ export default function Home() {
                 </div>
             </section>
 
-<footer className="bg-slate-950 border-t border-white/5 py-12 px-6 z-10 relative">
-                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
-                     <div className="space-y-4">
-                         <div className="flex items-center gap-2">
-                             <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
-                             <span className="text-lg font-bold tracking-tight text-white">
-                                 Skil<span className="text-sky-400">Loop</span>
-                             </span>
-                         </div>
-                         <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-                             SkilLoop is a peer-to-peer exchange community where African talent trades what they know for what they need. No long tutorials, no expensive fees—just 15-minute live loops and collaborative projects to build the portfolio that gets you hired.
-                         </p>
-                     </div>
-                     <div className="flex flex-col items-start gap-4">
-                         <div>
-                             <h4 className="text-sm font-bold text-white mb-2">Legal</h4>
-                             <ul className="flex flex-wrap gap-4">
-                                 <li><Link href="/terms" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Terms of Service</Link></li>
-                                 <li><Link href="/privacy" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Privacy Policy</Link></li>
-                                 <li><Link href="/cookies" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Cookie Policy</Link></li>
-                                 <li><Link href="/community" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Community Guidelines</Link></li>
-                             </ul>
-                         </div>
-                         <p className="text-xs text-slate-500">© {new Date().getFullYear()} SkilLoop, Inc. All rights reserved.</p>
-                     </div>
-                 </div>
-             </footer>
+            <footer className="bg-slate-950 border-t border-white/5 py-12 px-6 z-10 relative">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Image src="/images/SkilLoop.png" alt="Logo" width={30} height={30} />
+                            <span className="text-lg font-bold tracking-tight text-white">
+                                Skil<span className="text-sky-400">Loop</span>
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                            SkilLoop is a peer-to-peer exchange community where African talent trades what they know for what they need. No long tutorials, no expensive fees—just 15-minute live loops and collaborative projects to build the portfolio that gets you hired.
+                        </p>
+                    </div>
+                    <div className="flex flex-col items-start gap-4">
+                        <div>
+                            <h4 className="text-sm font-bold text-white mb-2">Legal</h4>
+                            <ul className="flex flex-wrap gap-4">
+                                <li><Link href="/terms" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Terms of Service</Link></li>
+                                <li><Link href="/privacy" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Privacy Policy</Link></li>
+                                <li><Link href="/cookies" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Cookie Policy</Link></li>
+                                <li><Link href="/community" className="text-xs text-slate-400 hover:text-sky-400 transition-colors">Community Guidelines</Link></li>
+                            </ul>
+                        </div>
+                        <p className="text-xs text-slate-500">© {new Date().getFullYear()} SkilLoop, Inc. All rights reserved.</p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
