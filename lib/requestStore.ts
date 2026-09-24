@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useAuthStore } from "./authStore";
+import { dedupFetch } from "./requestCache";
 
 export interface SessionRequest {
   id: string;
@@ -275,53 +276,58 @@ export const useRequestStore = create<RequestState>((set) => ({
     }
   },
 
-  fetchSessions: async () => {
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) throw new Error("No authentication token found");
+fetchSessions: async () => {
+     try {
+       const token = useAuthStore.getState().token;
+       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "requests", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-      });
+       const response = await dedupFetch("requests-all", async () => {
+         const res = await fetch(API_BASE + "requests", {
+           method: "GET",
+           headers: {
+             "Content-Type": "application/json",
+             Authorization: "Bearer " + token,
+           },
+         });
+         return res;
+       });
+       const data = await response.json();
+       if (!response.ok)
+         throw new Error(data.message || "Failed to fetch sessions");
 
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Failed to fetch sessions");
+       const zoomCache = loadZoomCache();
+       const sessions: Session[] = (
+         Array.isArray(data) ? data : data.sessions || []
+       ).map((s: Session) => enrichSessionRecord(s, zoomCache));
+       set({ sessions });
+       return { success: true, data: sessions };
+     } catch (error: unknown) {
+       const message =
+         error instanceof Error ? error.message : "An unknown error occurred";
+       return { success: false, message };
+     }
+   },
 
-      const zoomCache = loadZoomCache();
-      const sessions: Session[] = (
-        Array.isArray(data) ? data : data.sessions || []
-      ).map((s: Session) => enrichSessionRecord(s, zoomCache));
-      set({ sessions });
-      return { success: true, data: sessions };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      return { success: false, message };
-    }
-  },
+fetchRequests: async () => {
+     set({ loading: true, error: null });
+     try {
+       const token = useAuthStore.getState().token;
+       if (!token) throw new Error("No authentication token found");
 
-  fetchRequests: async () => {
-    set({ loading: true, error: null });
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) throw new Error("No authentication token found");
+       const response = await dedupFetch("requests-type-all", async () => {
+         const res = await fetch(API_BASE + "requests?type=all", {
+           method: "GET",
+           headers: {
+             "Content-Type": "application/json",
+             Authorization: "Bearer " + token,
+           },
+         });
+         return res;
+       });
 
-      const response = await fetch(API_BASE + "requests?type=all", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-      });
-
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Failed to fetch requests");
+       const data = await response.json();
+       if (!response.ok)
+         throw new Error(data.message || "Failed to fetch requests");
 
       const userEmail = useAuthStore.getState().user?.email;
       const zoomCache = loadZoomCache();

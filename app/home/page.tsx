@@ -23,19 +23,19 @@ export default function HomePage() {
   const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
 
-  const loadData = useCallback(() => {
-    if (hydrated && token) {
-      fetchProfile();
-      fetchRequests();
-      fetchSessions();
-      fetchPointsHistory();
-      fetchMyFeedback();
-      fetchNotifications();
-    }
-  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
+const loadData = useCallback(async () => {
+     if (hydrated && token) {
+       await fetchProfile();
+       await fetchRequests();
+       await fetchSessions();
+       await fetchPointsHistory();
+       await fetchMyFeedback();
+       await fetchNotifications();
+     }
+   }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
 
   useEffect(() => {
-    loadData();
+    loadData().catch(console.error);
   }, [loadData]);
 
   const upcomingRequests = [

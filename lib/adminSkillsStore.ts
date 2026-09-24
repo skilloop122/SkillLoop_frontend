@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { SkillListing } from "./skillsStore";
+import { dedupFetch } from "./requestCache";
 
 export interface AdminSkillsState {
   loading: boolean;
@@ -28,27 +29,32 @@ export const useAdminSkillsStore = create<AdminSkillsState>()((set) => ({
   skills: [],
   total: 0,
 
-  fetchSkills: async (token, params = {}) => {
-    set({ loading: true, error: null });
-    try {
-      const query = new URLSearchParams();
-      if (params.page !== undefined) query.set("page", String(params.page));
-      if (params.limit !== undefined) query.set("limit", String(params.limit));
-      if (params.search) query.set("search", params.search);
+fetchSkills: async (token, params = {}) => {
+     set({ loading: true, error: null });
+     try {
+       const query = new URLSearchParams();
+       if (params.page !== undefined) query.set("page", String(params.page));
+       if (params.limit !== undefined) query.set("limit", String(params.limit));
+       if (params.search) query.set("search", params.search);
 
-      const url =
-        `${API_BASE}admin/skills` +
-        (query.toString() ? "?" + query.toString() : "");
+       const url =
+         `${API_BASE}admin/skills` +
+         (query.toString() ? "?" + query.toString() : "");
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+       const cacheKey = `admin-skills${query.toString()}`;
 
-      const body = await response.json().catch(() => null);
+       const response = await dedupFetch(cacheKey, async () => {
+         const res = await fetch(url, {
+           method: "GET",
+           headers: {
+             Authorization: `Bearer ${token}`,
+             "Content-Type": "application/json",
+           },
+         });
+         return res;
+       });
+
+       const body = await response.json().catch(() => null);
       if (!response.ok) {
         const errorMsg = body?.message || "Failed to load skills";
         set({ error: errorMsg, loading: false });

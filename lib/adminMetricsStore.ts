@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { dedupFetch } from "./requestCache";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,14 +78,17 @@ export const useAdminMetricsStore = create<AdminMetricsState>()((set) => ({
   loading: false,
   error: null,
 
-  fetchMetrics: async (token: string) => {
-    set({ loading: true, error: null });
-    try {
-      const response = await fetch(`${API_BASE}admin/metrics`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+fetchMetrics: async (token: string) => {
+     set({ loading: true, error: null });
+     try {
+       const response = await dedupFetch("admin-metrics", async () => {
+         const res = await fetch(`${API_BASE}admin/metrics`, {
+           headers: { Authorization: `Bearer ${token}` },
+         });
+         return res;
+       });
 
-      const body = await response.json();
+       const body = await response.json();
 
 
       if (!response.ok) {
