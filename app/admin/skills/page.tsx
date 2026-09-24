@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo} from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -110,12 +110,12 @@ const mapToUI = (listing: SkillListing): UISkillListing => ({
   growth: 0,
   provider: listing.user
     ? {
-        id: listing.user.id,
-        email: listing.user.email,
-        firstName: listing.user.profile?.firstName,
-        lastName: listing.user.profile?.lastName,
-        avatarUrl: listing.user.profile?.avatarUrl ?? null,
-      }
+      id: listing.user.id,
+      email: listing.user.email,
+      firstName: listing.user.profile?.firstName,
+      lastName: listing.user.profile?.lastName,
+      avatarUrl: listing.user.profile?.avatarUrl ?? null,
+    }
     : undefined,
 });
 
@@ -140,6 +140,7 @@ export default function AdminSkillsPage() {
   const [techSearch, setTechSearch] = useState("");
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
   const [deletingTechId, setDeletingTechId] = useState<string | null>(null);
+  const [refreshingTech, setRefreshingTech] = useState(false);
 
   useEffect(() => {
     if (hydrated && token) {
@@ -483,8 +484,8 @@ export default function AdminSkillsPage() {
       {/* Skill Details Drawer */}
       {selectedSkill && (
         <div className="fixed inset-0 z-50 flex justify-end  bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSelectedSkill(null)}>
-          <div 
-            className="w-full max-w-md bg-sky-100 md:bg-gray-50 h-full shadow-2xl overflow-y-auto flex flex-col transform transition-transform translate-x-0" 
+          <div
+            className="w-full max-w-md bg-sky-100 md:bg-gray-50 h-full shadow-2xl overflow-y-auto flex flex-col transform transition-transform translate-x-0"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-10">
@@ -493,7 +494,7 @@ export default function AdminSkillsPage() {
                 <X size={20} className="text-gray-500" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6 flex-1">
               {/* Card 1: Name of the skill */}
               <div className="bg-white p-5 rounded-2xl shadow-sm border">
@@ -612,10 +613,11 @@ export default function AdminSkillsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => tech.fetchTechnicalSkills()}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                onClick={async () => { setRefreshingTech(true); await tech.fetchTechnicalSkills(); setRefreshingTech(false); }}
+                disabled={refreshingTech}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors disabled:opacity-50"
               >
-                Refresh
+                {refreshingTech ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Refresh"}
               </button>
             </div>
 

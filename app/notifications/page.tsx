@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -61,6 +61,7 @@ function iconClassName(unread?: boolean) {
 function NotificationsPage() {
   const router = useRouter();
   const { hydrated, token } = useAuthStore();
+  const [markAllReading, setMarkAllReading] = useState(false);
   const {
     notifications,
     unreadCount,
@@ -147,14 +148,15 @@ function NotificationsPage() {
               </p>
             </div>
             {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={() => markAllRead()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                <CheckCheck className="h-4 w-4" />
-                Mark all as read
-              </button>
+<button
+                 type="button"
+                 onClick={async () => { setMarkAllReading(true); await markAllRead(); setMarkAllReading(false); }}
+                 disabled={markAllReading}
+                 className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+               >
+                 {markAllReading ? <Loader2 size={14} className="animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+                 {markAllReading ? "Marking…" : "Mark all as read"}
+               </button>
             )}
           </div>
 

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Search, Star, ChevronDown, Loader2 } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProfileStore } from "../../lib/profileStore";
 import { useAuthStore } from "../../lib/authStore";
@@ -14,6 +13,8 @@ import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkillId, setSelectedSkillId] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [requestingSession, setRequestingSession] = useState(false);
   const router = useRouter();
 
   const { matches, loading, error, fetchMatches, profile, fetchProfile } = useProfileStore();
@@ -121,12 +122,13 @@ export default function ExplorePage() {
           ) : error ? (
             <div className="text-center py-20">
               <p className="text-red-500 font-medium mb-4">{error}</p>
-              <button
-                onClick={() => fetchMatches("20", selectedSkillId)}
-                className="px-6 py-2 bg-[#0ea5e9] text-white rounded-lg font-bold"
-              >
-                Retry
-              </button>
+<button
+                 onClick={async () => { setRefreshing(true); await fetchMatches("20", selectedSkillId); setRefreshing(false); }}
+                 disabled={refreshing}
+                 className="px-6 py-2 bg-[#0ea5e9] text-white rounded-lg font-bold disabled:opacity-50"
+               >
+                 {refreshing ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Retry"}
+               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
@@ -195,15 +197,23 @@ export default function ExplorePage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 w-full lg:w-60 shrink-0">
-                        <Link href={"/explore/request?id=" + (match.user?.id || match.id)} className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center">
-                          Request Session
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
-                          className="flex-1 bg-white border border-[#0ea5e9] text-black font-medium py-2 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
-                        >
+<div className="flex gap-2 w-full lg:w-60 shrink-0">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setRequestingSession(true);
+                             router.push("/explore/request?id=" + (match.user?.id || match.id));
+                           }}
+                           disabled={requestingSession}
+                           className="flex-1 bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-2 rounded-[6px] text-sm transition-colors text-center disabled:opacity-50"
+                         >
+                           {requestingSession ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Request Session"}
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => router.push("/profile/view?id=" + (match.user?.id || match.id))}
+                           className="flex-1 bg-white border border-[#0ea5e9] text-black font-medium py-2 rounded-[6px] text-sm hover:bg-slate-50 transition-colors"
+                         >
                           View Profile
                         </button>
                       </div>

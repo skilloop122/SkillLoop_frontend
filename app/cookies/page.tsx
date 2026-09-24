@@ -18,7 +18,7 @@ const sections = [
 export default function CookiesPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-black">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-12xl mx-auto px-6 py-12">
         <Link href="/landing" className="inline-flex items-center gap-2 text-sm text-sky-500 hover:text-sky-600 transition-colors mb-8">
           <ArrowLeft size={16} />
           Back to Home

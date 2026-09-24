@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { Bell, Settings, Calendar, FileText, Star, Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "../../components/BottomNav";
@@ -19,6 +19,7 @@ export default function HomePage() {
   const { user, hydrated, token } = useAuthStore();
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
   const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
+  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
   const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
@@ -85,12 +86,14 @@ const loadData = useCallback(async () => {
   const ratingLabel = (value: number | null | undefined) =>
     value !== null && value !== undefined ? `${value}` : "New";
 
-  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
-    const result = await updateRequestStatus(id, status);
-    if (result.success) {
-      loadData();
-    }
-  };
+const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
+     setUpdatingRequestId(id);
+     const result = await updateRequestStatus(id, status);
+     setUpdatingRequestId(null);
+     if (result.success) {
+       loadData();
+     }
+   };
 
   if (!hydrated || (profileLoading && !profile) || (requestsLoading && !sentRequests.length && !receivedRequests.length)) {
     return (
@@ -303,14 +306,14 @@ const loadData = useCallback(async () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleStatusUpdate(request.id, "accepted")} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1">
-                      Accept
-                    </button>
-                    <button onClick={() => handleStatusUpdate(request.id, "rejected")} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1">
-                      Decline
-                    </button>
-                  </div>
+<div className="flex gap-2">
+                     <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={updatingRequestId === request.id} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1 disabled:opacity-50">
+                       {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
+                     </button>
+                     <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={updatingRequestId === request.id} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1 disabled:opacity-50">
+                       {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
+                     </button>
+                   </div>
                 </div>
               )) : (
                 <div className="col-span-full py-10 bg-slate-50 rounded-2xl text-center text-slate-400 font-medium">
