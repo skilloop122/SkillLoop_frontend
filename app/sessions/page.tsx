@@ -365,7 +365,15 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                       className="w-16 h-16 rounded-xl shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">Completed</span>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase inline-block">Completed</span>
+                        <button 
+                          onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
+                          className="text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded transition-colors"
+                        >
+                          Leave Feedback
+                        </button>
+                      </div>
                       <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
                       <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
                       <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
