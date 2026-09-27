@@ -43,7 +43,7 @@ export function SideNav() {
           <div className="w-2 h-5 bg-white rounded-full" />
           <div className="w-2 h-3.5 bg-white/70 rounded-full" />
         </div> */}
-        <Link href="/landing" className="text-xl font-extrabold tracking-tight text-slate-900">
+        <Link href="/" className="text-xl font-extrabold tracking-tight text-slate-900">
           Skil<span className="text-sky-500">Loop</span>
         </Link>
       </div>
