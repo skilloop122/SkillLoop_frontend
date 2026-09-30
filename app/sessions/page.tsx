@@ -24,7 +24,8 @@ export default function SessionsPage() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
-  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     if (hydrated && token) {
@@ -45,11 +46,13 @@ export default function SessionsPage() {
   };
 
 const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
-     setUpdatingRequestId(id);
-     if (status === "canceled") setCancelingId(id);
+     if (status === "accepted") setAcceptingId(id);
+     else if (status === "rejected") setRejectingId(id);
+     else if (status === "canceled") setCancelingId(id);
      const result = await updateRequestStatus(id, status);
-     if (status === "canceled") setCancelingId(null);
-     setUpdatingRequestId(null);
+     setAcceptingId(null);
+     setRejectingId(null);
+     setCancelingId(null);
      if (result.success) {
        showToast("Request updated successfully.");
        loadData();
@@ -313,11 +316,11 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                       </button>
                     ) : (
                       <>
-                        <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={updatingRequestId === request.id} className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors disabled:opacity-50">
-                          {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
+                        <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors disabled:opacity-50">
+                          {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
                         </button>
-                        <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={updatingRequestId === request.id} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50">
-                          {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
+                        <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50">
+                          {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
                         </button>
                       </>
                     )}
