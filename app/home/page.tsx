@@ -205,7 +205,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
               {requestsFirstLoad ? (
                 <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {Array.from({ length: 2 }).map((_, index) => (
-                    <div key={`upcoming-skeleton-${index}`} className="bg-white border border-slate-200 rounded-[12px] p-4">
+                    <div key={`upcoming-skeleton-${index}`} className={`bg-white border border-slate-200 rounded-[12px] p-4 ${index >= 1 ? "hidden lg:block" : "block"}`}>
                       <div className="flex items-start gap-4 mb-4">
                         <div className="w-16 h-16 rounded-[8px] bg-slate-100 animate-pulse shrink-0" />
                         <div className="flex-1 min-w-0 space-y-2">
@@ -309,7 +309,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
               {requestsFirstLoad ? (
                 <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {Array.from({ length: 2 }).map((_, index) => (
-                    <div key={`pending-skeleton-${index}`} className="bg-white border border-slate-200 rounded-[12px] p-4">
+                    <div key={`pending-skeleton-${index}`} className={`bg-white border border-slate-200 rounded-[12px] p-4 ${index >= 1 ? "hidden lg:block" : "block"}`}>
                       <div className="flex items-start gap-4 mb-4">
                         <div className="w-16 h-16 rounded-[8px] bg-slate-100 animate-pulse shrink-0" />
                         <div className="flex-1 min-w-0 space-y-2">

@@ -145,11 +145,13 @@ export default function ExplorePage() {
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
               {renderItems.map((match, index) => {
                 // Skeleton placeholder while the initial load is in flight.
+                // The grid collapses to one column on mobile, so only the first
+                // three are shown there and the full set appears from lg up.
                 if (!match) {
                   return (
                     <div
                       key={`skeleton-${index}`}
-                      className="bg-white border border-slate-200 rounded-[12px] p-5 flex flex-col"
+                      className={`bg-white border border-slate-200 rounded-[12px] p-5 flex-col ${index >= 3 ? "hidden lg:flex" : "flex"}`}
                     >
                       <div className="flex items-start gap-3 mb-4">
                         <div className="w-13 h-13 rounded-lg bg-slate-100 animate-pulse shrink-0" />

@@ -200,7 +200,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
           {firstLoad ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {skeletonItems.map((_, index) => (
-                <div key={`skeleton-${index}`} className="bg-white border border-slate-100 rounded-2xl p-5">
+                <div key={`skeleton-${index}`} className={`bg-white border border-slate-100 rounded-2xl p-5 ${index >= 2 ? "hidden lg:block" : "block"}`}>
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 animate-pulse shrink-0" />
                     <div className="flex-1 min-w-0 space-y-2">
