@@ -13,7 +13,7 @@ import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 export default function SessionsPage() {
   // const router = useRouter();
   const { hydrated, token, user } = useAuthStore();
-  const { sentRequests, receivedRequests, sessions, loading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
+  const { sentRequests, receivedRequests, sessions, requestsLoading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
   const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
 
   const [activeTab, setActiveTab] = useState("Pending");
@@ -160,7 +160,12 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
     });
   }, [hydrated, token, sentRequests, receivedRequests, byUser, fetchFeedbackForUser]);
 
-  if (!hydrated || (loading && pendingRequests.length === 0 && upcomingSessions.length === 0)) {
+  // Skeleton tiles hold the layout until the first payload lands, instead of
+  // replacing the whole page with a centered spinner.
+  const firstLoad = requestsLoading && pendingRequests.length === 0 && upcomingSessions.length === 0;
+  const skeletonItems = Array.from({ length: 4 });
+
+  if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
@@ -192,6 +197,28 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
             ))}
           </div>
 
+          {firstLoad ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {skeletonItems.map((_, index) => (
+                <div key={`skeleton-${index}`} className="bg-white border border-slate-100 rounded-2xl p-5">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="h-4 w-16 rounded bg-slate-100 animate-pulse" />
+                      <div className="h-5 w-3/4 rounded bg-slate-100 animate-pulse" />
+                      <div className="h-3 w-1/2 rounded bg-slate-100 animate-pulse" />
+                      <div className="h-3 w-2/5 rounded bg-slate-100 animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 h-11 rounded-xl bg-slate-100 animate-pulse" />
+                    <div className="flex-1 h-11 rounded-xl bg-slate-100 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
           {activeTab === "Upcoming" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {upcomingSessions.map((session) => (
@@ -387,8 +414,10 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                ))}
                {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
              </div>
-           )}
-         </div>
+            )}
+            </>
+          )}
+          </div>
        </div>
 
        {toast && (

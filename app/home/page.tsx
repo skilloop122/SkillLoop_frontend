@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState, useMemo } from "react";
 import { Bell, Settings, Calendar, FileText, Star, Clock, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "../../components/BottomNav";
@@ -18,20 +18,25 @@ export default function HomePage() {
   const router = useRouter();
   const { user, hydrated, token } = useAuthStore();
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
-  const { sentRequests, receivedRequests, sessions, loading: requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
-  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const { sentRequests, receivedRequests, sessions, requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
   const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
 
 const loadData = useCallback(async () => {
      if (hydrated && token) {
-       await fetchProfile();
-       await fetchRequests();
-       await fetchSessions();
-       await fetchPointsHistory();
-       await fetchMyFeedback();
-       await fetchNotifications();
+       // These were awaited one after another, stacking six round trips before
+       // anything rendered. They are independent, so fire them together.
+       await Promise.all([
+         fetchProfile(),
+         fetchRequests(),
+         fetchSessions(),
+         fetchPointsHistory(),
+         fetchMyFeedback(),
+         fetchNotifications(),
+       ]);
      }
    }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
 
@@ -39,12 +44,12 @@ const loadData = useCallback(async () => {
     loadData().catch(console.error);
   }, [loadData]);
 
-  const upcomingRequests = [
+  const upcomingRequests = useMemo(() => [
     ...sentRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "sent" as const })),
     ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "received" as const }))
-  ];
+  ], [sentRequests, receivedRequests]);
 
-  const upcomingSessions = upcomingRequests.map((req) => {
+  const upcomingSessions = useMemo(() => upcomingRequests.map((req) => {
     const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
     return {
       ...req,
@@ -59,10 +64,10 @@ const loadData = useCallback(async () => {
         } : {}),
       },
     };
-  });
+  }), [upcomingRequests, sessions, user?.id]);
 
-  const pendingReceived = receivedRequests.filter(r => r.status?.toLowerCase() === "pending");
-  const pendingSent = sentRequests.filter(r => r.status?.toLowerCase() === "pending");
+  const pendingReceived = useMemo(() => receivedRequests.filter(r => r.status?.toLowerCase() === "pending"), [receivedRequests]);
+  const pendingSent = useMemo(() => sentRequests.filter(r => r.status?.toLowerCase() === "pending"), [sentRequests]);
   const totalPending = pendingReceived.length + pendingSent.length;
 
   useEffect(() => {
@@ -87,15 +92,21 @@ const loadData = useCallback(async () => {
     value !== null && value !== undefined ? `${value}` : "New";
 
 const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
-     setUpdatingRequestId(id);
+     if (status === "accepted") setAcceptingId(id);
+     else setRejectingId(id);
      const result = await updateRequestStatus(id, status);
-     setUpdatingRequestId(null);
+     setAcceptingId(null);
+     setRejectingId(null);
      if (result.success) {
        loadData();
      }
    };
 
-  if (!hydrated || (profileLoading && !profile) || (requestsLoading && !sentRequests.length && !receivedRequests.length)) {
+  // Skeleton blocks hold the layout until the first payload lands instead of
+  // replacing the whole dashboard with a centered spinner.
+  const requestsFirstLoad = requestsLoading && sentRequests.length === 0 && receivedRequests.length === 0;
+
+  if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-black">
         <Loader2 className="h-8 w-8 animate-spin text-[#0ea5e9]" />
@@ -113,7 +124,11 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
           
           <div className="flex items-center justify-between mb-8 ">
             <h1 className="text-3xl font-semibold text-black tracking-tight">
-              Hello, {firstName}
+              {profileLoading && !profile ? (
+                <span className="inline-block h-7 w-40 rounded-lg bg-slate-200 animate-pulse align-middle" />
+              ) : (
+                <>Hello, {firstName}</>
+              )}
             </h1>
             <div className="flex items-center gap-4">
               <Link href="/notifications" className="relative cursor-pointer" aria-label="Notifications">
@@ -187,7 +202,23 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
               Upcoming Sessions
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {upcomingSessions.length > 0 ? upcomingSessions.map((session) => (
+              {requestsFirstLoad ? (
+                <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {Array.from({ length: 2 }).map((_, index) => (
+                    <div key={`upcoming-skeleton-${index}`} className="bg-white border border-slate-200 rounded-[12px] p-4">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-[8px] bg-slate-100 animate-pulse shrink-0" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-3/4 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-1/2 rounded bg-slate-100 animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ) : upcomingSessions.length > 0 ? upcomingSessions.map((session) => (
                 <div key={session.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0">
@@ -275,7 +306,26 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {pendingReceived.length > 0 ? pendingReceived.slice(0, 4).map((request) => (
+              {requestsFirstLoad ? (
+                <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {Array.from({ length: 2 }).map((_, index) => (
+                    <div key={`pending-skeleton-${index}`} className="bg-white border border-slate-200 rounded-[12px] p-4">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-[8px] bg-slate-100 animate-pulse shrink-0" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-3/4 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-4 w-1/2 rounded bg-slate-100 animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1 h-9 rounded-[6px] bg-slate-100 animate-pulse" />
+                        <div className="flex-1 h-9 rounded-[6px] bg-slate-100 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : pendingReceived.length > 0 ? pendingReceived.slice(0, 4).map((request) => (
                 <div key={request.id} className="bg-white border border-slate-200 rounded-[12px] p-4 shadow-sm">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="relative w-16 h-16 rounded-[8px] overflow-hidden shrink-0">
@@ -307,11 +357,11 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                     </div>
                   </div>
 <div className="flex gap-2">
-                     <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={updatingRequestId === request.id} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1 disabled:opacity-50">
-                       {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
+                     <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1 disabled:opacity-50">
+                       {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
                      </button>
-                     <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={updatingRequestId === request.id} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1 disabled:opacity-50">
-                       {updatingRequestId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
+                     <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1 disabled:opacity-50">
+                       {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
                      </button>
                    </div>
                 </div>

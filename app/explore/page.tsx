@@ -6,7 +6,7 @@ import { Search, Star, ChevronDown, Loader2 } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { useRouter } from "next/navigation";
-import { useProfileStore } from "../../lib/profileStore";
+import { useProfileStore, type UserProfile } from "../../lib/profileStore";
 import { useAuthStore } from "../../lib/authStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 
@@ -17,17 +17,21 @@ export default function ExplorePage() {
   const [requestingSessionId, setRequestingSessionId] = useState<string | null>(null);
   const router = useRouter();
 
-  const { matches, loading, error, fetchMatches, profile, fetchProfile } = useProfileStore();
+  const { matches, matchesLoading, error, fetchMatches, profile, fetchProfile } = useProfileStore();
   const { hydrated, token } = useAuthStore();
   const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
 
+  // `profile` is deliberately absent from the deps. It used to be listed, which
+  // made this effect re-run the moment fetchProfile resolved and issued a second
+  // duplicate /users/matches request on every cold load.
   useEffect(() => {
-    if (hydrated && token) {
-      if (!profile) fetchProfile();
-      fetchMatches("20", selectedSkillId);
-    }
-  }, [hydrated, token, selectedSkillId, fetchMatches, profile, fetchProfile]);
+    if (!hydrated || !token) return;
+    if (!profile) void fetchProfile();
+    void fetchMatches("20", selectedSkillId);
+  }, [hydrated, token, selectedSkillId, fetchMatches, fetchProfile, profile]);
 
+  // Ratings are supplementary, so they are fetched per card in the background
+  // and never gate the grid.
   useEffect(() => {
     if (!hydrated || !token) return;
     const ids = new Set<string>();
@@ -36,7 +40,7 @@ export default function ExplorePage() {
       if (id) ids.add(id);
     });
     ids.forEach((id) => {
-      if (!byUser[id]) fetchFeedbackForUser(id);
+      if (!byUser[id]) void fetchFeedbackForUser(id);
     });
   }, [hydrated, token, matches, byUser, fetchFeedbackForUser]);
 
@@ -69,6 +73,13 @@ export default function ExplorePage() {
     return haystack.includes(q);
   });
 
+  // Placeholder tiles keep the layout stable during the first load instead of
+  // collapsing the grid down to a lone centered spinner.
+  const renderItems: (UserProfile | undefined)[] =
+    matchesLoading && matches.length === 0
+      ? Array.from({ length: 6 })
+      : filteredMatches;
+
   return (
     <div className="min-h-screen bg-white font-sans flex text-black">
       <SideNav />
@@ -96,7 +107,11 @@ export default function ExplorePage() {
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 mt-10 md:mt-12">
             <span className="text-[15px] md:text-lg font-semibold text-black">
-              {filteredMatches.length} Matches Found
+              {matchesLoading && matches.length === 0 ? (
+                <span className="inline-block h-6 w-28 rounded bg-slate-100 animate-pulse align-middle" />
+              ) : (
+                `${filteredMatches.length} Matches Found`
+              )}
             </span>
             <div className="relative self-start md:self-auto">
               <select
@@ -115,11 +130,7 @@ export default function ExplorePage() {
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-[#0ea5e9]" />
-            </div>
-          ) : error ? (
+          {error && !matchesLoading ? (
             <div className="text-center py-20">
               <p className="text-red-500 font-medium mb-4">{error}</p>
               <button
@@ -132,7 +143,33 @@ export default function ExplorePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 mx-auto gap-6 w-full">
-              {filteredMatches.map((match, index) => {
+              {renderItems.map((match, index) => {
+                // Skeleton placeholder while the initial load is in flight.
+                if (!match) {
+                  return (
+                    <div
+                      key={`skeleton-${index}`}
+                      className="bg-white border border-slate-200 rounded-[12px] p-5 flex flex-col"
+                    >
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-13 h-13 rounded-lg bg-slate-100 animate-pulse shrink-0" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="h-5 w-32 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-3 w-44 rounded bg-slate-100 animate-pulse" />
+                          <div className="h-3 w-28 rounded bg-slate-100 animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col gap-2 mt-1">
+                        <div className="h-4 w-full rounded bg-slate-100 animate-pulse" />
+                        <div className="h-4 w-3/4 rounded bg-slate-100 animate-pulse" />
+                      </div>
+                      <div className="flex gap-2 w-full lg:w-60 shrink-0 mt-4">
+                        <div className="flex-1 h-9 rounded-[6px] bg-slate-100 animate-pulse" />
+                        <div className="flex-1 h-9 rounded-[6px] bg-slate-100 animate-pulse" />
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div
                     key={match.id || `match-${index}`}
@@ -230,7 +267,7 @@ export default function ExplorePage() {
             </div>
           )}
 
-          {!loading && filteredMatches.length === 0 && !error && (
+          {!matchesLoading && !error && filteredMatches.length === 0 && (
             <div className="text-center py-20 text-slate-500 font-medium">
               No matches found. Try updating your skills!
             </div>
