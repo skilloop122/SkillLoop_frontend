@@ -89,6 +89,9 @@ export interface SkillSlotsResponse {
 
 interface RequestState {
   loading: boolean;
+  // Separate from `loading` so request lists are not gated on, or raced by,
+  // concurrent action calls that also flip the shared flag.
+  requestsLoading: boolean;
   error: string | null;
   sentRequests: SessionRequest[];
   receivedRequests: SessionRequest[];
@@ -198,6 +201,7 @@ function enrichSessionRecord(
 
 export const useRequestStore = create<RequestState>((set) => ({
   loading: false,
+  requestsLoading: false,
   error: null,
   sentRequests: [],
   receivedRequests: [],
@@ -308,8 +312,8 @@ fetchSessions: async () => {
      }
    },
 
-fetchRequests: async () => {
-     set({ loading: true, error: null });
+  fetchRequests: async () => {
+      set({ requestsLoading: true, error: null });
      try {
        const token = useAuthStore.getState().token;
        if (!token) throw new Error("No authentication token found");
@@ -332,39 +336,39 @@ fetchRequests: async () => {
       const userEmail = useAuthStore.getState().user?.email;
       const zoomCache = loadZoomCache();
 
-      if (Array.isArray(data)) {
-        set({
-          sentRequests: data
-            .filter(
-              (r) => r.type === "sent" || r.requester?.email === userEmail,
-            )
-            .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-          receivedRequests: data
-            .filter(
-              (r) => r.type === "received" || r.provider?.email === userEmail,
-            )
-            .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-          loading: false,
-        });
-      } else {
-        set({
-          sentRequests: (data.sent || []).map((r: SessionRequest) =>
-            enrichWithZoomCache(r, zoomCache),
-          ),
-          receivedRequests: (data.received || []).map((r: SessionRequest) =>
-            enrichWithZoomCache(r, zoomCache),
-          ),
-          loading: false,
-        });
-      }
+        if (Array.isArray(data)) {
+          set({
+            sentRequests: data
+              .filter(
+                (r) => r.type === "sent" || r.requester?.email === userEmail,
+              )
+              .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+            receivedRequests: data
+              .filter(
+                (r) => r.type === "received" || r.provider?.email === userEmail,
+              )
+              .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
+            requestsLoading: false,
+          });
+        } else {
+          set({
+            sentRequests: (data.sent || []).map((r: SessionRequest) =>
+              enrichWithZoomCache(r, zoomCache),
+            ),
+            receivedRequests: (data.received || []).map((r: SessionRequest) =>
+              enrichWithZoomCache(r, zoomCache),
+            ),
+            requestsLoading: false,
+          });
+        }
 
-      return { success: true };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      set({ error: message, loading: false });
-      return { success: false, message };
-    }
+        return { success: true };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        set({ error: message, requestsLoading: false });
+        return { success: false, message };
+      }
   },
 
   updateRequestStatus: async (

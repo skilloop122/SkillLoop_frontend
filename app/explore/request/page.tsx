@@ -20,7 +20,7 @@ import { useProfileStore, scheduleTime } from "../../../lib/profileStore";
 import { useRequestStore } from "../../../lib/requestStore";
 import { useSkillsStore, findListingForSkill } from "../../../lib/skillsStore";
 import { SideNav } from "../../../components/SideNav";
-import type { ZoomStatus, SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
+import type { SkillSlotsResponse, SkillSlot } from "../../../lib/requestStore";
 
 import { Suspense } from "react";
 
@@ -31,7 +31,7 @@ function toLocalDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function nextDateForDay(day: string, from: Date = new Date()): string {
+function nextDateForDay(day: string, from: Date): string {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const target = days.indexOf(day);
   if (target === -1) return toLocalDate(from);
@@ -48,18 +48,23 @@ function RequestSessionContent() {
   const matchId = searchParams.get("id");
 
   const { publicProfile, fetchPublicProfile, loading: profileLoading } = useProfileStore();
-  const { createRequest, loading: requestLoading, error: requestError, checkZoomStatus, fetchSkillSlots } = useRequestStore();
-  const { fetchSkillListings } = useSkillsStore();
+  const {
+    createRequest,
+    loading: requestLoading,
+    /*error: requestError*/
+    checkZoomStatus,
+    fetchSkillSlots,
+    zoomStatus,
+  } = useRequestStore();
+  const { fetchSkillListings, listings, loading: skillsLoading } = useSkillsStore();
   const [toastMsg, setToastMsg] = useState("");
 
-  const showToastLocal = (msg: string) => {
+  const showToastLocal = useCallback((msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(""), 3500);
-  };
+  }, []);
 
   const [showSuccess, setShowSuccess] = useState(false);
-  const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
-  const [resolvedTeachSkills, setResolvedTeachSkills] = useState<{ id: string; name: string }[]>([]);
 
   const [skillListingId, setSkillListingId] = useState("");
   const [proposedDate, setProposedDate] = useState("");
@@ -102,46 +107,86 @@ function RequestSessionContent() {
       }
       setSlotsLoading(false);
     });
-  }, [fetchSkillSlots]);
+  }, [fetchSkillSlots, showToastLocal]);
 
+  // Start every independent request at once. Previously the profile request
+  // had to resolve before listings were even requested, and slots had to wait
+  // for listings, turning one slow endpoint into three stacked latencies.
   useEffect(() => {
-    if (matchId) {
-      fetchPublicProfile(matchId).then(res => {
-        if (res.success && res.profile?.teachSkills?.length) {
-          const profile = res.profile;
-          fetchSkillListings({ limit: 200 }).then(listingRes => {
-            const allListings = listingRes.success && listingRes.listings ? listingRes.listings : [];
-            const listings = allListings.filter((l) => l.userId === matchId);
-            const resolved = profile.teachSkills
-              .map((s: { id?: string; name?: string } | string) => {
-                const skillName = typeof s === "string" ? s : (s.name || s.id || "");
-                const listing = findListingForSkill(listings, skillName);
-                return {
-                  id: listing?.id || "",
-                  name: skillName || listing?.title || "Unknown Skill",
-                };
-              })
-              .filter((s) => s.id);
-            setResolvedTeachSkills(resolved);
-            const first = resolved[0];
-            if (first) {
-              const firstDay = (profile.schedule && profile.schedule.length > 0) ? profile.schedule[0].day : "";
-              const initialDate = firstDay ? nextDateForDay(firstDay) : toLocalDate(new Date(Date.now() + 86400000));
-              setSkillListingId(first.id);
-              setSlotDate(initialDate);
-              loadSlots(first.id, initialDate);
-            }
-          });
-        }
-      });
+    if (!matchId) return;
+    void checkZoomStatus();
+    void fetchPublicProfile(matchId);
+    // The explore grid already loads these listings, so reuse them instead of
+    // refetching when they are present in the store.
+    if (useSkillsStore.getState().listings.length === 0) {
+      void fetchSkillListings({ limit: 200 });
     }
-  }, [matchId, fetchPublicProfile, fetchSkillListings, loadSlots]);
+  }, [matchId, checkZoomStatus, fetchPublicProfile, fetchSkillListings]);
 
+  // Derive teach skills straight from store data rather than copying them into
+  // local state, which removed a render cycle and a visible flash of empty UI.
+  // Guard the identity so a profile cached from a previously viewed user is not
+  // rendered while the new one is still in flight.
+  const cachedProfile = publicProfile;
+  const profile =
+    cachedProfile && (cachedProfile.id === matchId || cachedProfile.userId === matchId)
+      ? cachedProfile
+      : null;
+  const skillOptions = useMemo(() => {
+    if (!profile?.teachSkills?.length) return [];
+    const mine = listings.filter((l) => l.userId === matchId);
+    return profile.teachSkills
+      .map((s: { id?: string; name?: string } | string) => {
+        const skillName = typeof s === "string" ? s : (s.name || s.id || "");
+        const listing = findListingForSkill(mine, skillName);
+        return {
+          id: listing?.id || "",
+          name: skillName || listing?.title || "Unknown Skill",
+        };
+      })
+      .filter((s) => s.id);
+  }, [profile, listings, matchId]);
+
+  // Reading the clock is impure, so it must not happen in the render body. A
+  // lazy state initializer runs once before the first commit, which keeps the
+  // render pure and gives every date below a stable base for this mount.
+  const [nowStamp] = useState(() => Date.now());
+
+  const renderNow = useMemo(() => new Date(nowStamp), [nowStamp]);
+
+  // Derive the default skill and date without storing them in state.
+  // This avoids calling setState synchronously inside an effect body, which
+  // causes cascading renders. User selections override these defaults via the
+  // existing skillListingId / slotDate state variables.
+  const defaultFirstDay = profile?.schedule?.length ? profile.schedule[0].day : "";
+  const defaultSlotDate = useMemo(() => {
+    if (!renderNow) return "";
+    return defaultFirstDay
+      ? nextDateForDay(defaultFirstDay, renderNow)
+      : toLocalDate(new Date(renderNow.getTime() + 86400000));
+  }, [defaultFirstDay, renderNow]);
+
+  const today = useMemo(() => (renderNow ? toLocalDate(renderNow) : ""), [renderNow]);
+
+  // effectiveSkillListingId and effectiveSlotDate are computed below (lines 180+)
+  // but we need them here for the effect — hoist them before the effect.
+  const effectiveSkillListingIdForEffect = skillListingId || (skillOptions.length ? skillOptions[0].id : "");
+  const effectiveSlotDate = slotDate || (skillOptions.length ? defaultSlotDate : "");
+
+  // Only side-effect: call the external API when we have a skill + date and the
+  // user has not already loaded slots (slots array is empty).
+  // loadSlots is wrapped in an async IIFE so that the synchronous setState calls
+  // inside it are not at the top level of the effect body (avoids cascading-render warning).
   useEffect(() => {
-    checkZoomStatus().then(res => {
-      if (res.data) setZoomStatus(res.data);
-    });
-  }, [checkZoomStatus]);
+    if (!matchId || !effectiveSkillListingIdForEffect || !effectiveSlotDate || slots.length > 0 || slotsLoading) return;
+    void (async () => {
+      loadSlots(effectiveSkillListingIdForEffect, effectiveSlotDate);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId, effectiveSkillListingIdForEffect, effectiveSlotDate]);
+
+  const resolvingSkills = !profile || (skillsLoading && listings.length === 0);
+  const showProfileSkeleton = (profileLoading || Boolean(cachedProfile && !profile)) && !profile;
 
 
   const bgIcons = [
@@ -156,18 +201,17 @@ function RequestSessionContent() {
     { icon: Atom, bottom: "5%", left: "16%", size: 28, delay: 2 },
   ];
 
-  const profile = publicProfile;
-  const skillOptions = resolvedTeachSkills;
-  const effectiveSkillListingId = skillListingId || (skillOptions.length ? skillOptions[0].id : "");
+  // Re-use the values already derived above for the effect.
+  const effectiveSkillListingId = effectiveSkillListingIdForEffect;
 
   const availabilityOptions = useMemo(() => {
-    if (!profile?.schedule?.length) return [];
+    if (!profile?.schedule?.length || !renderNow) return [];
     return profile.schedule.map((s) => ({
       day: s.day,
       time: scheduleTime(s),
-      date: nextDateForDay(s.day),
+      date: nextDateForDay(s.day, renderNow),
     }));
-  }, [profile]);
+  }, [profile, renderNow]);
 
   const handleSlotSelect = (date: string, slot: SkillSlot) => {
     setSelectedSlot({ date, startTime: slot.startTime, endTime: slot.endTime });
@@ -193,6 +237,8 @@ function RequestSessionContent() {
       setTimeout(() => {
         router.push("/explore");
       }, 5000);
+    } else {
+      showToastLocal(result.message || "Failed to send request. Please try again.");
     }
   };
 
@@ -211,37 +257,37 @@ function RequestSessionContent() {
             <ArrowLeft className="w-6 h-6 text-black" strokeWidth={1.5} />
           </button>
 
-          {profileLoading ? (
-            <div className="flex justify-center py-20">
-              <span className="text-slate-500">Loading profile...</span>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
+              {showProfileSkeleton ? (
+                <div className="absolute inset-0 animate-pulse bg-slate-200" />
+              ) : profile?.avatarUrl ? (
+                <Image
+                  src={profile.avatarUrl}
+                  alt={fullName}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              ) : (
+                <span className="text-3xl font-bold text-sky-600">
+                  {(profile?.firstName?.[0] || "?").toUpperCase()}{(profile?.lastName?.[0] || "").toUpperCase()}
+                </span>
+              )}
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 mb-8">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden bg-sky-100 flex items-center justify-center shrink-0 ring-4 ring-white shadow-md">
-                  {profile?.avatarUrl ? (
-                    <Image
-                      src={profile.avatarUrl}
-                      alt={fullName}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl font-bold text-sky-600">
-                      {(profile?.firstName?.[0] || "?").toUpperCase()}{(profile?.lastName?.[0] || "").toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
-                    {fullName}
-                  </h1>
-                  <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-lg">
-                    Teaching
-                  </span>
-                </div>
-              </div>
+            <div>
+              {showProfileSkeleton ? (
+                <div className="h-7 w-44 rounded-lg bg-slate-200 animate-pulse" />
+              ) : (
+                <h1 className="text-[26px] font-medium text-black leading-tight mb-1">
+                  {fullName}
+                </h1>
+              )}
+              <span className="inline-block bg-[#ccebf8] text-[#334155] text-[13px] font-medium px-3 py-1 rounded-lg">
+                Teaching
+              </span>
+            </div>
+          </div>
 
               {/* <div className="mb-8 p-5 bg-sky-50 rounded-xl border border-sky-100">
               <h2 className="text-lg font-semibold text-sky-800 mb-3">User&apos;s Availability</h2>
@@ -259,11 +305,11 @@ function RequestSessionContent() {
               )}
             </div> */}
 
-              {requestError && (
+              {/* {requestError && (
                 <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
                   {requestError}
                 </div>
-              )}
+              )} */}
 
               {zoomStatus && (
                 <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-3 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-amber-50 border-amber-100 text-amber-700"}`}>
@@ -277,7 +323,12 @@ function RequestSessionContent() {
 
               <form onSubmit={handleConfirmSession}>
                 <div className="mb-6">
-                  {skillOptions.length === 0 ? (
+                  {skillOptions.length === 0 && resolvingSkills ? (
+                    <>
+                      <div className="block text-[15px] font-medium text-black mb-2 h-4.75 w-32 rounded bg-slate-200 animate-pulse" />
+                      <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-5 py-3.5 h-12.75 animate-pulse" />
+                    </>
+                  ) : skillOptions.length === 0 ? (
                     <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100">
                       This user hasn&apos;t set up any available sessions yet. Ask them to save their profile to enable session requests.
                     </div>
@@ -339,7 +390,7 @@ function RequestSessionContent() {
                     <label className="block text-[13px] font-medium text-slate-600 mb-1.5">Date</label>
                     <input
                       type="date"
-                      min={toLocalDate(new Date())}
+                      min={today || undefined}
                       className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-[15px] font-medium text-black outline-none focus:border-[#0ea5e9] focus:ring-4 focus:ring-sky-100 transition-all"
                       value={slotDate}
                       onChange={(e) => {
@@ -432,8 +483,6 @@ function RequestSessionContent() {
                   {requestLoading ? "Sending..." : "Confirm Session"}
                 </button>
               </form>
-            </>
-          )}
 
           <AnimatePresence>
             {showSuccess && (

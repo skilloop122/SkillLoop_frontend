@@ -92,6 +92,9 @@ export interface CreateProfilePayload {
 
 interface ProfileState {
   loading: boolean;
+  // Tracked separately from `loading` so the explore grid is not gated on, or
+  // raced by, the concurrent profile request.
+  matchesLoading: boolean;
   error: string | null;
   profile: UserProfile | null;
   publicProfile: UserProfile | null;
@@ -141,6 +144,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   profile: null,
   publicProfile: null,
   matches: [],
+  matchesLoading: false,
 
 fetchProfile: async () => {
      set({ loading: true, error: null });
@@ -309,7 +313,7 @@ fetchProfile: async () => {
   },
 
   fetchMatches: async (limit = "20", skillId?: string) => {
-    set({ loading: true, error: null });
+    set({ matchesLoading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
@@ -319,12 +323,15 @@ fetchProfile: async () => {
         url += "&skillId=" + skillId;
       }
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
+      const response = await dedupFetch(`matches-${limit}-${skillId || "all"}`, async () => {
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+        });
+        return res;
       });
 
       const data = await response.json();
@@ -338,12 +345,12 @@ fetchProfile: async () => {
           : Array.isArray(data?.matches)
             ? data.matches
             : [];
-      set({ matches: matchesArray, loading: false });
+      set({ matches: matchesArray, matchesLoading: false });
       return { success: true, matches: matchesArray };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
-      set({ error: message, loading: false });
+      set({ error: message, matchesLoading: false });
       return { success: false, message };
     }
   },
