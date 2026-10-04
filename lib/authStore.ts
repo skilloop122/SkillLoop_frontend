@@ -66,9 +66,7 @@ interface AuthState {
     otp: string,
   ) => Promise<{ success: boolean; message: string }>;
 
-  resendOtp: (
-    email: string,
-  ) => Promise<{ success: boolean; message: string }>;
+  resendOtp: (email: string) => Promise<{ success: boolean; message: string }>;
 
   logout: () => Promise<void>;
 }
@@ -225,7 +223,6 @@ export const useAuthStore = create<AuthState>()(
 
           const body = await response.json();
 
-
           if (!response.ok) {
             return {
               success: false,
@@ -259,22 +256,25 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-googleAuth: async ({ idToken }) => {
-         set({ loading: true, error: null });
+      googleAuth: async ({ idToken }) => {
+        set({ loading: true, error: null });
 
-         try {
-           const response = await dedupFetch(`auth-google-${idToken}`, async () => {
-             const res = await fetch(`${API_BASE}auth/google`, {
-               method: "POST",
-               headers: {
-                 "Content-Type": "application/json",
-               },
-               body: JSON.stringify({ idToken }),
-             });
-             return res;
-           });
+        try {
+          const response = await dedupFetch(
+            `auth-google-${idToken}`,
+            async () => {
+              const res = await fetch(`${API_BASE}auth/google`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ idToken }),
+              });
+              return res;
+            },
+          );
 
-           const body = await response.json().catch(() => null);
+          const body = await response.json().catch(() => null);
 
           // console.log(
           //   "POST /auth/google ->",
@@ -302,7 +302,6 @@ googleAuth: async ({ idToken }) => {
             body?.result?.access_token ||
             null;
 
-
           const googleUser = body?.user ||
             body?.data?.user || {
               id: body?.id,
@@ -311,7 +310,6 @@ googleAuth: async ({ idToken }) => {
               lastName: body?.profile?.lastName || body?.lastName,
             };
 
-         
           set({ user: googleUser, token });
 
           return {
