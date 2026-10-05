@@ -69,6 +69,26 @@ export interface ZoomStatus {
   message: string;
 }
 
+/**
+ * Guarantees a Zoom join/start URL carries `pwd`, so a meeting never opens to a
+ * passcode prompt. The backend embeds it in `zoomJoinUrl`, but the start URL and
+ * any locally cached value can predate that fix, so this is applied at the point
+ * of opening rather than trusted from a single source.
+ */
+export function withZoomPasscode(
+  url: string | undefined | null,
+  passcode?: string | null,
+): string | undefined {
+  if (!url) return undefined;
+  if (!passcode) return url;
+  const queryAt = url.indexOf("?");
+  const base = queryAt === -1 ? url : url.slice(0, queryAt);
+  const params = new URLSearchParams(queryAt === -1 ? "" : url.slice(queryAt + 1));
+  if (!params.get("pwd")) params.set("pwd", passcode);
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
 export interface ZoomSignature {
   sdkKey: string;
   signature: string;
@@ -98,6 +118,9 @@ interface RequestState {
   sessions: Session[];
   zoomStatus: ZoomStatus | null;
   fetchRequests: () => Promise<{ success: boolean; message?: string }>;
+  fetchRequestById: (
+    id: string,
+  ) => Promise<{ success: boolean; data?: SessionRequest; message?: string }>;
   fetchSessions: () => Promise<{
     success: boolean;
     data?: Session[];
@@ -180,6 +203,25 @@ function saveZoomCache(cache: SessionZoomCache) {
   }
 }
 
+/**
+ * Merges cached values under fresh API values. The cache is only a gap-filler:
+ * a session accepted before the backend began embedding `?pwd=` still has a
+ * pre-fix URL cached, and that stale value must not keep winning. Empty and
+ * null API values are treated as absent so a missing field falls back rather
+ * than clobbering a good cached one with a blank.
+ */
+function preferApiFields<TApi, TCached>(api: TApi, cached: TCached): TApi & TCached {
+  const merged: Record<string, unknown> = {
+    ...(cached as Record<string, unknown>),
+  };
+  for (const [key, value] of Object.entries(api as Record<string, unknown>)) {
+    if (value !== undefined && value !== null && value !== "") {
+      merged[key] = value;
+    }
+  }
+  return merged as TApi & TCached;
+}
+
 function enrichWithZoomCache<T extends { session?: SessionRequest["session"] }>(
   item: T,
   cache: SessionZoomCache,
@@ -187,7 +229,10 @@ function enrichWithZoomCache<T extends { session?: SessionRequest["session"] }>(
   if (!item.session?.id) return item;
   const zoom = cache[item.session.id];
   if (!zoom) return item;
-  return { ...item, session: { ...item.session, ...zoom } };
+  return {
+    ...item,
+    session: preferApiFields(item.session, zoom) as SessionRequest["session"],
+  };
 }
 
 function enrichSessionRecord(
@@ -196,7 +241,37 @@ function enrichSessionRecord(
 ): Session {
   const zoom = cache[session.id];
   if (!zoom) return session;
-  return { ...session, ...zoom };
+  return preferApiFields(session, zoom);
+}
+
+/**
+ * The documented `GET /requests/:id` route is not implemented on the current
+ * backend: it answers with an HTML 404 page rather than JSON, which is the
+ * signature of a missing Express route. Remember that after the first miss so
+ * polling stops paying for a request that cannot succeed, and so the route is
+ * picked up again automatically if the backend adds it later.
+ */
+let singleRequestRouteMissing = false;
+
+async function findRequestViaList(id: string, token: string) {
+  const response = await fetch(API_BASE + "requests?type=all", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok)
+    throw new Error(data?.message || "Failed to fetch requests");
+
+  const list: SessionRequest[] = Array.isArray(data)
+    ? data
+    : [...(data?.sent || []), ...(data?.received || [])];
+
+  const record = list.find((item) => item?.id === id);
+  if (!record) throw new Error("Request not found");
+  return record;
 }
 
 export const useRequestStore = create<RequestState>((set) => ({
@@ -369,6 +444,50 @@ fetchSessions: async () => {
         set({ error: message, requestsLoading: false });
         return { success: false, message };
       }
+  },
+
+  /**
+   * Single-request fetch used by the session lifecycle poller. Deliberately does
+   * not touch the shared loading/error state: a poll that flips a page-level
+   * spinner every 20s would regress the loading behaviour, and transient poll
+   * failures should stay silent rather than surface as list errors.
+   */
+  fetchRequestById: async (id: string) => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
+
+      if (singleRequestRouteMissing) {
+        return { success: true, data: await findRequestViaList(id, token) };
+      }
+
+      const response = await fetch(API_BASE + "requests/" + id, {
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      if (response.status === 404) {
+        singleRequestRouteMissing = true;
+        console.warn(
+          "[requestStore] GET /requests/:id is not implemented on the backend; " +
+            "session status polling has fallen back to GET /requests?type=all.",
+        );
+        return { success: true, data: await findRequestViaList(id, token) };
+      }
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.message || "Failed to fetch request");
+      }
+
+      const record = (payload?.data ?? payload) as SessionRequest | undefined;
+      if (!record?.id) throw new Error("Request payload missing");
+
+      return { success: true, data: record };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      return { success: false, message };
+    }
   },
 
   updateRequestStatus: async (

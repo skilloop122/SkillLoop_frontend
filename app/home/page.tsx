@@ -7,11 +7,13 @@ import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { useAuthStore } from "../../lib/authStore";
 import { useProfileStore } from "../../lib/profileStore";
-import { useRequestStore } from "../../lib/requestStore";
+import { useRequestStore, withZoomPasscode } from "../../lib/requestStore";
 import { usePointsStore } from "../../lib/pointsStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 import { useNotificationStore } from "../../lib/notificationStore";
 import { UserAvatar } from "../../components/UserAvatar";
+import ZoomPasscode from "../../components/ZoomPasscode";
+import SessionCountdown from "../../components/SessionCountdown";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
@@ -249,16 +251,37 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                       </p>
                     </div>
                   </div>
+                  {session.session?.zoomPassword && (
+                    <ZoomPasscode
+                      passcode={session.session.zoomPassword}
+                      className="mt-3"
+                    />
+                  )}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-slate-500">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-[13px] font-medium">{session.proposedTime}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-[13px] font-medium">{session.proposedTime}</span>
+                      </div>
+                      <SessionCountdown
+                        actualStartMs={session.session?.scheduledAt ? Date.parse(session.session.scheduledAt) : undefined}
+                        className="ml-1"
+                      />
                     </div>
                     {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) ? (
                       <div className="flex gap-2">
                         {session.session?.zoomJoinUrl ? (
                           <button
-                            onClick={() => window.open(session.isProvider && session.session?.zoomStartUrl ? session.session.zoomStartUrl : session.session!.zoomJoinUrl, "_blank")}
+                            onClick={() => {
+                              const target =
+                                session.isProvider && session.session?.zoomStartUrl
+                                  ? session.session.zoomStartUrl
+                                  : session.session!.zoomJoinUrl;
+                              window.open(
+                                withZoomPasscode(target, session.session?.zoomPassword),
+                                "_blank",
+                              );
+                            }}
                             className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
                           >
                             {session.isProvider ? "Start in Zoom" : "Open in Zoom"}

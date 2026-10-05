@@ -6,9 +6,14 @@ import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { UserAvatar } from "../../components/UserAvatar";
 // import { useRouter } from "next/navigation";
-import { useRequestStore } from "../../lib/requestStore";
+import { useRequestStore, withZoomPasscode } from "../../lib/requestStore";
 import { useAuthStore } from "../../lib/authStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
+import ZoomPasscode from "../../components/ZoomPasscode";
+import SessionCountdown from "../../components/SessionCountdown";
+import { useSessionLifecycle } from "../../lib/useSessionLifecycle";
+
+
 
 export default function SessionsPage() {
   // const router = useRouter();
@@ -45,21 +50,21 @@ export default function SessionsPage() {
     window.setTimeout(() => setToast(""), 2500);
   };
 
-const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
-     if (status === "accepted") setAcceptingId(id);
-     else if (status === "rejected") setRejectingId(id);
-     else if (status === "canceled") setCancelingId(id);
-     const result = await updateRequestStatus(id, status);
-     setAcceptingId(null);
-     setRejectingId(null);
-     setCancelingId(null);
-     if (result.success) {
-       showToast("Request updated successfully.");
-       loadData();
-     } else {
-       showToast(result.message || "Failed to update request.");
-     }
-   };
+  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
+    if (status === "accepted") setAcceptingId(id);
+    else if (status === "rejected") setRejectingId(id);
+    else if (status === "canceled") setCancelingId(id);
+    const result = await updateRequestStatus(id, status);
+    setAcceptingId(null);
+    setRejectingId(null);
+    setCancelingId(null);
+    if (result.success) {
+      showToast("Request updated successfully.");
+      loadData();
+    } else {
+      showToast(result.message || "Failed to update request.");
+    }
+  };
 
   const handleCompleteSession = async (sessionId: string, status: "completed") => {
     setCompletingId(sessionId);
@@ -118,11 +123,18 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
 
   const upcomingSessions = upcomingRequests.map((req) => {
     const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
+    const sessionId = sessionMatch?.id || req.session?.id || req.id;
+    const apiScheduledAt = sessionMatch?.scheduledAt || req.session?.scheduledAt;
+    const actualStartMs = apiScheduledAt ? Date.parse(apiScheduledAt) : undefined;
+
     return {
       ...req,
       isProvider: user?.id === req.providerId,
+      actualStartMs,
       session: {
         ...req.session,
+        id: sessionId,
+        scheduledAt: apiScheduledAt,
         ...(sessionMatch ? {
           zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
           zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
@@ -131,6 +143,20 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
         } : {}),
       },
     };
+  });
+
+  // Watches each in-window session against the backend and, once one expires,
+  // opens the feedback prompt. Called before the early return below so hook
+  // order stays stable across renders.
+  useSessionLifecycle({
+    sessions: upcomingSessions,
+    onSessionCompleted: (requestId) => {
+      const expired = upcomingSessions.find((item) => item.id === requestId);
+      const sessionId = expired?.session?.id;
+      showToast("Your 15-minute session has ended.");
+      if (sessionId) setFeedbackModal({ sessionId });
+      loadData();
+    },
   });
 
   const canceledSessions = [
@@ -219,48 +245,66 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
             </div>
           ) : (
             <>
-          {activeTab === "Upcoming" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {upcomingSessions.map((session) => (
-                <div key={session.id} className="rounded-lg border border-[#bae6fd] bg-white p-4">
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <UserAvatar
-                      avatarUrl={getOtherParty(session).avatarUrl}
-                      firstName={getOtherParty(session).firstName}
-                      lastName={getOtherParty(session).lastName}
-                      className="h-14 w-14 rounded-lg sm:h-20 sm:w-20"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="bg-sky-50 text-sky-500 text-xs font-bold px-2 py-1 rounded">Confirmed</span>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold">{ratingOf(session)}</span>
-                        </div>
-                      </div>
-                      <h3 className="font-bold text-slate-900 mb-1 wrap-break-word">{session.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-sm font-semibold text-slate-700 leading-tight">
-                        {getOtherParty(session).name}
-                      </p>
-                      <p className="text-xs text-slate-400 mb-3 truncate">{getOtherParty(session).email}</p>
-                      <div className="flex items-center gap-1.5 text-slate-400 mb-4 flex-wrap">
-                        <Clock size={14} />
-                        <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
-                      </div>
-                      <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
-                          <>
-                            {session.session?.zoomJoinUrl ? (
-                              <button
-                                onClick={() => window.open(session.isProvider && session.session?.zoomStartUrl ? session.session.zoomStartUrl : session.session!.zoomJoinUrl, "_blank")}
-                                className="flex-1 min-w-32.5 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
-                              >
-                                <ExternalLink size={14} />
-                                {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
-                              </button>
-                            ) : null}
-                            {/* {session.session?.zoomMeetingId ? (
+              {activeTab === "Upcoming" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {upcomingSessions.map((session) => (
+                    <div key={session.id} className="rounded-lg border border-[#bae6fd] bg-white p-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <UserAvatar
+                          avatarUrl={getOtherParty(session).avatarUrl}
+                          firstName={getOtherParty(session).firstName}
+                          lastName={getOtherParty(session).lastName}
+                          className="h-14 w-14 rounded-lg sm:h-20 sm:w-20"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="bg-sky-50 text-sky-500 text-xs font-bold px-2 py-1 rounded">Confirmed</span>
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              <span className="text-xs font-bold">{ratingOf(session)}</span>
+                            </div>
+                          </div>
+                          <h3 className="font-bold text-slate-900 mb-1 wrap-break-word">{session.skillListing?.title || "Skill Session"}</h3>
+                          <p className="text-sm font-semibold text-slate-700 leading-tight">
+                            {getOtherParty(session).name}
+                          </p>
+                          <p className="text-xs text-slate-400 mb-3 truncate">{getOtherParty(session).email}</p>
+                          <div className="flex items-center gap-3 flex-wrap mb-4">
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <Clock size={14} />
+                              <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
+                            </div>
+                            <SessionCountdown actualStartMs={session.actualStartMs} />
+                          </div>
+                          <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
+                          {session.session?.zoomPassword && (
+                            <ZoomPasscode
+                              passcode={session.session.zoomPassword}
+                              className="mt-2"
+                            />
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
+                              <>
+                                {session.session?.zoomJoinUrl ? (
+                                  <button
+                                    onClick={() => {
+                                      const target =
+                                        session.isProvider && session.session?.zoomStartUrl
+                                          ? session.session.zoomStartUrl
+                                          : session.session!.zoomJoinUrl;
+                                      window.open(
+                                        withZoomPasscode(target, session.session?.zoomPassword),
+                                        "_blank",
+                                      );
+                                    }}
+                                    className="flex-1 min-w-32.5 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                                  >
+                                    <ExternalLink size={14} />
+                                    {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
+                                  </button>
+                                ) : null}
+                                {/* {session.session?.zoomMeetingId ? (
                               <button
                                 onClick={() => {
                                   const params = new URLSearchParams();
@@ -279,152 +323,152 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                                 {session.isProvider ? "Start in App" : "Join in App"}
                               </button>
                             ) : null} */}
-                          </>
-                        )}
-                        <button
-                          onClick={() => handleCompleteSession(session.session?.id || session.id, "completed")}
-                          disabled={completingId === (session.session?.id || session.id)}
-                          className="flex-1 min-w-32.5 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        >
-                          {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                          Mark Complete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {upcomingSessions.length === 0 && <div className="py-10 text-center text-slate-400">No upcoming sessions.</div>}
-            </div>
-          )}
-
-          {activeTab === "Pending" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {pendingRequests.map((request) => (
-                <div key={request.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-start gap-4 mb-4">
-                    <UserAvatar
-                      avatarUrl={getOtherParty(request).avatarUrl}
-                      firstName={getOtherParty(request).firstName}
-                      lastName={getOtherParty(request).lastName}
-                      className="w-16 h-16 rounded-xl"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={request.type === "sent" ? "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-amber-50 text-amber-600 tracking-wider" : "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-sky-50 text-sky-600 tracking-wider"}>
-                          {request.type === "sent" ? "Sent" : "Received"}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold">{ratingOf(request)}</span>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleCompleteSession(session.session?.id || session.id, "completed")}
+                              disabled={completingId === (session.session?.id || session.id)}
+                              className="flex-1 min-w-32.5 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            >
+                              {completingId === (session.session?.id || session.id) ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                              Mark Complete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-0.5">{request.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-sm font-semibold text-slate-700 leading-tight">
-                        {getOtherParty(request).name}
-                      </p>
-                      <p className="text-xs text-slate-400 mb-1">{getOtherParty(request).email}</p>
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Clock size={14} />
-                        <span className="text-xs font-medium">{request.proposedDate} at {request.proposedTime}</span>
-                      </div>
-                      <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {request.type === "sent" ? (
-                      <button
-                        onClick={() => handleStatusUpdate(request.id, "canceled")}
-                        disabled={cancelingId === request.id}
-                        className="w-full py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-                      >
-                        {cancelingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
-                        Cancel Request
-                      </button>
-                    ) : (
-                      <>
-                        <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors disabled:opacity-50">
-                          {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
-                        </button>
-                        <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50">
-                          {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  ))}
+                  {upcomingSessions.length === 0 && <div className="py-10 text-center text-slate-400">No upcoming sessions.</div>}
                 </div>
-              ))}
-              {pendingRequests.length === 0 && <div className="py-10 text-center text-slate-400">No pending requests.</div>}
-            </div>
-          )}
+              )}
 
-          {activeTab === "Canceled" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {canceledSessions.map((session) => (
-                <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm opacity-60">
-                   <div className="flex items-start gap-4">
-                    <UserAvatar
-                      avatarUrl={getOtherParty(session).avatarUrl}
-                      firstName={getOtherParty(session).firstName}
-                      lastName={getOtherParty(session).lastName}
-                      className="w-16 h-16 rounded-xl grayscale shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">{session.status}</span>
-                      <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
-                      <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
-                      <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
-                    </div>
-                   </div>
-                </div>
-              ))}
-              {canceledSessions.length === 0 && <div className="py-10 text-center text-slate-400">No canceled sessions.</div>}
-            </div>
-          )}
-
-          {activeTab === "Completed" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {completedSessions.map((session) => (
-                <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                   <div className="flex items-start gap-4">
-                    <UserAvatar
-                      avatarUrl={getOtherParty(session).avatarUrl}
-                      firstName={getOtherParty(session).firstName}
-                      lastName={getOtherParty(session).lastName}
-                      className="w-16 h-16 rounded-xl shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase inline-block">Completed</span>
-                        <button 
-                          onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
-                          className="text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded transition-colors"
-                        >
-                          Leave Feedback
-                        </button>
+              {activeTab === "Pending" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {pendingRequests.map((request) => (
+                    <div key={request.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                      <div className="flex items-start gap-4 mb-4">
+                        <UserAvatar
+                          avatarUrl={getOtherParty(request).avatarUrl}
+                          firstName={getOtherParty(request).firstName}
+                          lastName={getOtherParty(request).lastName}
+                          className="w-16 h-16 rounded-xl"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className={request.type === "sent" ? "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-amber-50 text-amber-600 tracking-wider" : "text-[11px] font-bold px-2 py-0.5 rounded uppercase bg-sky-50 text-sky-600 tracking-wider"}>
+                              {request.type === "sent" ? "Sent" : "Received"}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              <span className="text-xs font-bold">{ratingOf(request)}</span>
+                            </div>
+                          </div>
+                          <h3 className="font-bold text-slate-900 mb-0.5">{request.skillListing?.title || "Skill Session"}</h3>
+                          <p className="text-sm font-semibold text-slate-700 leading-tight">
+                            {getOtherParty(request).name}
+                          </p>
+                          <p className="text-xs text-slate-400 mb-1">{getOtherParty(request).email}</p>
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <Clock size={14} />
+                            <span className="text-xs font-medium">{request.proposedDate} at {request.proposedTime}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
+                        </div>
                       </div>
-                      <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
-                      <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
-                      <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
-                      <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
+                      <div className="flex gap-2">
+                        {request.type === "sent" ? (
+                          <button
+                            onClick={() => handleStatusUpdate(request.id, "canceled")}
+                            disabled={cancelingId === request.id}
+                            className="w-full py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                          >
+                            {cancelingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                            Cancel Request
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/20 hover:bg-sky-400 transition-colors disabled:opacity-50">
+                              {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
+                            </button>
+                            <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50">
+                              {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
+                  ))}
+                  {pendingRequests.length === 0 && <div className="py-10 text-center text-slate-400">No pending requests.</div>}
+                </div>
+              )}
+
+              {activeTab === "Canceled" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {canceledSessions.map((session) => (
+                    <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm opacity-60">
+                      <div className="flex items-start gap-4">
+                        <UserAvatar
+                          avatarUrl={getOtherParty(session).avatarUrl}
+                          firstName={getOtherParty(session).firstName}
+                          lastName={getOtherParty(session).lastName}
+                          className="w-16 h-16 rounded-xl grayscale shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block">{session.status}</span>
+                          <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
+                          <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
+                          <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
+                          <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
+                        </div>
+                      </div>
                     </div>
-                 </div>
-               ))}
-               {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
-             </div>
-            )}
+                  ))}
+                  {canceledSessions.length === 0 && <div className="py-10 text-center text-slate-400">No canceled sessions.</div>}
+                </div>
+              )}
+
+              {activeTab === "Completed" && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {completedSessions.map((session) => (
+                    <div key={session.id} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <UserAvatar
+                          avatarUrl={getOtherParty(session).avatarUrl}
+                          firstName={getOtherParty(session).firstName}
+                          lastName={getOtherParty(session).lastName}
+                          className="w-16 h-16 rounded-xl shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase inline-block">Completed</span>
+                            <button
+                              onClick={() => setFeedbackModal({ sessionId: session.session?.id || session.id })}
+                              className="text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-2 py-1 rounded transition-colors"
+                            >
+                              Leave Feedback
+                            </button>
+                          </div>
+                          <h3 className="font-bold text-slate-900 mb-0.5">{session.skillListing?.title || "Skill Session"}</h3>
+                          <p className="text-sm font-semibold text-slate-700 leading-tight">{getOtherParty(session).name}</p>
+                          <p className="text-xs text-slate-400">{getOtherParty(session).email}</p>
+                          <p className="text-xs text-slate-400 mt-1">{session.proposedDate} at {session.proposedTime}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {completedSessions.length === 0 && <div className="py-10 text-center text-slate-400">No completed sessions yet.</div>}
+                </div>
+              )}
             </>
           )}
-          </div>
-       </div>
+        </div>
+      </div>
 
-       {toast && (
-         <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-2xl">{toast}</div>
-       )}
+      {toast && (
+        <div className="fixed left-1/2 bottom-24 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-2xl">{toast}</div>
+      )}
 
-       {feedbackModal && (
+      {feedbackModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Leave Feedback</h2>

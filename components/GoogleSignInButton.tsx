@@ -96,25 +96,31 @@ export default function GoogleSignInButton({ onCredential, onError, disabled }: 
     onErrorRef.current = onError;
   }, [onCredential, onError]);
 
+  const initializedClientId = useRef<string | null>(null);
+
   const renderGoogleButton = useCallback(() => {
     const parent = containerRef.current;
     const id = window.google?.accounts?.id;
     if (!parent || !id || !clientId) return;
 
     parent.innerHTML = "";
-    id.initialize({
-      client_id: clientId,
-      callback: (res) => {
-        const idToken = res.credential;
-        if (!idToken) {
-          onErrorRef.current("Google sign-in did not return an ID token. Please try again.");
-          return;
-        }
-        void onCredentialRef.current(idToken);
-      },
-      auto_select: false,
-      cancel_on_tap_outside: false,
-    });
+
+    if (initializedClientId.current !== clientId) {
+      id.initialize({
+        client_id: clientId,
+        callback: (res) => {
+          const idToken = res.credential;
+          if (!idToken) {
+            onErrorRef.current("Google sign-in did not return an ID token. Please try again.");
+            return;
+          }
+          void onCredentialRef.current(idToken);
+        },
+        auto_select: false,
+        cancel_on_tap_outside: false,
+      });
+      initializedClientId.current = clientId;
+    }
 
     const measured = parent.clientWidth;
     const width = Math.min(Math.max(measured || DEFAULT_WIDTH, MIN_WIDTH), MAX_WIDTH);
