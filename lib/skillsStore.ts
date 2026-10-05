@@ -210,34 +210,42 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
     try {
       const me = useAuthStore.getState().user;
       const myId = me?.id;
-
-      const existing = await get().fetchSkillListings({ limit: 200 });
-      const mine =
-        existing.success && existing.listings && myId
-          ? existing.listings.filter((l) => l.userId === myId)
-          : [];
       const catalog = get().skills;
-
       const norm = (s: string) => s.toLowerCase().trim();
 
-      for (const skill of teachSkills) {
-        const name = typeof skill === "string" ? skill : skill.name;
-        if (!name) continue;
-        const n = norm(name);
-        const already = mine.some((l) => {
-          const lt = norm(l.title);
-          if (lt === n) return true;
-          if (n.length < 3 || lt.length < 3) return false;
-          return lt.includes(n) || n.includes(lt);
-        });
-        if (already) continue;
-        const category =
-          catalog.find((s) => norm(s.name) === norm(name))?.category || "Other";
-        await get().createSkillListing({
-          title: name,
-          description,
-          category,
-        });
+      // Collect only the skills that actually need a new listing created.
+      const skillsToCreate: { title: string; description: string; category: string }[] = [];
+
+      // Only fetch existing listings if there are teach skills to check against.
+      if (teachSkills.length > 0) {
+        const existing = await get().fetchSkillListings({ limit: 200 });
+        const mine =
+          existing.success && existing.listings && myId
+            ? existing.listings.filter((l) => l.userId === myId)
+            : [];
+
+        for (const skill of teachSkills) {
+          const name = typeof skill === "string" ? skill : skill.name;
+          if (!name) continue;
+          const n = norm(name);
+          const already = mine.some((l) => {
+            const lt = norm(l.title);
+            if (lt === n) return true;
+            if (n.length < 3 || lt.length < 3) return false;
+            return lt.includes(n) || n.includes(lt);
+          });
+          if (already) continue;
+          const category =
+            catalog.find((s) => norm(s.name) === norm(name))?.category || "Other";
+          skillsToCreate.push({ title: name, description, category });
+        }
+      }
+
+      // Fire all creates in parallel instead of one-by-one.
+      if (skillsToCreate.length > 0) {
+        await Promise.all(
+          skillsToCreate.map((payload) => get().createSkillListing(payload))
+        );
       }
 
       return { success: true };

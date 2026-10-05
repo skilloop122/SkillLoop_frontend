@@ -274,7 +274,10 @@ export default function SessionsPage() {
                               <Clock size={14} />
                               <span className="text-xs font-medium">{session.proposedDate} at {session.proposedTime}</span>
                             </div>
-                            <SessionCountdown actualStartMs={session.actualStartMs} />
+                            <SessionCountdown
+                              actualStartMs={session.actualStartMs}
+                              scheduledLabel={session.proposedDate && session.proposedTime ? `${session.proposedDate} ${session.proposedTime}` : undefined}
+                            />
                           </div>
                           <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
                           {session.session?.zoomPassword && (
