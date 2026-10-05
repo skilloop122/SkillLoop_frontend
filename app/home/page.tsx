@@ -264,7 +264,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                         <span className="text-[13px] font-medium">{session.proposedTime}</span>
                       </div>
                       <SessionCountdown
-                        scheduledAt={session.session?.scheduledAt}
+                        actualStartMs={session.session?.scheduledAt ? Date.parse(session.session.scheduledAt) : undefined}
                         className="ml-1"
                       />
                     </div>
