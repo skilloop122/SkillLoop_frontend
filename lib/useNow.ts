@@ -18,7 +18,13 @@ function subscribe(listener: () => void) {
   listeners.add(listener);
 
   if (timer === null) {
+    // Set currentNow immediately so the very first getSnapshot call after mount
+    // returns a real timestamp — not 0 — without waiting a full second for the
+    // first interval tick.
     currentNow = Date.now();
+    // Notify all existing listeners so components that were already subscribed
+    // (e.g. after a fast re-mount) re-render with the fresh timestamp.
+    listeners.forEach((entry) => entry());
     timer = window.setInterval(() => {
       currentNow = Date.now();
       listeners.forEach((entry) => entry());
@@ -30,6 +36,8 @@ function subscribe(listener: () => void) {
     if (listeners.size === 0 && timer !== null) {
       window.clearInterval(timer);
       timer = null;
+      // Reset so the next subscriber starts fresh.
+      currentNow = 0;
     }
   };
 }

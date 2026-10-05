@@ -13,9 +13,12 @@ function format(ms: number) {
 
 export default function SessionCountdown({
   actualStartMs,
+  scheduledLabel,
   className = "",
 }: {
   actualStartMs?: number;
+  /** Human-readable fallback shown when no actualStartMs is available, e.g. "Oct 10 at 14:00" */
+  scheduledLabel?: string;
   className?: string;
 }) {
   const now = useNow();
@@ -42,10 +45,7 @@ export default function SessionCountdown({
           role="timer"
           aria-live="off"
         >
-          15:00
-        </span>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-          upcoming
+          {scheduledLabel ?? "Scheduled"}
         </span>
       </div>
     );

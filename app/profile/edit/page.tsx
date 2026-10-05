@@ -245,12 +245,14 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       avatarFile: avatarFile || undefined,
     };
 
-    const result = await updateProfile(payload);
+    const [result, sync] = await Promise.all([
+      updateProfile(payload),
+      syncSkillListings(teachSkills),
+    ]);
+    if (!sync.success) {
+      console.warn("LISTING SYNC ISSUE:", sync.message);
+    }
     if (result.success) {
-      const sync = await syncSkillListings(teachSkills);
-      if (!sync.success) {
-        console.warn("LISTING SYNC ISSUE:", sync.message);
-      }
       router.push("/profile");
     } else {
       showToast(result.message || "Failed to update profile");
