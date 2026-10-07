@@ -55,6 +55,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   const { days: initialDays, ranges: initialRanges } = parseScheduleToState(profile.schedule);
 
   const [draft, setDraft] = useState<UpdateProfilePayload>({
+    firstName: profile.firstName,
+    lastName: profile.lastName,
     bio: profile.bio,
     phoneNumber: profile.phoneNumber,
     linkedinUrl: profile.linkedinUrl,
@@ -231,6 +233,8 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       v === null || v === undefined || v.trim() === "" ? undefined : v;
 
     const payload: UpdateProfilePayload = {
+      firstName: emptyToUndefined(draft.firstName?.trim()),
+      lastName: emptyToUndefined(draft.lastName?.trim()),
       bio: emptyToUndefined(draft.bio),
       phoneNumber: emptyToUndefined(draft.phoneNumber),
       email: emptyToUndefined(draft.email),
@@ -330,6 +334,18 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
         {/* Basic info */}
         <InfoCard title="Personal Info" icon={<User size={18} />}>
           <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="First Name"
+                value={draft.firstName ?? ""}
+                onChange={(v) => handleUpdate("firstName", v)}
+              />
+              <Input
+                label="Last Name"
+                value={draft.lastName ?? ""}
+                onChange={(v) => handleUpdate("lastName", v)}
+              />
+            </div>
             <div className="block">
               <span className="mb-2 block text-[16px] font-medium text-slate-500">Bio</span>
               <textarea

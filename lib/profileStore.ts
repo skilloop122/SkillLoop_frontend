@@ -60,6 +60,8 @@ export interface UserProfile {
 }
 
 export interface UpdateProfilePayload {
+  firstName?: string;
+  lastName?: string;
   bio?: string;
   phoneNumber?: string;
   email?: string;
@@ -271,6 +273,18 @@ fetchProfile: async () => {
       }
 
       set({ profile: data, loading: false });
+
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser && (data?.firstName !== undefined || data?.lastName !== undefined)) {
+        useAuthStore.setState({
+          user: {
+            ...currentUser,
+            firstName: data?.firstName ?? currentUser.firstName,
+            lastName: data?.lastName ?? currentUser.lastName,
+          },
+        });
+      }
+
       return { success: true, profile: data };
     } catch (error: unknown) {
       const message =
