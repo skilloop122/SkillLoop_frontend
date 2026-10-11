@@ -12,6 +12,8 @@ import {
   ThumbsDown,
   Search,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
@@ -60,24 +62,45 @@ function StarRating({ value }: { value: number }) {
 export default function AdminFeedbackPage() {
   const router = useRouter();
   const { token, hydrated, loading: authLoading } = useAdminAuthStore();
-const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
-   const { feedbacks: apiFeedbacks, fetchFeedback, deleteFeedback } = useAdminFeedbackStore();
-   const [deletingId, setDeletingId] = useState<string | null>(null);
-  
+  const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore();
+  const { feedbacks: apiFeedbacks, fetchFeedback, deleteFeedback } = useAdminFeedbackStore();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this feedback?")) return;
+    if (!token) return;
+    setDeletingId(id);
+    const result = await deleteFeedback(token, id);
+    if (!result.success && result.message) {
+      alert(result.message);
+    }
+    setDeletingId(null);
+  };
+
   const feedbackList = useMemo(() => apiFeedbacks.map(mapFeedbackToUI), [apiFeedbacks]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
   const filteredFeedback = useMemo(() => {
     return feedbackList.filter((item) => {
-      const matchesSearch = item.comment.toLowerCase().includes(search.toLowerCase()) || 
-                            item.session.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = item.comment.toLowerCase().includes(search.toLowerCase()) ||
+        item.session.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesRating = ratingFilter === "all" || item.rating.toString() === ratingFilter;
       return matchesSearch && matchesStatus && matchesRating;
     });
   }, [feedbackList, search, statusFilter, ratingFilter]);
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredFeedback.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const paginatedFeedback = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredFeedback.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredFeedback, currentPage]);
 
   useEffect(() => {
     if (hydrated && token) {
@@ -92,9 +115,25 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
     }
   }, [hydrated, token, router]);
 
-  const ratingDist = metrics?.ratingDistribution ?? {};
-  const totalFeedback = metrics?.overview?.totalFeedback ?? 0;
-  const avgRating = metrics?.overview?.averageRating ?? 0;
+  const totalFeedback = metrics?.overview?.totalFeedback ?? feedbackList.length;
+  const avgRating =
+    metrics?.overview?.averageRating ??
+    (feedbackList.length > 0
+      ? feedbackList.reduce((acc, f) => acc + (f.rating || 0), 0) / feedbackList.length
+      : 0);
+
+  // If ratingDistribution is missing from metrics, derive it from feedbackList
+  const ratingDist = useMemo(() => {
+    if (metrics?.ratingDistribution && Object.keys(metrics.ratingDistribution).length > 0) {
+      return metrics.ratingDistribution;
+    }
+    const dist: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+    feedbackList.forEach((f) => {
+      const r = Math.round(f.rating || 0).toString();
+      if (dist[r] !== undefined) dist[r]++;
+    });
+    return dist;
+  }, [metrics, feedbackList]);
 
   const ratingEntries = Object.entries(ratingDist)
     .map(([r, c]) => ({ rating: Number(r), count: c }))
@@ -266,14 +305,20 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
                   type="text"
                   placeholder="Search feedback or session…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                 />
               </div>
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Status</option>
@@ -284,7 +329,10 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
 
               <select
                 value={ratingFilter}
-                onChange={(e) => setRatingFilter(e.target.value)}
+                onChange={(e) => {
+                  setRatingFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Ratings</option>
@@ -303,7 +351,7 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
                   <p className="text-sm">No feedback found</p>
                 </div>
               ) : (
-                filteredFeedback.map((item) => (
+                paginatedFeedback.map((item) => (
                   <div key={item.id} className="border rounded-xl p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -313,34 +361,28 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
                           From {item.giverName}{item.giverEmail ? ` · ${item.giverEmail}` : ""}
                         </p>
                       </div>
-<button
-                         type="button"
-                         onClick={() => router.push(`/admin/feedback/${item.id}`)}
-                         className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
-                       >
-                         View
-                       </button>
-                       <button
-                         type="button"
-                         onClick={async () => {
-                           if (!confirm("Delete this feedback?")) return;
-                           setDeletingId(item.id);
-                           const result = await deleteFeedback(token, item.id);
-                           setDeletingId(null);
-                         }}
-                         disabled={deletingId === item.id}
-                         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0"
-                       >
-                         {deletingId === item.id ? "…" : <Trash2 size={14} />}
-                       </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/admin/feedback/${item.id}`)}
+                        className="bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 hover:bg-sky-600 transition-colors"
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deletingId === item.id}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                      >
+                        {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <StarRating value={item.rating} />
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        item.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' :
-                        item.status === 'hidden' ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${item.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' :
+                          item.status === 'hidden' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
                         {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                       </span>
                       <span className="text-xs text-gray-500">{item.submitted}</span>
@@ -373,7 +415,7 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
                       </td>
                     </tr>
                   ) : (
-                    filteredFeedback.map((item) => (
+                    paginatedFeedback.map((item) => (
                       <tr key={item.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-4">
                           <span className="font-medium text-gray-900">{item.comment}</span>
@@ -395,39 +437,33 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
                           <StarRating value={item.rating} />
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                            item.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' :
-                            item.status === 'hidden' ? 'bg-red-50 text-red-700 border-red-200' :
-                            'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${item.status === 'published' ? 'bg-green-50 text-green-700 border-green-200' :
+                              item.status === 'hidden' ? 'bg-red-50 text-red-700 border-red-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
                             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                           </span>
                         </td>
                         <td className="px-4 py-4">
                           <span className="font-medium text-gray-800">{item.submitted}</span>
                         </td>
-<td className="px-4 py-4">
-                           <button
-                             type="button"
-                             onClick={() => router.push(`/admin/feedback/${item.id}`)}
-                             className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
-                           >
-                             View
-                           </button>
-                           <button
-                             type="button"
-                             onClick={async () => {
-                               if (!confirm("Delete this feedback?")) return;
-                               setDeletingId(item.id);
-                               const result = await deleteFeedback(token, item.id);
-                               setDeletingId(null);
-                             }}
-                             disabled={deletingId === item.id}
-                             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors ml-2"
-                           >
-                             {deletingId === item.id ? "…" : <Trash2 size={14} />}
-                           </button>
-                         </td>
+                        <td className="px-4 py-4">
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/admin/feedback/${item.id}`)}
+                            className="px-4 py-1.5 rounded-lg text-xs font-semibold text-sky-600 bg-sky-50 hover:bg-sky-100 transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deletingId === item.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors ml-2 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                          >
+                            {deletingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -435,9 +471,41 @@ const { metrics, loading: metricsLoading, fetchMetrics } = useAdminMetricsStore(
               </table>
             </div>
 
+            {/* Pagination & Footer */}
             {!metricsLoading && filteredFeedback.length > 0 && (
-              <div className="px-5 py-3 border-t text-sm text-gray-500">
-                Showing {filteredFeedback.length} feedback items
+              <div className="px-5 py-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50">
+                <span className="text-sm text-gray-500">
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredFeedback.length)} of{" "}
+                  {filteredFeedback.length} feedback items
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage <= 1}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Prev</span>
+                  </button>
+
+                  <span className="text-sm font-medium text-gray-700 px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             )}
           </div>

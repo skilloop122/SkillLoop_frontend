@@ -21,6 +21,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
@@ -130,6 +132,7 @@ export default function AdminSkillsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [demandFilter, setDemandFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
   const [selectedSkill, setSelectedSkill] = useState<UISkillListing | null>(null);
   const [showTechSkills, setShowTechSkills] = useState(false);
   const [showSkillForm, setShowSkillForm] = useState(false);
@@ -169,6 +172,15 @@ export default function AdminSkillsPage() {
       return matchesSearch && matchesStatus && matchesCategory && matchesDemand;
     });
   }, [uiListings, search, statusFilter, categoryFilter, demandFilter]);
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const paginatedListings = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
 
   const availableCategories = useMemo(() => {
     const set = new Set<string>();
@@ -265,14 +277,20 @@ export default function AdminSkillsPage() {
                   type="text"
                   placeholder="Search skills…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                 />
               </div>
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Status</option>
@@ -283,7 +301,10 @@ export default function AdminSkillsPage() {
 
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
@@ -294,7 +315,10 @@ export default function AdminSkillsPage() {
 
               <select
                 value={demandFilter}
-                onChange={(e) => setDemandFilter(e.target.value)}
+                onChange={(e) => {
+                  setDemandFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Demand</option>
@@ -312,7 +336,7 @@ export default function AdminSkillsPage() {
                   <p className="text-sm">No skills match your filters</p>
                 </div>
               ) : (
-                filtered.map((listing) => {
+                paginatedListings.map((listing) => {
                   const sc = STATUS_CONFIG[listing.status];
                   const dc = DEMAND_COLORS[listing.demand];
                   const StatusIcon = sc.icon;
@@ -397,7 +421,7 @@ export default function AdminSkillsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((listing) => {
+                    paginatedListings.map((listing) => {
                       const sc = STATUS_CONFIG[listing.status];
                       const dc = DEMAND_COLORS[listing.demand];
                       const StatusIcon = sc.icon;
@@ -471,9 +495,41 @@ export default function AdminSkillsPage() {
               </table>
             </div>
 
+            {/* Pagination & Footer */}
             {!metricsLoading && filtered.length > 0 && (
-              <div className="px-5 py-3 border-t text-sm text-gray-500">
-                Showing {filtered.length} of {uiListings.length} skills
+              <div className="px-5 py-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50">
+                <span className="text-sm text-gray-500">
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of{" "}
+                  {filtered.length} skills
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage <= 1}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Prev</span>
+                  </button>
+
+                  <span className="text-sm font-medium text-gray-700 px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             )}
           </div>

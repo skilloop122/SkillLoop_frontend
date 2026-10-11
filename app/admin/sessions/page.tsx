@@ -96,7 +96,7 @@ export default function AdminSessionsPage() {
   const sessions = metrics?.sessions;
   const totalSessions = metrics?.overview?.totalSessions ?? sessionsList.length;
   const upcomingCount = sessions?.scheduled ?? sessionsList.filter(s => s.status === "upcoming").length;
-  const completedCount = sessions?.completed ?? sessionsList.filter(s => s.status === "completed").length;
+  const completedCount = metrics?.overview?.completedSessions ?? sessions?.completed ?? sessionsList.filter(s => s.status === "completed").length;
   const cancelledCount = sessions?.canceled ?? sessionsList.filter(s => s.status === "cancelled").length;
 
   const skills = useMemo(() => Array.from(new Set(sessionsList.map(s => s.skill))), [sessionsList]);
