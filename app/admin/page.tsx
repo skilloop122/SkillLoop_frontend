@@ -12,6 +12,9 @@ import {
   CalendarCheck,
   MessageSquare,
   Award,
+  AlertTriangle,
+  Coins,
+  // ShieldCheck,
 } from "lucide-react";
 import { AdminHeader } from "@/components/AdminHeader";
 
@@ -60,10 +63,11 @@ export default function AdminDashboard() {
 
   const signupsChartData = useMemo(() => {
     if (!metrics?.trends?.registrations || !metrics?.trends?.sessionsCompleted) return [];
-    return Object.entries(metrics.trends.registrations).map(([day, signups]) => ({
+    const trends = metrics.trends;
+    return Object.entries(trends.registrations).map(([day, signups]) => ({
       day,
       signups,
-      sessions: metrics.trends.sessionsCompleted[day] ?? 0,
+      sessions: trends.sessionsCompleted[day] ?? 0,
     }));
   }, [metrics]);
 
@@ -102,28 +106,60 @@ export default function AdminDashboard() {
   ], [metrics]);
 
   // ── Admin Insight items ──────────────────────────────────────────────────
-  const insightItems = useMemo(() => [
-    {
-      title: "Completed Sessions",
-      value: metrics?.sessions?.completed ?? 0,
-      suffix: "",
-    },
-    {
-      title: "Pending Requests",
-      value: metrics?.requests?.pending ?? 0,
-      suffix: "",
-    },
-    {
-      title: "Total Feedback",
-      value: metrics?.overview?.totalFeedback ?? 0,
-      suffix: "",
-    },
-    {
-      title: "Points Awarded",
-      value: metrics?.overview?.totalPointsAwarded ?? 0,
-      suffix: " pts",
-    },
-  ], [metrics]);
+  const insightItems = useMemo(() => {
+    const items: Array<{ title: string; value: string | number; suffix: string }> = [
+      {
+        title: "Completed Sessions",
+        value: metrics?.overview?.completedSessions ?? metrics?.sessions?.completed ?? 0,
+        suffix: "",
+      },
+      {
+        title: "Pending Requests",
+        value: metrics?.requests?.pending ?? metrics?.overview?.totalRequests ?? 0,
+        suffix: "",
+      },
+    ];
+
+    if (metrics?.overview?.sessionCompletionRate !== undefined) {
+      items.push({
+        title: "Session Completion Rate",
+        value: `${metrics.overview.sessionCompletionRate}%`,
+        suffix: "",
+      });
+    }
+
+    if (metrics?.overview?.requestAcceptanceRate !== undefined) {
+      items.push({
+        title: "Request Acceptance Rate",
+        value: `${metrics.overview.requestAcceptanceRate}%`,
+        suffix: "",
+      });
+    }
+
+    if (metrics?.skillPoints?.inCirculation !== undefined) {
+      items.push({
+        title: "Points in Circulation",
+        value: metrics.skillPoints.inCirculation.toLocaleString(),
+        suffix: " pts",
+      });
+    } else {
+      items.push({
+        title: "Points Awarded",
+        value: metrics?.overview?.totalPointsAwarded ?? 0,
+        suffix: " pts",
+      });
+    }
+
+    if (metrics?.overview?.totalFeedback !== undefined) {
+      items.push({
+        title: "Total Feedback",
+        value: metrics.overview.totalFeedback,
+        suffix: "",
+      });
+    }
+
+    return items;
+  }, [metrics]);
 
   if (!hydrated || authLoading) {
     return (
@@ -147,6 +183,37 @@ export default function AdminDashboard() {
               title="Dashboard"
               subtitle={`Operational overview for today, ${new Date().toDateString()}`}
             />
+
+            {/* Alerts Banner */}
+            {metrics?.alerts && metrics.alerts.length > 0 && (
+              <div className="mb-6 space-y-2">
+                {metrics.alerts.map((alert) => (
+                  <div
+                    key={alert.code}
+                    className={`flex items-center justify-between p-4 rounded-2xl border text-sm font-medium ${
+                      alert.severity === "error"
+                        ? "bg-red-50 text-red-800 border-red-200"
+                        : alert.severity === "warning"
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-blue-50 text-blue-800 border-blue-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <div>
+                        <span className="font-semibold">{alert.message}</span>
+                        <span className="ml-2 text-xs opacity-75 font-mono">[{alert.code}]</span>
+                      </div>
+                    </div>
+                    {alert.count > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/80 font-bold text-xs shadow-xs">
+                        {alert.count}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
@@ -382,10 +449,10 @@ export default function AdminDashboard() {
                 <h2 className="font-semibold text-xl mb-4">Platform Breakdown</h2>
                 <div className="space-y-0">
                   {[
-                    { label: "Pending Requests", value: metrics?.requests?.pending, icon: Mail, color: "text-amber-500", bg: "bg-amber-50" },
-                    { label: "Accepted Requests", value: metrics?.requests?.accepted, icon: MessageSquare, color: "text-green-500", bg: "bg-green-50" },
-                    { label: "Scheduled Sessions", value: metrics?.sessions?.scheduled, icon: CalendarCheck, color: "text-sky-500", bg: "bg-sky-50" },
-                    { label: "Completed Sessions", value: metrics?.sessions?.completed, icon: Activity, color: "text-purple-500", bg: "bg-purple-50" },
+                    { label: "Pending Requests", value: metrics?.requests?.pending ?? metrics?.overview?.totalRequests, icon: Mail, color: "text-amber-500", bg: "bg-amber-50" },
+                    { label: "Accepted Requests", value: metrics?.requests?.accepted ?? (metrics?.overview?.requestAcceptanceRate !== undefined ? `${metrics.overview.requestAcceptanceRate}%` : undefined), icon: MessageSquare, color: "text-green-500", bg: "bg-green-50" },
+                    { label: "Scheduled Sessions", value: metrics?.sessions?.scheduled ?? metrics?.overview?.totalSessions, icon: CalendarCheck, color: "text-sky-500", bg: "bg-sky-50" },
+                    { label: "Completed Sessions", value: metrics?.overview?.completedSessions ?? metrics?.sessions?.completed, icon: Activity, color: "text-purple-500", bg: "bg-purple-50" },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between py-4 border-b last:border-0">
                       <div className="flex gap-3 items-center">
@@ -402,7 +469,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="text-right mt-4">
-                  <button className="text-sky-500 font-semibold">View all</button>
+                  <button onClick={() => router.push("/admin/sessions")} className="text-sky-500 font-semibold hover:underline">View all</button>
                 </div>
               </div>
 
@@ -422,30 +489,86 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Rating Distribution */}
-                {metrics?.ratingDistribution && Object.keys(metrics.ratingDistribution).length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-slate-100">
-                    <p className="text-sm font-semibold text-slate-600 mb-3">Rating Distribution</p>
-                    <div className="flex items-end gap-2 h-16">
-                      {Object.entries(metrics.ratingDistribution)
-                        .sort(([a], [b]) => Number(a) - Number(b))
-                        .map(([rating, count]) => {
-                          const max = Math.max(...Object.values(metrics.ratingDistribution));
-                          const pct = max > 0 ? (count / max) * 100 : 0;
-                          return (
-                            <div key={rating} className="flex-1 flex flex-col items-center gap-1">
-                              <div
-                                className="w-full bg-sky-400 rounded-sm"
-                                style={{ height: `${Math.max(pct, 5)}%` }}
-                              />
-                              <span className="text-[10px] text-slate-500">★{rating}</span>
-                            </div>
-                          );
-                        })}
+                {metrics?.ratingDistribution && Object.keys(metrics.ratingDistribution).length > 0 && (() => {
+                  const ratingDistribution = metrics.ratingDistribution;
+                  const max = Math.max(...Object.values(ratingDistribution));
+                  return (
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <p className="text-sm font-semibold text-slate-600 mb-3">Rating Distribution</p>
+                      <div className="flex items-end gap-2 h-16">
+                        {Object.entries(ratingDistribution)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([rating, count]) => {
+                            const pct = max > 0 ? (count / max) * 100 : 0;
+                            return (
+                              <div key={rating} className="flex-1 flex flex-col items-center gap-1">
+                                <div
+                                  className="w-full bg-sky-400 rounded-sm"
+                                  style={{ height: `${Math.max(pct, 5)}%` }}
+                                />
+                                <span className="text-[10px] text-slate-500">★{rating}</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Skill Points Economy Section (When available) */}
+            {metrics?.skillPoints && (
+              <div className="mt-8 bg-white border rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-xl">Skill Points Economy</h2>
+                      <p className="text-xs text-gray-500">Token circulation, escrow balances, and distribution reasons</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                    <span className="text-xs text-slate-500 block">In Circulation</span>
+                    <span className="text-xl md:text-2xl font-bold text-slate-800">{metrics.skillPoints.inCirculation.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-4">
+                    <span className="text-xs text-amber-700 block">In Escrow</span>
+                    <span className="text-xl md:text-2xl font-bold text-amber-700">{metrics.skillPoints.inEscrow.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-sky-50/50 border border-sky-100 rounded-xl p-4">
+                    <span className="text-xs text-sky-700 block">Available</span>
+                    <span className="text-xl md:text-2xl font-bold text-sky-700">{metrics.skillPoints.available.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4">
+                    <span className="text-xs text-emerald-700 block">Net Issued</span>
+                    <span className="text-xl md:text-2xl font-bold text-emerald-700">{metrics.skillPoints.netIssued.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {metrics.skillPoints.byReason && metrics.skillPoints.byReason.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Breakdown By Reason</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {metrics.skillPoints.byReason.map((item) => (
+                        <div key={item.reason} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                          <span className="font-mono text-xs text-gray-700 font-medium">{item.reason}</span>
+                          <div className="flex gap-4 text-xs font-semibold">
+                            <span className="text-emerald-600">+{item.earned.toLocaleString()} earned</span>
+                            <span className="text-rose-500">-{item.spent.toLocaleString()} spent</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
+            )}
 
           </div>
         </div>

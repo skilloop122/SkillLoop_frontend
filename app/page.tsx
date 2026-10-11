@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 // import React, { useState } from "react";
 // import Image from "next/image";
@@ -532,8 +532,45 @@ export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [actionSlide, setActionSlide] = useState(0);
   const [exploreSlide, setExploreSlide] = useState(0);
+  const [liveStats, setLiveStats] = useState<{
+    activeLearners?: number;
+    skillsTaught?: number;
+    sessionsCompleted?: number;
+  } | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveStats = async () => {
+      try {
+        const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/?$/, "/");
+        const res = await fetch(`${apiBase}public/counts`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (isMounted && json?.data) {
+          const { numeric, counts, breakdown } = json.data;
+          setLiveStats({
+            activeLearners: numeric?.activeLearners ?? counts?.activeLearners ?? breakdown?.learnersCount,
+            skillsTaught: numeric?.skillsTaught ?? counts?.skillsTaught ?? breakdown?.totalSkillsAvailable,
+            sessionsCompleted: numeric?.sessionsCompleted ?? counts?.sessionsCompleted ?? breakdown?.completedSessions,
+          });
+        }
+      } catch {
+        // Fall back gracefully to static values
+      }
+    };
 
+    fetchLiveStats();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const formatStatCount = (val: number | undefined, fallback: string) => {
+    if (val === undefined || val === null) return fallback;
+    if (val >= 1000000) return `${(val / 1000000).toFixed(1).replace(/\.0$/, "")}M+`;
+    if (val >= 1000) return `${(val / 1000).toFixed(1).replace(/\.0$/, "")}K+`;
+    return `${val}+`;
+  };
 
   // Monitor scroll for sticky navbar
   useEffect(() => {
@@ -732,9 +769,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 items-center">
             {[
-              ["5K+", "Active Learners"],
-              ["10K+", "Skills Taught"],
-              ["20K+", "Sessions Completed"],
+              [formatStatCount(liveStats?.activeLearners, "5K+"), "Active Learners"],
+              [formatStatCount(liveStats?.skillsTaught, "10K+"), "Skills Taught"],
+              [formatStatCount(liveStats?.sessionsCompleted, "20K+"), "Sessions Completed"],
             ].map(([value, label]) => (
               <div key={label} className="flex flex-col items-center text-center">
                 <span className="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-none mb-2">{value}</span>

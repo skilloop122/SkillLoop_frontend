@@ -64,9 +64,9 @@ function parseListing(raw: unknown): AdminUserListing {
   const parseSkills = (v: unknown): { id: string; name: string }[] =>
     Array.isArray(v)
       ? v.filter((s) => s && typeof s === "object").map((s) => {
-          const skill = s as Record<string, unknown>;
-          return { id: String(skill.id ?? ""), name: String(skill.name ?? "") };
-        })
+        const skill = s as Record<string, unknown>;
+        return { id: String(skill.id ?? ""), name: String(skill.name ?? "") };
+      })
       : [];
   return {
     id: String(r.id ?? ""),
@@ -285,9 +285,9 @@ export default function AdminUsersPage() {
           >
             <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
               <Users size={18} className="text-sky-500" />
-<span className="text-sky-700 font-semibold text-sm">
-                 {userSummary?.total ?? metrics?.summary?.total ?? "—"} Total
-               </span>
+              <span className="text-sky-700 font-semibold text-sm">
+                {userSummary?.total ?? metrics?.summary?.total ?? metrics?.overview?.totalUsers ?? "—"} Total
+              </span>
             </div>
             <button
               onClick={handleExport}
@@ -307,12 +307,12 @@ export default function AdminUsersPage() {
 
           {/* Stat Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-{[
-               { label: "Total Users", value: userSummary?.total ?? metrics?.summary?.total, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
-               { label: "Active Users", value: userSummary?.active ?? metrics?.summary?.active, icon: UserCheck, color: "text-green-500", bg: "bg-green-50" },
-               { label: "New Users", value: userSummary?.newUsers ?? metrics?.summary?.newUsers, icon: UserPlus, color: "text-blue-500", bg: "bg-blue-50" },
-               { label: "Inactive Users", value: userSummary?.inactive ?? metrics?.summary?.inactive, icon: UserRoundMinus, color: "text-red-500", bg: "bg-red-50" },
-             ].map((card) => (
+            {[
+              { label: "Total Users", value: userSummary?.total ?? metrics?.summary?.total ?? metrics?.overview?.totalUsers, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
+              { label: "Active Users", value: userSummary?.active ?? metrics?.summary?.active ?? metrics?.overview?.activeUsersInWindow, icon: UserCheck, color: "text-green-500", bg: "bg-green-50" },
+              { label: "New Users", value: userSummary?.newUsers ?? metrics?.summary?.newUsers ?? metrics?.overview?.newUsers, icon: UserPlus, color: "text-blue-500", bg: "bg-blue-50" },
+              { label: "Inactive Users", value: userSummary?.inactive ?? metrics?.summary?.inactive ?? metrics?.overview?.totalInactiveUsers, icon: UserRoundMinus, color: "text-red-500", bg: "bg-red-50" },
+            ].map((card) => (
               <div key={card.label} className="bg-white border rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.bg}`}>
@@ -485,11 +485,10 @@ export default function AdminUsersPage() {
                         {user.role}
                       </span>
                       {user.status && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          user.status === "active"
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${user.status === "active"
                             ? "bg-green-50 text-green-600 border border-green-300"
                             : "bg-red-50 text-red-500 border border-red-300"
-                        }`}>
+                          }`}>
                           {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                         </span>
                       )}

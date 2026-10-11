@@ -9,6 +9,8 @@ import {
   Mail,
   File,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/lib/adminAuthStore";
 import { useAdminMetricsStore } from "@/lib/adminMetricsStore";
@@ -32,7 +34,7 @@ interface RequestListing {
 }
 
 const STATUS_OPTIONS = ["all", "pending", "approved", "canceled"] as const;
-const CATEGORY_OPTIONS = ["all", "Design & PM", "Frontend", "Backend","Management"] as const;
+// const CATEGORY_OPTIONS = ["all", "Design & PM", "Frontend", "Backend","Management"] as const;
 const DEMAND_OPTIONS = ["all", "high", "medium", "low"] as const;
 
 const DEMAND_COLORS: Record<string, string> = {
@@ -103,6 +105,7 @@ export default function AdminRequestsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [demandFilter, setDemandFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
   const requestsList = useMemo(() => apiRequests.map(mapRequestToUI), [apiRequests]);
 
   const filtered = useMemo(() => {
@@ -116,6 +119,23 @@ export default function AdminRequestsPage() {
       return matchesSearch && matchesStatus && matchesCategory && matchesDemand;
     });
   }, [requestsList, search, statusFilter, categoryFilter, demandFilter]);
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    requestsList.forEach((r) => {
+      if (r.category) set.add(r.category);
+    });
+    return Array.from(set).sort();
+  }, [requestsList]);
 
   useEffect(() => {
     if (hydrated && token) {
@@ -131,9 +151,11 @@ export default function AdminRequestsPage() {
   }, [hydrated, token, router]);
 
   const requests = metrics?.requests;
-  const total = requests
-    ? Object.values(requests).reduce((a, b) => a + b, 0)
-    : 0;
+  const total =
+    metrics?.overview?.totalRequests ??
+    (requests
+      ? Object.values(requests).reduce((a, b) => a + b, 0)
+      : requestsList.length);
 
   if (!hydrated || authLoading) {
     return (
@@ -159,7 +181,7 @@ export default function AdminRequestsPage() {
             <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 flex items-center gap-2">
               <Mail size={18} className="text-sky-500" />
               <span className="text-sky-700 font-semibold text-sm">
-                {metricsLoading ? "—" : metrics?.overview?.totalRequests ?? "—"} Total Requests
+                {metricsLoading ? "—" : total} Total Requests
               </span>
             </div>
           </AdminHeader>
@@ -172,11 +194,13 @@ export default function AdminRequestsPage() {
               if (key === "all") {
                 value = total;
               } else if (key === "pending") {
-                value = requests?.pending ?? 0;
+                value = requests?.pending ?? requestsList.filter((r) => r.status === "pending").length;
               } else if (key === "approved") {
-                value = requests?.accepted ?? 0;
+                value = requests?.accepted ?? requestsList.filter((r) => r.status === "approved").length;
               } else if (key === "canceled") {
-                value = (requests?.canceled ?? 0) + (requests?.rejected ?? 0);
+                value = requests
+                  ? (requests?.canceled ?? 0) + (requests?.rejected ?? 0)
+                  : requestsList.filter((r) => r.status === "canceled").length;
               }
               const pct = total > 0 ? ((value / total) * 100).toFixed(0) : "0";
               const Icon = cfg.icon;
@@ -204,14 +228,20 @@ export default function AdminRequestsPage() {
                   type="text"
                   placeholder="Search requester or skill…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm"
                 />
               </div>
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Status</option>
@@ -222,18 +252,24 @@ export default function AdminRequestsPage() {
 
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
-                {CATEGORY_OPTIONS.filter((c) => c !== "all").map((c) => (
+                {availableCategories.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
 
               <select
                 value={demandFilter}
-                onChange={(e) => setDemandFilter(e.target.value)}
+                onChange={(e) => {
+                  setDemandFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-sky-300 text-sm bg-white appearance-none cursor-pointer"
               >
                 <option value="all">All Demand</option>
@@ -251,7 +287,7 @@ export default function AdminRequestsPage() {
                   <p className="text-sm">No requests match your filters</p>
                 </div>
               ) : (
-                filtered.map((req) => {
+                paginatedRequests.map((req) => {
                   const sc = STATUS_CONFIG[req.status];
                   const StatusIcon = sc.icon;
                   const dc = DEMAND_COLORS[req.demand];
@@ -312,7 +348,7 @@ export default function AdminRequestsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((req) => {
+                    paginatedRequests.map((req) => {
                       const sc = STATUS_CONFIG[req.status];
                       const StatusIcon = sc.icon;
                       const dc = DEMAND_COLORS[req.demand];
@@ -363,9 +399,41 @@ export default function AdminRequestsPage() {
               </table>
             </div>
 
+            {/* Pagination & Footer */}
             {!metricsLoading && filtered.length > 0 && (
-              <div className="px-5 py-3 border-t text-sm text-gray-500">
-                Showing {filtered.length} of {requestsList.length} requests
+              <div className="px-5 py-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50">
+                <span className="text-sm text-gray-500">
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} of{" "}
+                  {filtered.length} requests
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage <= 1}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Prev</span>
+                  </button>
+
+                  <span className="text-sm font-medium text-gray-700 px-2">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
