@@ -25,7 +25,7 @@ export const DEFAULT_JITSI_DOMAIN = "meet.jit.si";
  * available. Jitsi needs no account or server-side provisioning — any room name
  * works — so both participants derive the same room from the (cryptographically
  * random) session id. A backend launch response always takes precedence once it
- * exists, so this is a strict fallback.
+ * exists, so fallback is only used when the launch response is unavailable.
  */
 export function buildFallbackJitsiLaunch(sessionId: string): JitsiLaunch {
   const roomName = `SkillLoop_${sessionId.replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -49,6 +49,34 @@ const launchPath = (sessionId: string) => `sessions/${sessionId}/launch`;
 // of the page session. This avoids a failed request per room open while the
 // backend endpoint is still unimplemented.
 let launchRouteMissing = false;
+
+/**
+ * Converts an untrusted launch response into the props required by
+ * `JitsiMeeting`. In particular, `roomName` must be present: the Jitsi SDK
+ * calls `.split()` on it while mounting.
+ */
+function parseJitsiLaunch(data: Record<string, unknown>): JitsiLaunch | null {
+  if (data.provider !== "JITSI" || typeof data.roomName !== "string" || !data.roomName.trim()) {
+    return null;
+  }
+
+  return {
+    provider: "JITSI",
+    role: data.role === "HOST" ? "HOST" : "ATTENDEE",
+    roomName: data.roomName.trim(),
+    domain:
+      typeof data.domain === "string" && data.domain.trim()
+        ? data.domain.trim()
+        : DEFAULT_JITSI_DOMAIN,
+    ...(typeof data.url === "string" ? { url: data.url } : {}),
+    ...(typeof data.displayName === "string" ? { displayName: data.displayName } : {}),
+    ...(isRecord(data.config) ? { config: data.config } : {}),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 /**
  * Resolves the video configuration for a session through the unified launch
@@ -92,7 +120,7 @@ export async function fetchSessionLaunch(
     };
   }
 
-  let data: Record<string, unknown>;
+  let data: unknown;
   try {
     data = await response.json();
   } catch {
@@ -100,19 +128,22 @@ export async function fetchSessionLaunch(
   }
 
   if (!response.ok) {
+    const errorData = isRecord(data) ? data : {};
     return {
       success: false,
       message:
-        (data?.message as string) ||
-        (data?.error as string) ||
+        (typeof errorData.message === "string" ? errorData.message : undefined) ||
+        (typeof errorData.error === "string" ? errorData.error : undefined) ||
         "Failed to start the session.",
     };
   }
 
-  if (data?.provider !== "JITSI" && data?.provider !== "ZOOM") {
-    return { success: false, message: "Failed to start the session." };
+  const launch = isRecord(data) ? parseJitsiLaunch(data) : null;
+  if (!launch) {
+    // If the backend response is not a valid Jitsi launch, fall back to the
+    // deterministic room used by both attendees.
+    return { success: true, data: buildFallbackJitsiLaunch(sessionId) };
   }
 
-  return { success: true, data: data as unknown as SessionLaunch };
+  return { success: true, data: launch };
 }
-

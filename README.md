@@ -69,12 +69,7 @@ The platform includes a full user-facing app (browse matches, request sessions, 
 
 **Solution:** Updated the Upcoming filter to exclude requests where `session.status === "completed"`. The Completed tab now includes sessions with `session.status === "completed"` regardless of request status.
 
-### 8. Web SDK Script Loading Failed
-**Problem:** The code hardcoded Zoom CDN path `2.18.0` which no longer exists (returns 403). The actual SDK version is 6.2.0 with different file paths.
-
-**Solution:** Updated `ZoomMtg.setZoomJSLib()` to point to `https://source.zoom.us/6.2.0/lib` with the correct vendor path structure. Verified all 7 SDK assets (vendor JS + WASM) return 200.
-
-### 9. Admin Had No Technical Skill Management
+### 8. Admin Had No Technical Skill Management
 **Problem:** The backend exposed `POST /admin/technical-skills`, `PUT`, and `DELETE` endpoints, but there was no frontend UI to manage the skill catalog.
 
 **Solution:** Built a complete technical skills management section in the admin skills page with a list modal (search, refresh, edit, delete) and a create/edit form modal. Created a dedicated Zustand store for CRUD operations.
