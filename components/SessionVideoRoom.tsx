@@ -89,7 +89,7 @@ export function SessionVideoRoom({ sessionId, isHost, onSessionComplete }: Sessi
           displayName:
             launch.displayName ||
             [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-            user?.email?.split("@")[0] ||
+            (user?.email ? user.email.split("@")[0] : undefined) ||
             "SkilLoop Participant",
           email: user?.email ?? "",
         }}
