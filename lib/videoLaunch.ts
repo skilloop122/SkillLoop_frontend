@@ -109,7 +109,7 @@ export async function fetchSessionLaunch(
     };
   }
 
-  if (data?.provider !== "JITSI") {
+  if (data?.provider !== "JITSI" && data?.provider !== "ZOOM") {
     return { success: false, message: "Failed to start the session." };
   }
 

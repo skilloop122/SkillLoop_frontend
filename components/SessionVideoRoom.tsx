@@ -63,6 +63,7 @@ export function SessionVideoRoom({ sessionId, isHost, onSessionComplete }: Sessi
   }
 
   if (error && !launch) {
+    console.log(error, "<--------------------------------------------------------");
     return (
       <div className="mx-auto max-w-md rounded-2xl bg-red-50 p-8 text-center">
         <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
@@ -90,7 +91,7 @@ export function SessionVideoRoom({ sessionId, isHost, onSessionComplete }: Sessi
             [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
             user?.email?.split("@")[0] ||
             "SkilLoop Participant",
-          email: user?.email || "",
+          email: user?.email ?? "",
         }}
         onReadyToClose={() => onSessionComplete?.()}
         getIFrameRef={handleIframeRef}
