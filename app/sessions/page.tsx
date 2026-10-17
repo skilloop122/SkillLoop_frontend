@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Star, Clock, Loader2, CheckCircle, Video } from "lucide-react";
+import { Star, Clock, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { UserAvatar } from "../../components/UserAvatar";
-import { useRouter } from "next/navigation";
-import { useRequestStore } from "../../lib/requestStore";
+// import { useRouter } from "next/navigation";
+import { useRequestStore, withZoomPasscode } from "../../lib/requestStore";
 import { useAuthStore } from "../../lib/authStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
+import ZoomPasscode from "../../components/ZoomPasscode";
 import SessionCountdown from "../../components/SessionCountdown";
 import { useSessionLifecycle } from "../../lib/useSessionLifecycle";
 
 
 
 export default function SessionsPage() {
-  const router = useRouter();
+  // const router = useRouter();
   const { hydrated, token, user } = useAuthStore();
   const { sentRequests, receivedRequests, sessions, requestsLoading, fetchRequests, fetchSessions, updateRequestStatus, completeSession, submitFeedback } = useRequestStore();
   const { byUser, fetchFeedbackForUser } = useUserFeedbackStore();
@@ -134,6 +135,12 @@ export default function SessionsPage() {
         ...req.session,
         id: sessionId,
         scheduledAt: apiScheduledAt,
+        ...(sessionMatch ? {
+          zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
+          zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
+          zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
+          zoomStartUrl: sessionMatch.zoomStartUrl || req.session?.zoomStartUrl,
+        } : {}),
       },
     };
   });
@@ -273,15 +280,53 @@ export default function SessionsPage() {
                             />
                           </div>
                           <p className="text-xs text-slate-400">Session Lasts for 15 minutes</p>
+                          {session.session?.zoomPassword && (
+                            <ZoomPasscode
+                              passcode={session.session.zoomPassword}
+                              className="mt-2"
+                            />
+                          )}
                           <div className="flex flex-wrap gap-2 mt-4">
-                            {session.session?.id && (
+                            {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) && (
+                              <>
+                                {session.session?.zoomJoinUrl ? (
+                                  <button
+                                    onClick={() => {
+                                      const target =
+                                        session.isProvider && session.session?.zoomStartUrl
+                                          ? session.session.zoomStartUrl
+                                          : session.session!.zoomJoinUrl;
+                                      window.open(
+                                        withZoomPasscode(target, session.session?.zoomPassword),
+                                        "_blank",
+                                      );
+                                    }}
+                                    className="flex-1 min-w-32.5 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                                  >
+                                    <ExternalLink size={14} />
+                                    {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
+                                  </button>
+                                ) : null}
+                                {/* {session.session?.zoomMeetingId ? (
                               <button
-                                onClick={() => router.push(`/sessions/${session.session!.id}/video`)}
-                                className="flex-1 min-w-32.5 py-2 border border-sky-300 text-sky-600 rounded-lg text-sm font-bold hover:bg-sky-50 transition-colors flex items-center justify-center gap-1.5"
+                                onClick={() => {
+                                  const params = new URLSearchParams();
+                                  if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
+                                  if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
+                                  if (session.skillListing?.title) params.set("topic", session.skillListing.title);
+                                  if (session.isProvider && session.session?.zoomStartUrl) {
+                                    params.set("role", "1");
+                                    const zak = new URL(session.session.zoomStartUrl, window.location.origin).searchParams.get("zak");
+                                    if (zak) params.set("zak", zak);
+                                  }
+                                  router.push("/sessions/live?" + params.toString());
+                                }}
+                                className="flex-1 min-w-32.5 py-2 bg-sky-500 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-sky-400 transition-colors flex items-center justify-center gap-1.5"
                               >
-                                <Video size={14} />
-                                {session.isProvider ? "Start Session" : "Join Call"}
+                                {session.isProvider ? "Start in App" : "Join in App"}
                               </button>
+                            ) : null} */}
+                              </>
                             )}
                             <button
                               onClick={() => handleCompleteSession(session.session?.id || session.id, "completed")}
