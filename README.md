@@ -2,13 +2,13 @@
 
 > A peer-to-peer skill exchange platform where users trade what they know for what they need. Your skills are your currency.
 
-SkilLoop connects people who want to learn with people who can teach through 15-minute live Zoom sessions — no money involved. This repository contains the full frontend application built with Next.js 16, React 19, TypeScript, and Tailwind CSS v4.
+SkilLoop connects people who want to learn with people who can teach through 15-minute live video sessions — no money involved. This repository contains the full frontend application built with Next.js 16, React 19, TypeScript, and Tailwind CSS v4.
 
 ---
 
 ## Project Overview
 
-SkilLoop is built for African talent to exchange skills without spending money. A user signs up, lists skills they can teach, defines what they want to learn, and gets matched with peers. When both sides agree, a 15-minute live Zoom session is scheduled inside the browser.
+SkilLoop is built for African talent to exchange skills without spending money. A user signs up, lists skills they can teach, defines what they want to learn, and gets matched with peers. When both sides agree, a 15-minute live video session is scheduled inside the browser.
 
 The platform includes a full user-facing app (browse matches, request sessions, join live calls, manage profiles, track points) and a complete admin portal (user management, session oversight, feedback review, skill catalog management, analytics dashboard).
 
@@ -26,7 +26,7 @@ The platform includes a full user-facing app (browse matches, request sessions, 
 | Animations | Framer Motion |
 | Icons | Lucide React + React Icons |
 | Charts | Recharts |
-| Video Calls | Zoom Meetings Web SDK 6.2.0 |
+| Video Calls | Jitsi Meet (`@jitsi/react-sdk`) |
 | Auth | Supabase Auth (Email/Password + Google OAuth) |
 | Backend API | Express.js on Render (`skillloop-api.onrender.com`) |
 
@@ -40,29 +40,29 @@ The platform includes a full user-facing app (browse matches, request sessions, 
 **Solution:** Built a searchable, filterable explore page (`/explore`) that pulls user matches from the API. Each match card shows what someone teaches, what they're learning, and a star rating. One-tap session requests.
 
 ### 2. Scheduling Live Sessions Was Painful
-**Problem:** Coordinating meeting times between two strangers required back-and-forth messaging, external calendar links, and manual Zoom link sharing.
+**Problem:** Coordinating meeting times between two strangers required back-and-forth messaging and external calendar links.
 
-**Solution:** Integrated provider availability directly into the request flow. The requester picks a day and time slot from the provider's defined schedule, and the backend auto-provisions a Zoom meeting. The host gets a Start URL; the requester gets a Join URL. No copy-pasting links.
+**Solution:** Integrated provider availability directly into the request flow. The requester picks a day and time slot from the provider's defined schedule, and the room is resolved when the session starts. Both participants land in the same room without copy-pasting links.
 
 ### 3. No In-Browser Meeting Experience
-**Problem:** Users had to install the Zoom desktop app to join sessions, creating friction especially on mobile and in restricted environments.
+**Problem:** Requiring users to install a desktop app to join sessions created friction, especially on mobile and in restricted environments.
 
-**Solution:** Embedded the Zoom Web SDK 6.2.0 directly into `/sessions/live`. Users join meetings in the browser without installing anything. Dynamic script loading, WASM preloading, and proper host/requester role handling (host uses ZAK token for start, requester uses join URL).
+**Solution:** Embedded Jitsi Meet directly in `/sessions/[id]/video`. Users join meetings in the browser without installing anything, and both participants derive the same room from the session id.
 
-### 4. Requester Couldn't See Zoom Join Details
-**Problem:** After a session was scheduled, the requester had no access to the Zoom meeting ID, join URL, or password — the backend was stripping these fields from the response.
+### 4. Meeting Details Were Unavailable to Participants
+**Problem:** After a session was scheduled, some participants had no access to the meeting link or role, so they could not join reliably.
 
-**Solution:** Added `zoomMeetingId`, `zoomJoinUrl`, and `zoomPassword` to the session select in the backend's `getRequests` controller. The frontend now surfaces Zoom buttons for both roles.
+**Solution:** The session room resolves its launch configuration through the unified `GET /sessions/:id/launch` endpoint, falling back to a locally-derived Jitsi room while that endpoint is being finalised.
 
-### 5. Host Couldn't Start the Meeting
-**Problem:** Both the host and requester received the same `zoomJoinUrl`. The host needs a `zoomStartUrl` with role=1 to start the meeting, but it wasn't being exposed.
+### 5. Hosts and Attendees Needed Different Roles
+**Problem:** Hosting and attending a session require different capabilities inside the meeting.
 
-**Solution:** Added `zoomStartUrl` to the session payload, restricted it to the provider role only (deleted from requester payloads in the controller). Built role-aware buttons: providers see "Start in Zoom" / "Start in App", requesters see "Open in Zoom" / "Join in App".
+**Solution:** The room receives an `isHost` flag derived from the request role, so the launch response can grant the correct Jitsi role (HOST vs ATTENDEE) to each participant.
 
-### 6. "Start in App" Failed as Host
-**Problem:** The Web SDK's `join()` with `role=1` requires a user-level ZAK token (`/users/me/token?type=zak`). The legacy ZAK embedded in the start URL had an audience for the desktop client and was rejected by the Web SDK.
+### 6. Session Completion and Feedback Were Missing
+**Problem:** The flow ended when a call finished, with no way to record that the session happened or collect feedback.
 
-**Solution:** Built a backend endpoint `GET /zoom/zak` that fetches a fresh user-level ZAK (tries `users/me/token?type=zak`, falls back to `users/me/zak`). The frontend fetches this token at meeting start when the user is the host and passes it to the SDK.
+**Solution:** Built session completion and a star-rating feedback form into the session room, backed by `PATCH /sessions/:id/complete` and `POST /sessions/:id/feedback`.
 
 ### 7. Completed Sessions Appeared in Upcoming Tab
 **Problem:** The frontend keyed tab visibility on request status (`ACCEPTED`, `PENDING`, etc.), but marking a session complete only changes the session status — not the request status. Completed sessions were stuck in "Upcoming".
@@ -97,7 +97,7 @@ The platform includes a full user-facing app (browse matches, request sessions, 
 | Explore Matches | `/explore` | Search/filter matches, view profiles |
 | Request Session | `/explore/request` | Pick skill, date, time slot, send message |
 | Sessions | `/sessions` | Tabbed view: Upcoming, Pending, Completed, Canceled |
-| Live Meeting | `/sessions/live` | In-browser Zoom SDK 6.2.0, host/requester roles |
+| Live Meeting | `/sessions/[id]/video` | In-browser Jitsi Meet, host/attendee roles |
 | Projects | `/projects` | Browse, join, workspace, completed projects |
 | Profile | `/profile` | View, edit, preview, view others |
 | Feedback | (modal) | Star rating + comment after session completion |
@@ -120,9 +120,9 @@ The platform includes a full user-facing app (browse matches, request sessions, 
 
 ## Results Achieved
 
-- **Zero-install video meetings** — Users join Zoom calls in the browser via Web SDK, removing the desktop app dependency.
+- **Zero-install video meetings** — Users join Jitsi Meet calls in the browser, removing the desktop app dependency.
 - **End-to-end session lifecycle** — From discovery to scheduling to live call to feedback, the entire flow works without leaving the platform.
-- **Role-aware Zoom integration** — Hosts get Start URLs + ZAK tokens; requesters get Join URLs. Each role sees the correct buttons.
+- **Role-aware video integration** — Hosts and attendees receive the correct Jitsi role for their session.
 - **Real-time session status** — Tabs sync correctly with backend session status. Completed sessions move to the right tab immediately.
 - **Full admin control** — Admins can manage users, sessions, requests, feedback, skill listings, and the technical skills catalog through a responsive dashboard.
 - **Type-safe codebase** — Strict TypeScript across all 40+ pages and 13 Zustand stores. `npx tsc --noEmit` passes cleanly.
@@ -177,7 +177,7 @@ SkillLoop_frontend/
 │   ├── auth/callback/        # OAuth callback
 │   ├── home/                 # Dashboard + history
 │   ├── explore/              # Match discovery + session requests
-│   ├── sessions/             # Session tabs + live Zoom room
+│   ├── sessions/             # Session tabs + live video room
 │   ├── projects/             # Projects browse/workspace/completed
 │   ├── profile/              # Profile view/edit/preview
 │   └── admin/                # Full admin portal
@@ -197,7 +197,7 @@ SkillLoop_frontend/
 ├── lib/
 │   ├── authStore.ts          # User authentication
 │   ├── profileStore.ts       # Profile + matching
-│   ├── requestStore.ts       # Requests + Zoom integration
+│   ├── requestStore.ts       # Requests + session video launch
 │   ├── skillsStore.ts        # Skills catalog
 │   ├── adminAuthStore.ts     # Admin authentication
 │   ├── adminMetricsStore.ts  # Admin analytics
@@ -220,9 +220,9 @@ SkillLoop_frontend/
 
 - **Zustand over Context** — 13 stores with `persist` for auth. Avoids deep provider trees and works naturally with Next.js App Router client components.
 - **App Router exclusively** — All pages use `"use client"` with client-side data fetching via stores. Server components used only for layouts.
-- **Dynamic SDK loading** — Zoom vendor scripts (React, ReactDOM, Redux, Lodash) loaded at runtime to avoid SSR conflicts and reduce initial bundle size.
+- **Embedded video** — Jitsi Meet is mounted client-side through `@jitsi/react-sdk`, keeping meeting logic out of the server render path.
 - **API base via env var** — `NEXT_PUBLIC_API_URL` lets the same code run against local, staging, or production backends without changes.
-- **Role-aware UI** — Zoom buttons, session actions, and data visibility all adapt based on whether the current user is the provider or requester.
+- **Role-aware UI** — Session actions and data visibility all adapt based on whether the current user is the provider or requester.
 
 ---
 

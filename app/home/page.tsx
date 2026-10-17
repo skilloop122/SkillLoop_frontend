@@ -7,12 +7,11 @@ import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
 import { useAuthStore } from "../../lib/authStore";
 import { useProfileStore } from "../../lib/profileStore";
-import { useRequestStore, withZoomPasscode } from "../../lib/requestStore";
+import { useRequestStore } from "../../lib/requestStore";
 import { usePointsStore } from "../../lib/pointsStore";
 import { useUserFeedbackStore } from "../../lib/userFeedbackStore";
 import { useNotificationStore } from "../../lib/notificationStore";
 import { UserAvatar } from "../../components/UserAvatar";
-import ZoomPasscode from "../../components/ZoomPasscode";
 import SessionCountdown from "../../components/SessionCountdown";
 import { useRouter } from "next/navigation";
 
@@ -20,7 +19,7 @@ export default function HomePage() {
   const router = useRouter();
   const { user, hydrated, token } = useAuthStore();
   const { profile, fetchProfile, loading: profileLoading } = useProfileStore();
-  const { sentRequests, receivedRequests, sessions, requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
+  const { sentRequests, receivedRequests, requestsLoading, fetchRequests, fetchSessions, updateRequestStatus } = useRequestStore();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
@@ -51,22 +50,10 @@ const loadData = useCallback(async () => {
     ...receivedRequests.filter(r => r.status?.toLowerCase() === "accepted" && r.session?.status?.toLowerCase() !== "completed").map(r => ({ ...r, type: "received" as const }))
   ], [sentRequests, receivedRequests]);
 
-  const upcomingSessions = useMemo(() => upcomingRequests.map((req) => {
-    const sessionMatch = sessions.find(s => s.requestId === req.id || s.request?.id === req.id);
-    return {
-      ...req,
-      isProvider: user?.id === req.providerId,
-      session: {
-        ...req.session,
-        ...(sessionMatch ? {
-          zoomMeetingId: sessionMatch.zoomMeetingId || req.session?.zoomMeetingId,
-          zoomPassword: sessionMatch.zoomPassword || req.session?.zoomPassword,
-          zoomJoinUrl: sessionMatch.zoomJoinUrl || req.session?.zoomJoinUrl,
-          zoomStartUrl: sessionMatch.zoomStartUrl || req.session?.zoomStartUrl,
-        } : {}),
-      },
-    };
-  }), [upcomingRequests, sessions, user?.id]);
+  const upcomingSessions = useMemo(() => upcomingRequests.map((req) => ({
+    ...req,
+    isProvider: user?.id === req.providerId,
+  })), [upcomingRequests, user?.id]);
 
   const pendingReceived = useMemo(() => receivedRequests.filter(r => r.status?.toLowerCase() === "pending"), [receivedRequests]);
   const pendingSent = useMemo(() => sentRequests.filter(r => r.status?.toLowerCase() === "pending"), [sentRequests]);
@@ -251,12 +238,6 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                       </p>
                     </div>
                   </div>
-                  {session.session?.zoomPassword && (
-                    <ZoomPasscode
-                      passcode={session.session.zoomPassword}
-                      className="mt-3"
-                    />
-                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5 text-slate-500">
@@ -268,46 +249,14 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                         className="ml-1"
                       />
                     </div>
-                    {(session.session?.zoomMeetingId || session.session?.zoomJoinUrl) ? (
-                      <div className="flex gap-2">
-                        {session.session?.zoomJoinUrl ? (
-                          <button
-                            onClick={() => {
-                              const target =
-                                session.isProvider && session.session?.zoomStartUrl
-                                  ? session.session.zoomStartUrl
-                                  : session.session!.zoomJoinUrl;
-                              window.open(
-                                withZoomPasscode(target, session.session?.zoomPassword),
-                                "_blank",
-                              );
-                            }}
-                            className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
-                          >
-                            {session.isProvider ? "Start in Zoom" : "Open in Zoom"}
-                          </button>
-                        ) : null}
-                        {/* {session.session?.zoomMeetingId ? (
-                          <button
-                            onClick={() => {
-                              const params = new URLSearchParams();
-                              if (session.session?.zoomMeetingId) params.set("meetingId", session.session.zoomMeetingId);
-                              if (session.session?.zoomPassword) params.set("password", session.session.zoomPassword);
-                              if (session.skillListing?.title) params.set("topic", session.skillListing.title);
-                              if (session.isProvider && session.session?.zoomStartUrl) {
-                                params.set("role", "1");
-                                const zak = new URL(session.session.zoomStartUrl, window.location.origin).searchParams.get("zak");
-                                if (zak) params.set("zak", zak);
-                              }
-                              router.push("/sessions/live?" + params.toString());
-                            }}
-                            className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded-[6px] text-sm transition-colors"
-                          >
-                            {session.isProvider ? "Start in App" : "Join in App"}
-                          </button>
-                        ) : null} */}
-                      </div>
-                    ) : null}
+                    {session.session?.id && (
+                      <button
+                        onClick={() => router.push(`/sessions/${session.session!.id}/video`)}
+                        className="bg-white border border-[#0ea5e9] text-[#0ea5e9] font-medium py-1.5 px-3 rounded-[6px] text-sm hover:bg-sky-50 transition-colors"
+                      >
+                        {session.isProvider ? "Start Session" : "Join Call"}
+                      </button>
+                    )}
                   </div>
                 </div>
               )) : (
