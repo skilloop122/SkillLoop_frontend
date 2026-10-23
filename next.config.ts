@@ -2,12 +2,12 @@ import type { NextConfig } from "next";
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so;
-  style-src 'self' 'unsafe-inline';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc;
+  style-src 'self' 'unsafe-inline' https://meet.jit.si https://*.jit.si;
   img-src 'self' data: blob: https:;
-  font-src 'self' data:;
-  connect-src 'self' https:;
-  frame-src 'self' https://tally.so;
+  font-src 'self' data: https://meet.jit.si https://*.jit.si;
+  connect-src 'self' https: wss:;
+  frame-src 'self' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc;
   frame-ancestors 'self';
   object-src 'none';
   base-uri 'self';
@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+              "camera=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), microphone=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), display-capture=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
           },
         ],
       },

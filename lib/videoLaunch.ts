@@ -8,6 +8,7 @@ export interface JitsiLaunch {
   roomName: string;
   url?: string;
   domain: string;
+  jwt?: string;
   displayName?: string;
   config?: Record<string, unknown>;
 }
@@ -18,7 +19,9 @@ export type LaunchResult =
   | { success: true; data: SessionLaunch }
   | { success: false; message: string; routeMissing?: boolean };
 
-export const DEFAULT_JITSI_DOMAIN = "meet.jit.si";
+export const DEFAULT_JITSI_DOMAIN =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_JITSI_DOMAIN) ||
+  "meet.jit.si";
 
 /**
  * Builds a Jitsi room locally for when the backend launch endpoint is not yet
@@ -69,6 +72,7 @@ function parseJitsiLaunch(data: Record<string, unknown>): JitsiLaunch | null {
         ? data.domain.trim()
         : DEFAULT_JITSI_DOMAIN,
     ...(typeof data.url === "string" ? { url: data.url } : {}),
+    ...(typeof data.jwt === "string" ? { jwt: data.jwt } : {}),
     ...(typeof data.displayName === "string" ? { displayName: data.displayName } : {}),
     ...(isRecord(data.config) ? { config: data.config } : {}),
   };
