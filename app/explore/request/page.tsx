@@ -52,9 +52,7 @@ function RequestSessionContent() {
     createRequest,
     loading: requestLoading,
     /*error: requestError*/
-    checkZoomStatus,
     fetchSkillSlots,
-    zoomStatus,
   } = useRequestStore();
   const { fetchSkillListings, listings, loading: skillsLoading } = useSkillsStore();
   const [toastMsg, setToastMsg] = useState("");
@@ -114,14 +112,13 @@ function RequestSessionContent() {
   // for listings, turning one slow endpoint into three stacked latencies.
   useEffect(() => {
     if (!matchId) return;
-    void checkZoomStatus();
     void fetchPublicProfile(matchId);
     // The explore grid already loads these listings, so reuse them instead of
     // refetching when they are present in the store.
     if (useSkillsStore.getState().listings.length === 0) {
       void fetchSkillListings({ limit: 200 });
     }
-  }, [matchId, checkZoomStatus, fetchPublicProfile, fetchSkillListings]);
+  }, [matchId, fetchPublicProfile, fetchSkillListings]);
 
   // Derive teach skills straight from store data rather than copying them into
   // local state, which removed a render cycle and a visible flash of empty UI.
@@ -310,16 +307,6 @@ function RequestSessionContent() {
                   {requestError}
                 </div>
               )} */}
-
-              {zoomStatus && (
-                <div className={`mb-6 p-4 rounded-xl border text-sm flex items-start gap-3 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-amber-50 border-amber-100 text-amber-700"}`}>
-                  <span className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${zoomStatus.connected && zoomStatus.isConfigured ? "bg-emerald-500" : "bg-amber-400"}`} />
-                  <div>
-                    <p className="font-semibold mb-0.5">{zoomStatus.connected && zoomStatus.isConfigured ? "Zoom integration is active" : "Zoom not connected"}</p>
-                    <p className="font-normal">{zoomStatus.message}</p>
-                  </div>
-                </div>
-              )}
 
               <form onSubmit={handleConfirmSession}>
                 <div className="mb-6">

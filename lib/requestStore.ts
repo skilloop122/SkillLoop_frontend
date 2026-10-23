@@ -42,10 +42,6 @@ export interface SessionRequest {
     id: string;
     status: string;
     scheduledAt: string;
-    zoomMeetingId?: string;
-    zoomPassword?: string;
-    zoomJoinUrl?: string;
-    zoomStartUrl?: string;
   };
   type?: "sent" | "received";
 }
@@ -55,45 +51,7 @@ export interface Session {
   requestId: string;
   status: string;
   scheduledAt: string;
-  zoomMeetingId?: string;
-  zoomPassword?: string;
-  zoomJoinUrl?: string;
-  zoomStartUrl?: string;
   request?: SessionRequest;
-}
-
-export interface ZoomStatus {
-  connected: boolean;
-  mode: string;
-  isConfigured: boolean;
-  message: string;
-}
-
-/**
- * Guarantees a Zoom join/start URL carries `pwd`, so a meeting never opens to a
- * passcode prompt. The backend embeds it in `zoomJoinUrl`, but the start URL and
- * any locally cached value can predate that fix, so this is applied at the point
- * of opening rather than trusted from a single source.
- */
-export function withZoomPasscode(
-  url: string | undefined | null,
-  passcode?: string | null,
-): string | undefined {
-  if (!url) return undefined;
-  if (!passcode) return url;
-  const queryAt = url.indexOf("?");
-  const base = queryAt === -1 ? url : url.slice(0, queryAt);
-  const params = new URLSearchParams(queryAt === -1 ? "" : url.slice(queryAt + 1));
-  if (!params.get("pwd")) params.set("pwd", passcode);
-  const query = params.toString();
-  return query ? `${base}?${query}` : base;
-}
-
-export interface ZoomSignature {
-  sdkKey: string;
-  signature: string;
-  meetingNumber: string;
-  role: number;
 }
 
 export interface SkillSlot {
@@ -116,7 +74,6 @@ interface RequestState {
   sentRequests: SessionRequest[];
   receivedRequests: SessionRequest[];
   sessions: Session[];
-  zoomStatus: ZoomStatus | null;
   fetchRequests: () => Promise<{ success: boolean; message?: string }>;
   fetchRequestById: (
     id: string,
@@ -124,20 +81,6 @@ interface RequestState {
   fetchSessions: () => Promise<{
     success: boolean;
     data?: Session[];
-    message?: string;
-  }>;
-  checkZoomStatus: () => Promise<{
-    success: boolean;
-    data?: ZoomStatus;
-    message?: string;
-  }>;
-  fetchZoomSignature: (
-    meetingNumber: string,
-    role?: number,
-  ) => Promise<{ success: boolean; data?: ZoomSignature; message?: string }>;
-  fetchZoomZak: () => Promise<{
-    success: boolean;
-    data?: { zak: string };
     message?: string;
   }>;
   updateRequestStatus: (
@@ -173,76 +116,6 @@ const API_BASE =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL
     : "";
-
-const ZOOM_CACHE_KEY = "SkilLoop-session-zoom-cache";
-
-interface SessionZoomCache {
-  [sessionId: string]: {
-    zoomMeetingId?: string;
-    zoomPassword?: string;
-    zoomJoinUrl?: string;
-    zoomStartUrl?: string;
-  };
-}
-
-function loadZoomCache(): SessionZoomCache {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(window.localStorage.getItem(ZOOM_CACHE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveZoomCache(cache: SessionZoomCache) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(ZOOM_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // ignore storage failures
-  }
-}
-
-/**
- * Merges cached values under fresh API values. The cache is only a gap-filler:
- * a session accepted before the backend began embedding `?pwd=` still has a
- * pre-fix URL cached, and that stale value must not keep winning. Empty and
- * null API values are treated as absent so a missing field falls back rather
- * than clobbering a good cached one with a blank.
- */
-function preferApiFields<TApi, TCached>(api: TApi, cached: TCached): TApi & TCached {
-  const merged: Record<string, unknown> = {
-    ...(cached as Record<string, unknown>),
-  };
-  for (const [key, value] of Object.entries(api as Record<string, unknown>)) {
-    if (value !== undefined && value !== null && value !== "") {
-      merged[key] = value;
-    }
-  }
-  return merged as TApi & TCached;
-}
-
-function enrichWithZoomCache<T extends { session?: SessionRequest["session"] }>(
-  item: T,
-  cache: SessionZoomCache,
-): T {
-  if (!item.session?.id) return item;
-  const zoom = cache[item.session.id];
-  if (!zoom) return item;
-  return {
-    ...item,
-    session: preferApiFields(item.session, zoom) as SessionRequest["session"],
-  };
-}
-
-function enrichSessionRecord(
-  session: Session,
-  cache: SessionZoomCache,
-): Session {
-  const zoom = cache[session.id];
-  if (!zoom) return session;
-  return preferApiFields(session, zoom);
-}
 
 /**
  * The documented `GET /requests/:id` route is not implemented on the current
@@ -281,169 +154,86 @@ export const useRequestStore = create<RequestState>((set) => ({
   sentRequests: [],
   receivedRequests: [],
   sessions: [],
-  zoomStatus: null,
 
-  checkZoomStatus: async () => {
-    try {
-      const token = useAuthStore.getState().token;
-      const response = await fetch(API_BASE + "zoom/status", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: "Bearer " + token } : {}),
-        },
-      });
-      const data: ZoomStatus = await response.json();
-      set({ zoomStatus: data });
-      return { success: true, data };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      return { success: false, message };
-    }
-  },
-
-  fetchZoomSignature: async (meetingNumber: string, role: number = 0) => {
+  fetchSessions: async () => {
     try {
       const token = useAuthStore.getState().token;
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(API_BASE + "zoom/signature", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({ meetingNumber, role }),
+      const response = await dedupFetch("requests-all", async () => {
+        const res = await fetch(API_BASE + "requests", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+        });
+        return res;
       });
-
-      const raw = await response.json();
+      const data = await response.json();
       if (!response.ok)
-        throw new Error(raw.message || "Failed to get Zoom signature");
-      const data: ZoomSignature = raw;
+        throw new Error(data.message || "Failed to fetch sessions");
 
-      return { success: true, data };
+      const sessions: Session[] = Array.isArray(data)
+        ? data
+        : data.sessions || [];
+      set({ sessions });
+      return { success: true, data: sessions };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
       return { success: false, message };
     }
   },
-
-  fetchZoomZak: async () => {
-    try {
-      const token = useAuthStore.getState().token;
-      if (!token) throw new Error("No authentication token found");
-
-      const response = await fetch(API_BASE + "zoom/zak", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-      });
-
-      const raw = await response.json();
-      if (!response.ok)
-        throw new Error(raw.message || "Failed to get Zoom host token");
-
-      return { success: true, data: raw };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      return { success: false, message };
-    }
-  },
-
-fetchSessions: async () => {
-     try {
-       const token = useAuthStore.getState().token;
-       if (!token) throw new Error("No authentication token found");
-
-       const response = await dedupFetch("requests-all", async () => {
-         const res = await fetch(API_BASE + "requests", {
-           method: "GET",
-           headers: {
-             "Content-Type": "application/json",
-             Authorization: "Bearer " + token,
-           },
-         });
-         return res;
-       });
-       const data = await response.json();
-       if (!response.ok)
-         throw new Error(data.message || "Failed to fetch sessions");
-
-       const zoomCache = loadZoomCache();
-       const sessions: Session[] = (
-         Array.isArray(data) ? data : data.sessions || []
-       ).map((s: Session) => enrichSessionRecord(s, zoomCache));
-       set({ sessions });
-       return { success: true, data: sessions };
-     } catch (error: unknown) {
-       const message =
-         error instanceof Error ? error.message : "An unknown error occurred";
-       return { success: false, message };
-     }
-   },
 
   fetchRequests: async () => {
-      set({ requestsLoading: true, error: null });
-     try {
-       const token = useAuthStore.getState().token;
-       if (!token) throw new Error("No authentication token found");
+    set({ requestsLoading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("No authentication token found");
 
-       const response = await dedupFetch("requests-type-all", async () => {
-         const res = await fetch(API_BASE + "requests?type=all", {
-           method: "GET",
-           headers: {
-             "Content-Type": "application/json",
-             Authorization: "Bearer " + token,
-           },
-         });
-         return res;
-       });
+      const response = await dedupFetch("requests-type-all", async () => {
+        const res = await fetch(API_BASE + "requests?type=all", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+        });
+        return res;
+      });
 
-       const data = await response.json();
-       if (!response.ok)
-         throw new Error(data.message || "Failed to fetch requests");
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Failed to fetch requests");
 
       const userEmail = useAuthStore.getState().user?.email;
-      const zoomCache = loadZoomCache();
 
-        if (Array.isArray(data)) {
-          set({
-            sentRequests: data
-              .filter(
-                (r) => r.type === "sent" || r.requester?.email === userEmail,
-              )
-              .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-            receivedRequests: data
-              .filter(
-                (r) => r.type === "received" || r.provider?.email === userEmail,
-              )
-              .map((r: SessionRequest) => enrichWithZoomCache(r, zoomCache)),
-            requestsLoading: false,
-          });
-        } else {
-          set({
-            sentRequests: (data.sent || []).map((r: SessionRequest) =>
-              enrichWithZoomCache(r, zoomCache),
-            ),
-            receivedRequests: (data.received || []).map((r: SessionRequest) =>
-              enrichWithZoomCache(r, zoomCache),
-            ),
-            requestsLoading: false,
-          });
-        }
-
-        return { success: true };
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        set({ error: message, requestsLoading: false });
-        return { success: false, message };
+      if (Array.isArray(data)) {
+        set({
+          sentRequests: data.filter(
+            (r) => r.type === "sent" || r.requester?.email === userEmail,
+          ),
+          receivedRequests: data.filter(
+            (r) => r.type === "received" || r.provider?.email === userEmail,
+          ),
+          requestsLoading: false,
+        });
+      } else {
+        set({
+          sentRequests: data.sent || [],
+          receivedRequests: data.received || [],
+          requestsLoading: false,
+        });
       }
+
+      return { success: true };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      set({ error: message, requestsLoading: false });
+      return { success: false, message };
+    }
   },
 
   /**
@@ -467,10 +257,10 @@ fetchSessions: async () => {
 
       if (response.status === 404) {
         singleRequestRouteMissing = true;
-        console.warn(
-          "[requestStore] GET /requests/:id is not implemented on the backend; " +
-            "session status polling has fallen back to GET /requests?type=all.",
-        );
+        // console.warn(
+        //   "[requestStore] GET /requests/:id is not implemented on the backend; " +
+        //     "session status polling has fallen back to GET /requests?type=all.",
+        // );
         return { success: true, data: await findRequestViaList(id, token) };
       }
 
@@ -512,20 +302,6 @@ fetchSessions: async () => {
       if (!response.ok)
         throw new Error(data.message || "Failed to update request");
 
-      if (status === "accepted") {
-        const session = data?.session || data?.data?.session;
-        if (session?.id && (session.zoomMeetingId || session.zoomJoinUrl)) {
-          const cache = loadZoomCache();
-          cache[session.id] = {
-            zoomMeetingId: session.zoomMeetingId,
-            zoomPassword: session.zoomPassword,
-            zoomJoinUrl: session.zoomJoinUrl,
-            zoomStartUrl: session.zoomStartUrl,
-          };
-          saveZoomCache(cache);
-        }
-      }
-
       set({ loading: false });
       return { success: true };
     } catch (error: unknown) {
@@ -552,7 +328,6 @@ fetchSessions: async () => {
       });
 
       const rawResponse = await response.text();
-
 
       let data;
       try {
