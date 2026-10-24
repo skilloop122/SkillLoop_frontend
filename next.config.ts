@@ -2,12 +2,12 @@ import type { NextConfig } from "next";
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc;
-  style-src 'self' 'unsafe-inline' https://meet.jit.si https://*.jit.si;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc https://accounts.google.com/gsi/client;
+  style-src 'self' 'unsafe-inline' https://meet.jit.si https://*.jit.si https://accounts.google.com/gsi/style;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https://meet.jit.si https://*.jit.si;
   connect-src 'self' https: wss:;
-  frame-src 'self' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc;
+  frame-src 'self' https://tally.so https://meet.jit.si https://*.jit.si https://8x8.vc https://accounts.google.com/gsi/;
   frame-ancestors 'self';
   object-src 'none';
   base-uri 'self';
