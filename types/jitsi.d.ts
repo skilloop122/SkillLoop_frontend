@@ -9,6 +9,7 @@ declare module "@jitsi/react-sdk" {
   export interface JitsiMeetingProps {
     domain?: string;
     roomName: string;
+    jwt?: string;
     configOverwrite?: Record<string, unknown>;
     interfaceConfigOverwrite?: Record<string, unknown>;
     userInfo?: JitsiMeetingUserInfo;
