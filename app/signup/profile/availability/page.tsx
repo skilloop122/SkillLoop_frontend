@@ -15,6 +15,7 @@ import {
   CalendarDays,
   X,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 const DAYS = [
@@ -143,11 +144,11 @@ export default function SetAvailability() {
     );
 
     setSaving(true);
-    setTimeout(() => router.push("/signup/profile/learn"), 400);
+    setTimeout(() => router.push("/signup/profile/skills"), 400);
   };
 
   return (
-    <div className="relative min-h-screen bg-white flex flex-col py-10 px-6 overflow-hidden select-none">
+    <div className="relative min-h-screen bg-slate-50 flex flex-col justify-between py-12 px-6 overflow-x-hidden overflow-y-auto select-none">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {bgIcons.map((item, idx) => {
           const IconComp = item.icon;
@@ -155,7 +156,7 @@ export default function SetAvailability() {
           return (
             <div
               key={idx}
-              className="absolute text-sky-200/60 animate-pulse"
+              className="absolute text-blue-300/50 dark:text-blue-300/30 animate-pulse"
               style={{
                 top: item.top,
                 left: item.left,
@@ -171,16 +172,21 @@ export default function SetAvailability() {
         })}
       </div>
 
-      <div className="relative z-10 w-full max-w-107.5 mx-auto text-center mb-5 pt-12">
-        <h1 className="text-4xl font-normal text-sky-500 tracking-tight">
-          Set your Availability
+      <div className="w-full max-w-107.5 mx-auto pt-6 text-center z-10">
+        <h1 className="text-4xl font-extrabold text-sky-500 tracking-tight mb-2">
+          Set up your Profile
         </h1>
       </div>
 
-      <div className="relative z-10 w-full max-w-107.5 mx-auto flex-1 flex flex-col gap-7">
-        <p className="text-base font-normal text-black leading-snug">
-          Select the days and times that work best for you.
-        </p>
+      <div className="relative z-10 w-full max-w-107.5 mx-auto flex-1 flex flex-col gap-7 my-8">
+        <div className="space-y-1.5 text-center sm:text-left">
+          <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+            Set your Availability
+          </h2>
+          <p className="text-sm font-medium text-slate-500">
+            Select the days and times that work best for you.
+          </p>
+        </div>
 
         <div className="flex flex-wrap gap-3">
           {DAYS.map((day) => {
@@ -193,11 +199,10 @@ export default function SetAvailability() {
                 onClick={() => toggleDay(day)}
                 whileTap={{ scale: 0.94 }}
                 transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                className={`px-4 py-3 rounded-[8px] text-base font-normal transition-all duration-200 shadow-lg ${
-                  isSelected
+                className={`px-4 py-3 rounded-[8px] text-base font-normal transition-all duration-200 shadow-lg ${isSelected
                     ? "bg-sky-500 text-white shadow-sky-200"
                     : "bg-[#c1c1c1] text-black/50 hover:bg-slate-300"
-                }`}
+                  }`}
               >
                 {day}
               </motion.button>
@@ -217,11 +222,10 @@ export default function SetAvailability() {
                   key={day}
                   type="button"
                   onClick={() => setActiveDay(day)}
-                  className={`shrink-0 rounded-[8px] px-3 py-2 text-sm ${
-                    activeDay === day
+                  className={`shrink-0 rounded-[8px] px-3 py-2 text-sm ${activeDay === day
                       ? "bg-sky-500 text-white"
                       : "bg-sky-100 text-slate-700"
-                  }`}
+                    }`}
                 >
                   {day}
                 </button>
@@ -294,7 +298,15 @@ export default function SetAvailability() {
         </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-107.5 mx-auto mt-8">
+      <div className="relative z-10 w-full max-w-107.5 mx-auto mt-8 flex flex-col gap-4">
+        {/* Info Banner matching user specification */}
+        <div className="flex items-center gap-3.5 rounded-2xl border border-sky-400 bg-sky-100/70 px-4.5 py-3.5 shadow-xs">
+          <AlertCircle className="h-6 w-6 text-sky-500 shrink-0" strokeWidth={2} />
+          <p className="text-sm sm:text-[15px] font-normal text-slate-900 leading-snug">
+            Set your preferred time most suitable for you to have both learning and teaching sessions.
+          </p>
+        </div>
+
         <button
           id="finish-setup-btn"
           type="button"
@@ -308,9 +320,11 @@ export default function SetAvailability() {
               Saving Schedule...
             </>
           ) : (
-            "Finish Setup"
+            "Continue"
           )}
         </button>
+
+
       </div>
     </div>
   );
