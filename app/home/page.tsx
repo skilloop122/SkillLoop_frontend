@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useMemo } from "react";
-import { Bell, Settings, Calendar, FileText, Star, Clock, Loader2 } from "lucide-react";
+import { Bell, Settings, Calendar, FileText, Star, Clock, Loader2, X, AlertTriangle, Info } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "../../components/BottomNav";
 import { SideNav } from "../../components/SideNav";
@@ -25,21 +25,33 @@ export default function HomePage() {
   const { data: pointsData, fetchPointsHistory } = usePointsStore();
   const { averageRating, totalCount, byUser, fetchMyFeedback, fetchFeedbackForUser } = useUserFeedbackStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const [dismissedSkillPointsModal, setDismissedSkillPointsModal] = useState(false);
 
-const loadData = useCallback(async () => {
-     if (hydrated && token) {
-       // These were awaited one after another, stacking six round trips before
-       // anything rendered. They are independent, so fire them together.
-       await Promise.all([
-         fetchProfile(),
-         fetchRequests(),
-         fetchSessions(),
-         fetchPointsHistory(),
-         fetchMyFeedback(),
-         fetchNotifications(),
-       ]);
-     }
-   }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
+  const availablePoints = Number(pointsData?.availablePoints);
+  const isOutOfSkillPoints = availablePoints <= 0;
+
+  const shouldShowSkillPointsModal =
+    pointsData?.availablePoints !== undefined &&
+    pointsData?.availablePoints !== null &&
+    Number.isFinite(availablePoints) &&
+    availablePoints < 15;
+
+    
+
+  const loadData = useCallback(async () => {
+    if (hydrated && token) {
+      // These were awaited one after another, stacking six round trips before
+      // anything rendered. They are independent, so fire them together.
+      await Promise.all([
+        fetchProfile(),
+        fetchRequests(),
+        fetchSessions(),
+        fetchPointsHistory(),
+        fetchMyFeedback(),
+        fetchNotifications(),
+      ]);
+    }
+  }, [hydrated, token, fetchProfile, fetchRequests, fetchSessions, fetchPointsHistory, fetchMyFeedback, fetchNotifications]);
 
   useEffect(() => {
     loadData().catch(console.error);
@@ -80,16 +92,16 @@ const loadData = useCallback(async () => {
   const ratingLabel = (value: number | null | undefined) =>
     value !== null && value !== undefined ? `${value}` : "New";
 
-const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
-     if (status === "accepted") setAcceptingId(id);
-     else setRejectingId(id);
-     const result = await updateRequestStatus(id, status);
-     setAcceptingId(null);
-     setRejectingId(null);
-     if (result.success) {
-       loadData();
-     }
-   };
+  const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | "canceled") => {
+    if (status === "accepted") setAcceptingId(id);
+    else setRejectingId(id);
+    const result = await updateRequestStatus(id, status);
+    setAcceptingId(null);
+    setRejectingId(null);
+    if (result.success) {
+      loadData();
+    }
+  };
 
   // Skeleton blocks hold the layout until the first payload lands instead of
   // replacing the whole dashboard with a centered spinner.
@@ -110,7 +122,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
       <SideNav />
       <div className="flex-1 w-full md:ml-64 pb-28 md:pb-12">
         <div className="w-full max-w-md md:max-w-6xl mx-auto px-5 pt-10 md:pt-16">
-          
+
           <div className="flex items-center justify-between mb-8 ">
             <h1 className="text-3xl font-semibold text-black tracking-tight">
               {profileLoading && !profile ? (
@@ -159,7 +171,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                 <span className="text-xl font-bold leading-tight">{upcomingSessions.length}</span>
                 <span className="text-[11px] font-medium text-white/90">Upcoming</span>
               </div>
-              
+
               <div className="bg-white/20 border border-white/30 rounded-[8px] p-3 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1.5 text-white/90">
                   <FileText className="w-4 h-4" />
@@ -276,7 +288,7 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                 View All
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {requestsFirstLoad ? (
                 <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
@@ -328,14 +340,14 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
                       </p>
                     </div>
                   </div>
-<div className="flex gap-2">
-                     <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1 disabled:opacity-50">
-                       {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
-                     </button>
-                     <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1 disabled:opacity-50">
-                       {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
-                     </button>
-                   </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleStatusUpdate(request.id, "accepted")} disabled={acceptingId === request.id || rejectingId === request.id} className="bg-[#0ea5e9] hover:bg-sky-500 text-white font-medium py-1.5 px-6 rounded-[6px] text-sm transition-colors flex-1 disabled:opacity-50">
+                      {acceptingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Accept"}
+                    </button>
+                    <button onClick={() => handleStatusUpdate(request.id, "rejected")} disabled={rejectingId === request.id || acceptingId === request.id} className="bg-white border border-[#0ea5e9] text-black font-medium py-1.5 px-6 rounded-[6px] text-sm hover:bg-slate-50 transition-colors flex-1 disabled:opacity-50">
+                      {rejectingId === request.id ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Decline"}
+                    </button>
+                  </div>
                 </div>
               )) : (
                 <div className="col-span-full py-10 bg-slate-50 rounded-2xl text-center text-slate-400 font-medium">
@@ -344,10 +356,96 @@ const handleStatusUpdate = async (id: string, status: "accepted" | "rejected" | 
               )}
             </div>
           </div>
-          
+
         </div>
       </div>
       <BottomNav />
+      {shouldShowSkillPointsModal && !dismissedSkillPointsModal && (
+  <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 px-5">
+    <div className="relative w-full max-w-85 rounded-2xl bg-white px-5 pt-7 pb-5 shadow-2xl">
+
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={() => setDismissedSkillPointsModal(true)}
+        className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full border border-red-400 text-red-500 hover:bg-red-50"
+        aria-label="Close modal"
+      >
+        <X size={17} />
+      </button>
+
+      {/* Illustration */}
+      <div className="mx-auto mb-5 flex h-24 w-28 items-center justify-center">
+        {isOutOfSkillPoints ? (
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-200">
+              <Star className="h-8 w-8 text-slate-500" />
+            </div>
+            <span className="absolute -right-2 bottom-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-red-500 text-xs font-bold text-white">
+              0
+            </span>
+          </div>
+        ) : (
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-rose-50">
+            <Star className="h-9 w-9 fill-slate-500 text-slate-500" />
+            <AlertTriangle className="absolute -right-2 bottom-0 h-8 w-8 rounded-full bg-red-500 p-1 text-white" />
+          </div>
+        )}
+      </div>
+
+      {/* Heading */}
+      <h2 className="mb-3 text-center text-[17px] font-semibold text-black">
+        {isOutOfSkillPoints
+          ? "You’re Out of Skillpoints!"
+          : "Skillpoint is running out!"}
+      </h2>
+
+      {/* Message */}
+      {isOutOfSkillPoints ? (
+        <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-800">
+          Want to keep learning? Teach a skill you’re good at and earn
+          skillpoints for your next learning session.
+        </p>
+      ) : (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-sky-400 bg-sky-100 px-3 py-3">
+          <Info className="h-5 w-5 shrink-0 text-sky-500" />
+          <p className="text-[12px] leading-relaxed text-slate-800">
+            Adding a skill will allow you to gain more skillpoints.
+          </p>
+        </div>
+      )}
+
+      {/* Action */}
+      {isOutOfSkillPoints ? (
+        <button
+          type="button"
+          onClick={() => router.push("/profile/edit")}
+          className="w-full rounded-xl bg-sky-500 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600"
+        >
+          Add a Skill to Teach
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/profile")}
+            className="rounded-xl border border-sky-500 bg-white py-2.5 text-sm font-medium text-sky-500 transition hover:bg-sky-50"
+          >
+            Profile
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/profile/edit")}
+            className="rounded-xl bg-sky-500 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600"
+          >
+            Add skill
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
     </div>
   );
 }
