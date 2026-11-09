@@ -330,7 +330,7 @@ export default function ProfileDetailsPage() {
           <div className="w-full space-y-6 order-1 lg:order-2">
             <div className="space-y-1.5 text-center sm:text-left">
               <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-                Profile Photo & Phone
+                Profile Photo & Phone Number
               </h2>
               <p className="text-sm font-medium text-slate-500">
                 Add a picture and your phone number to complete setup.
