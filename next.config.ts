@@ -49,6 +49,10 @@ const nextConfig: NextConfig = {
             value: "strict-origin-when-cross-origin",
           },
           {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
+          {
             key: "Permissions-Policy",
             value:
               "camera=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), microphone=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), display-capture=(self \"https://meet.jit.si\" \"https://*.jit.si\" \"https://8x8.vc\" \"https://*.8x8.vc\"), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
