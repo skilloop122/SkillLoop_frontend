@@ -224,6 +224,9 @@ export const useAuthStore = create<AuthState>()(
           const body = await response.json();
 
           if (!response.ok) {
+            if (response.status === 401) {
+              set({ token: null, user: null });
+            }
             return {
               success: false,
               message: body?.message || "Failed",

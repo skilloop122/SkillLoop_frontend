@@ -243,6 +243,9 @@ loading: false,
           const body = await response.json();
 
           if (!response.ok) {
+            if (response.status === 401) {
+              set({ token: null, admin: null });
+            }
             return {
               success: false,
               message: body?.message || "Failed",
